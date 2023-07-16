@@ -12,4 +12,5 @@ run-ownership:
 
 test:
 	go test
+	cd utils && go test
 	cd ownership && go test

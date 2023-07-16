@@ -7,6 +7,18 @@ This utility gives you stats like:
   - Files with most new, churn, helper or refactor changes
   - Total owned lines of code per author in a moment in time
 
+## Usage
+
+* Download the executable binary on releases page and execute `chmod +x gitwho`
+
+```sh
+cd myrepo
+
+# show stats for the last 90 days
+gitwho --days 90
+
+```
+
 ## Types of change concept
 
 When a line is added or deleted by a commit, the context of the change will be analysed so we can classify it in:
@@ -29,17 +41,9 @@ When a line is added or deleted by a commit, the context of the change will be a
 
 See more info in this excelent article: https://www.hatica.io/blog/code-churn-rate/
 
-## Usage
+## Analysis details
 
-* Download the executable binary on releases page and execute `chmod +x gitwho`
-
-```sh
-cd myrepo
-
-# show stats for the last 90 days
-gitwho --days 90
-
-```
+- Blank lines are excluded from all analysis
 
 ## Development notes
 

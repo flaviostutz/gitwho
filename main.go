@@ -4,8 +4,10 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/flaviostutz/gitwho/ownership"
+	"github.com/go-git/go-git/v5"
 	"github.com/sirupsen/logrus"
 )
 
@@ -25,14 +27,21 @@ func main() {
 
 	ownershipFlag := flag.NewFlagSet("", flag.ExitOnError)
 	ownershipFlag.StringVar(&ownershipOpts.Branch, "branch", "main", "Branch name to analyse. Defaults to 'main'")
-	ownershipFlag.StringVar(&ownershipOpts.When, "when", "", "Date time to analyse. Defaults to current date")
-	ownershipFlag.StringVar(&ownershipOpts.Files, "files", "", "Regex for selecting which file paths to include in analysis. Defaults to '.*'")
+	ownershipFlag.StringVar(&ownershipOpts.WhenStr, "when", "", "Date time to analyse. Defaults to 'now'")
+	ownershipFlag.StringVar(&ownershipOpts.FilesRegex, "files", "", "Regex for selecting which file paths to include in analysis. Defaults to '.*'")
 
 	logrus.SetLevel(loglevel)
 
 	if len(os.Args) < 2 {
 		fmt.Println("Expected 'authors', 'files' or 'ownership' command")
 		os.Exit(1)
+	}
+
+	// load local dir
+	repo, err := git.PlainOpen(".")
+	if err != nil {
+		fmt.Println("Cannot load git repo from current path. err=", err)
+		os.Exit(2)
 	}
 
 	switch os.Args[1] {
@@ -44,8 +53,22 @@ func main() {
 	// 	logrus.Debugf("Starting analysis of file changes")
 	case "ownership":
 		ownershipFlag.Parse(os.Args[2:])
+
+		// parse date
+		if ownershipOpts.WhenStr == "now" {
+			ownershipOpts.WhenStr = time.Now().Format(time.RFC3339)
+		}
+		parsedTime, err := time.Parse(time.RFC3339, ownershipOpts.WhenStr)
+		if err != nil {
+			fmt.Println("Invalid date used")
+		}
+		ownershipOpts.When = parsedTime
+
 		logrus.Debugf("Starting analysis of code ownership")
-		ownershipResults := ownership.AnalyseCodeOwnership(ownershipOpts)
+		ownershipResults, err := ownership.AnalyseCodeOwnership(repo, ownershipOpts)
+		if err != nil {
+			fmt.Println("Failed to perform ownership analysis. err=", err)
+		}
 		output := ownership.FormatTextResults(ownershipResults)
 		fmt.Println(output)
 
