@@ -98,6 +98,7 @@ func AnalyseCodeOwnership(repo *git.Repository, opts OwnershipOptions) (Ownershi
 		logrus.Debugf("Scheduling files for blame analysis. filesRegex=%s", opts.FilesRegex)
 		totalFiles := 0
 		fsutil.Walk(wt.Filesystem, wt.Filesystem.Root(), func(path string, finfo fs.FileInfo, err error) error {
+			fmt.Printf("%s, %s, %s\n", path, finfo, err)
 			if finfo == nil || finfo.IsDir() || finfo.Size() > 30000 || !fre.MatchString(path) {
 				logrus.Debugf("Ignoring file %s", finfo)
 				return nil

@@ -10,7 +10,7 @@ run-files:
 	git checkout main
 
 run-ownership:
-	-go run main.go ownership
+	-go run main.go ownership #--repo /Users/flaviostutz/Documents/development/flaviostutz/termdash --branch master
 	git checkout main
 
 test:
