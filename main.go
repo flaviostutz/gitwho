@@ -49,6 +49,7 @@ func main() {
 		ownershipFlag.Parse(os.Args[2:])
 
 		// load local dir
+		logrus.Debugf("Loading git repo at %s", ownershipOpts.RepoDir)
 		repo, err := git.PlainOpen(ownershipOpts.RepoDir)
 		if err != nil {
 			fmt.Printf("Cannot load git repo at %s. err=%s", ownershipOpts.RepoDir, err)
