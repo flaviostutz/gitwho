@@ -55,12 +55,13 @@ func main() {
 		ownershipFlag.Parse(os.Args[2:])
 
 		// parse date
-		if ownershipOpts.WhenStr == "now" {
+		if ownershipOpts.WhenStr == "" || ownershipOpts.WhenStr == "now" {
 			ownershipOpts.WhenStr = time.Now().Format(time.RFC3339)
 		}
 		parsedTime, err := time.Parse(time.RFC3339, ownershipOpts.WhenStr)
 		if err != nil {
 			fmt.Println("Invalid date used")
+			os.Exit(1)
 		}
 		ownershipOpts.When = parsedTime
 
@@ -68,8 +69,9 @@ func main() {
 		ownershipResults, err := ownership.AnalyseCodeOwnership(repo, ownershipOpts)
 		if err != nil {
 			fmt.Println("Failed to perform ownership analysis. err=", err)
+			os.Exit(2)
 		}
-		output := ownership.FormatTextResults(ownershipResults)
+		output := ownership.FormatTextResults(ownershipResults, ownershipOpts)
 		fmt.Println(output)
 
 	default:
