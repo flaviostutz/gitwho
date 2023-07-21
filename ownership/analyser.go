@@ -2,7 +2,6 @@ package ownership
 
 import (
 	"errors"
-	"fmt"
 	"io/fs"
 	"regexp"
 	"sort"
@@ -46,6 +45,11 @@ type blameFileRequest struct {
 func AnalyseCodeOwnership(repo *git.Repository, opts OwnershipOptions) (OwnershipResult, error) {
 	result := OwnershipResult{TotalLines: 0, authorLinesMap: make(map[string]int, 0), AuthorsLines: make([]AuthorLines, 0)}
 
+	fre, err := regexp.Compile(opts.FilesRegex)
+	if err != nil {
+		return result, errors.New("file filter regex is invalid. err=" + err.Error())
+	}
+
 	logrus.Debugf("Analysing branch %s at %s", opts.Branch, opts.When)
 
 	chash0, err := utils.GetCommitHashForTime(repo, opts.Branch, opts.When)
@@ -69,54 +73,20 @@ func AnalyseCodeOwnership(repo *git.Repository, opts OwnershipOptions) (Ownershi
 		return result, err
 	}
 
-	// MAP - analyse files in parallel goroutines
+	// MAP REDUCE - analyse files in parallel goroutines
+	// we need to start workers in the reverse order so that all the chain
+	// is prepared when submitting tasks to avoid deadlocks
 	BLAME_WORKERS := 5
 	logrus.Debugf("Preparing a pool of workers to process file analysis in parallel")
 	blameFileInputChan := make(chan blameFileRequest, 10)
 	blameFileOutputChan := make(chan OwnershipResult, 10)
 	blameFileErrChan := make(chan error, BLAME_WORKERS)
 
-	// MAP - prepare worker pool
-	var blameWorkersWaitGroup sync.WaitGroup
-	for i := 0; i < BLAME_WORKERS; i++ {
-		blameWorkersWaitGroup.Add(1)
-		go blameFileWorker(blameFileInputChan, blameFileOutputChan, blameFileErrChan, &blameWorkersWaitGroup)
-	}
-	logrus.Debugf("Launched %d workers for blame analysis", BLAME_WORKERS)
-
-	fmt.Printf(">>>>%s\n", opts.FilesRegex)
-	fre, err := regexp.Compile(opts.FilesRegex)
-	if err != nil {
-		return result, errors.New("file filter regex is invalid. err=" + err.Error())
-	}
-
-	// MAP - submit tasks
+	// REDUCE - summarise counters (STEP 3/3)
+	var summaryWorkerWaitGroup sync.WaitGroup
+	summaryWorkerWaitGroup.Add(1)
 	go func() {
-		blameWorkersWaitGroup.Add(1)
-		defer blameWorkersWaitGroup.Done()
-		defer close(blameFileInputChan)
-		logrus.Debugf("Scheduling files for blame analysis. filesRegex=%s", opts.FilesRegex)
-		totalFiles := 0
-		fsutil.Walk(wt.Filesystem, wt.Filesystem.Root(), func(path string, finfo fs.FileInfo, err error) error {
-			fmt.Printf("%s, %s, %s\n", path, finfo, err)
-			if finfo == nil || finfo.IsDir() || finfo.Size() > 30000 || !fre.MatchString(path) {
-				logrus.Debugf("Ignoring file %s", finfo)
-				return nil
-			}
-			totalFiles += 1
-			// schedule file to be blamed by parallel workers
-			blameFileInputChan <- blameFileRequest{filePath: path, workingTree: wt, commitObj: commitObj}
-			return nil
-		})
-		// finished publishing request messages
-		logrus.Debugf("%d files scheduled for analysis", totalFiles)
-	}()
-
-	// REDUCE - summarise counters
-	var blameReduceWaitGroup sync.WaitGroup
-	go func() {
-		blameReduceWaitGroup.Add(1)
-		defer blameReduceWaitGroup.Done()
+		defer summaryWorkerWaitGroup.Done()
 		logrus.Debugf("Counting total lines owned per author")
 		for fileResult := range blameFileOutputChan {
 			result.TotalLines += fileResult.TotalLines
@@ -139,21 +109,52 @@ func AnalyseCodeOwnership(repo *git.Repository, opts OwnershipOptions) (Ownershi
 		result.AuthorsLines = authorsLines
 	}()
 
-	// wait until all messages in blameFileInputChan chan are processed by map workers and by reducer
-	logrus.Debugf("Waiting processing to finish")
+	// MAP - start blame analyser workers (STEP 2/3)
+	var analysisWorkersWaitGroup sync.WaitGroup
+	for i := 0; i < BLAME_WORKERS; i++ {
+		analysisWorkersWaitGroup.Add(1)
+		go blameFileWorker(blameFileInputChan, blameFileOutputChan, blameFileErrChan, &analysisWorkersWaitGroup)
+	}
+	logrus.Debugf("Launched %d workers for blame analysis", BLAME_WORKERS)
 
-	blameWorkersWaitGroup.Wait()
-	logrus.Debug("Blame workers finished")
+	// MAP - submit tasks (STEP 1/3)
+	var submitTasksWaitGroup sync.WaitGroup
+	submitTasksWaitGroup.Add(1)
+	go func() {
+		defer submitTasksWaitGroup.Done()
+		logrus.Debugf("Scheduling files for blame analysis. filesRegex=%s", opts.FilesRegex)
+		totalFiles := 0
+		fsutil.Walk(wt.Filesystem, "/", func(path string, finfo fs.FileInfo, err error) error {
+			// fmt.Printf("%s, %s, %s\n", path, finfo, err)
+			if finfo == nil || finfo.IsDir() || finfo.Size() > 30000 || !fre.MatchString(path) {
+				// logrus.Debugf("Ignoring file %s", finfo)
+				return nil
+			}
+			totalFiles += 1
+			// schedule file to be blamed by parallel workers
+			blameFileInputChan <- blameFileRequest{filePath: path, workingTree: wt, commitObj: commitObj}
+			return nil
+		})
+		// finished publishing request messages
+		logrus.Debugf("%d files scheduled for analysis", totalFiles)
+	}()
+
+	submitTasksWaitGroup.Wait()
+	logrus.Debug("Task submission worker finished")
+	close(blameFileInputChan)
+
+	analysisWorkersWaitGroup.Wait()
+	logrus.Debug("Analysis workers finished")
 	close(blameFileOutputChan)
 	close(blameFileErrChan)
 
 	for workerErr := range blameFileErrChan {
-		logrus.Errorf("Error on blame analysis. err=%s", workerErr)
+		logrus.Errorf("Error during analysis. err=%s", workerErr)
 		panic(2)
 	}
 
-	blameReduceWaitGroup.Wait()
-	logrus.Debug("Summarizer finished")
+	summaryWorkerWaitGroup.Wait()
+	logrus.Debug("Summary worker finished")
 
 	// fmt.Printf("SUMMARY: %v\n", result)
 
