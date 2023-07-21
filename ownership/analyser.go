@@ -2,6 +2,7 @@ package ownership
 
 import (
 	"errors"
+	"fmt"
 	"io/fs"
 	"regexp"
 	"sort"
@@ -118,15 +119,12 @@ func AnalyseCodeOwnership(repo *git.Repository, opts OwnershipOptions) (Ownershi
 	logrus.Debugf("Launched %d workers for blame analysis", BLAME_WORKERS)
 
 	// MAP - submit tasks (STEP 1/3)
-	var submitTasksWaitGroup sync.WaitGroup
-	submitTasksWaitGroup.Add(1)
 	go func() {
-		defer submitTasksWaitGroup.Done()
 		logrus.Debugf("Scheduling files for blame analysis. filesRegex=%s", opts.FilesRegex)
 		totalFiles := 0
 		fsutil.Walk(wt.Filesystem, "/", func(path string, finfo fs.FileInfo, err error) error {
 			// fmt.Printf("%s, %s, %s\n", path, finfo, err)
-			if finfo == nil || finfo.IsDir() || finfo.Size() > 30000 || !fre.MatchString(path) {
+			if finfo == nil || finfo.IsDir() || finfo.Size() > 30000 || !fre.MatchString(path) || strings.Contains(path, "/.git/") {
 				// logrus.Debugf("Ignoring file %s", finfo)
 				return nil
 			}
@@ -137,11 +135,9 @@ func AnalyseCodeOwnership(repo *git.Repository, opts OwnershipOptions) (Ownershi
 		})
 		// finished publishing request messages
 		logrus.Debugf("%d files scheduled for analysis", totalFiles)
+		logrus.Debug("Task submission worker finished")
+		close(blameFileInputChan)
 	}()
-
-	submitTasksWaitGroup.Wait()
-	logrus.Debug("Task submission worker finished")
-	close(blameFileInputChan)
 
 	analysisWorkersWaitGroup.Wait()
 	logrus.Debug("Analysis workers finished")
@@ -168,7 +164,7 @@ func blameFileWorker(blameFileInputChan <-chan blameFileRequest, blameFileOutput
 		ownershipResult := OwnershipResult{TotalLines: 0, authorLinesMap: make(map[string]int, 0)}
 		blameResult, err := git.Blame(req.commitObj, strings.TrimLeft(req.filePath, "/"))
 		if err != nil {
-			blameFileErrChan <- err
+			blameFileErrChan <- errors.New(fmt.Sprintf("Error on git blame. file=%s. err=%s", req.filePath, err))
 			break
 		}
 		for _, lineAuthor := range blameResult.Lines {
@@ -176,7 +172,7 @@ func blameFileWorker(blameFileInputChan <-chan blameFileRequest, blameFileOutput
 				continue
 			}
 			ownershipResult.TotalLines += 1
-			ownershipResult.authorLinesMap[lineAuthor.Author] += 1
+			ownershipResult.authorLinesMap[lineAuthor.AuthorName] += 1
 		}
 		blameFileOutputChan <- ownershipResult
 	}
