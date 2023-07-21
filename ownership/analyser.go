@@ -2,6 +2,7 @@ package ownership
 
 import (
 	"errors"
+	"fmt"
 	"io/fs"
 	"regexp"
 	"sort"
@@ -82,6 +83,7 @@ func AnalyseCodeOwnership(repo *git.Repository, opts OwnershipOptions) (Ownershi
 	}
 	logrus.Debugf("Launched %d workers for blame analysis", BLAME_WORKERS)
 
+	fmt.Printf(">>>>%s\n", opts.FilesRegex)
 	fre, err := regexp.Compile(opts.FilesRegex)
 	if err != nil {
 		return result, errors.New("file filter regex is invalid. err=" + err.Error())

@@ -54,6 +54,10 @@ func main() {
 	case "ownership":
 		ownershipFlag.Parse(os.Args[2:])
 
+		if ownershipOpts.FilesRegex == "" {
+			ownershipOpts.FilesRegex = ".*"
+		}
+
 		// parse date
 		if ownershipOpts.WhenStr == "" || ownershipOpts.WhenStr == "now" {
 			ownershipOpts.WhenStr = time.Now().Format(time.RFC3339)
