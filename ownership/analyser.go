@@ -23,6 +23,7 @@ type OwnershipOptions struct {
 	WhenStr    string
 	When       time.Time
 	FilesRegex string
+	RepoDir    string
 }
 
 type AuthorLines struct {

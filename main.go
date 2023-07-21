@@ -29,19 +29,13 @@ func main() {
 	ownershipFlag.StringVar(&ownershipOpts.Branch, "branch", "main", "Branch name to analyse. Defaults to 'main'")
 	ownershipFlag.StringVar(&ownershipOpts.WhenStr, "when", "", "Date time to analyse. Defaults to 'now'")
 	ownershipFlag.StringVar(&ownershipOpts.FilesRegex, "files", "", "Regex for selecting which file paths to include in analysis. Defaults to '.*'")
+	ownershipFlag.StringVar(&ownershipOpts.RepoDir, "repo", "", "Repository path to analyse. Defaults to current dir")
 
 	logrus.SetLevel(loglevel)
 
 	if len(os.Args) < 2 {
 		fmt.Println("Expected 'authors', 'files' or 'ownership' command")
 		os.Exit(1)
-	}
-
-	// load local dir
-	repo, err := git.PlainOpen(".")
-	if err != nil {
-		fmt.Println("Cannot load git repo from current path. err=", err)
-		os.Exit(2)
 	}
 
 	switch os.Args[1] {
@@ -53,6 +47,13 @@ func main() {
 	// 	logrus.Debugf("Starting analysis of file changes")
 	case "ownership":
 		ownershipFlag.Parse(os.Args[2:])
+
+		// load local dir
+		repo, err := git.PlainOpen(ownershipOpts.RepoDir)
+		if err != nil {
+			fmt.Printf("Cannot load git repo at %s. err=%s", ownershipOpts.RepoDir, err)
+			os.Exit(2)
+		}
 
 		if ownershipOpts.FilesRegex == "" {
 			ownershipOpts.FilesRegex = ".*"
