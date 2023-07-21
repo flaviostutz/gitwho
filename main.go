@@ -48,12 +48,8 @@ func main() {
 	case "ownership":
 		ownershipFlag.Parse(os.Args[2:])
 
-		// load local dir
-		logrus.Debugf("Loading git repo at %s", ownershipOpts.RepoDir)
-		repo, err := git.PlainOpen(ownershipOpts.RepoDir)
-		if err != nil {
-			fmt.Printf("Cannot load git repo at %s. err=%s", ownershipOpts.RepoDir, err)
-			os.Exit(2)
+		if ownershipOpts.RepoDir == "" {
+			ownershipOpts.RepoDir = "."
 		}
 
 		if ownershipOpts.FilesRegex == "" {
@@ -70,6 +66,13 @@ func main() {
 			os.Exit(1)
 		}
 		ownershipOpts.When = parsedTime
+
+		logrus.Debugf("Loading git repo at %s", ownershipOpts.RepoDir)
+		repo, err := git.PlainOpen(ownershipOpts.RepoDir)
+		if err != nil {
+			fmt.Printf("Cannot load git repo at %s. err=%s", ownershipOpts.RepoDir, err)
+			os.Exit(2)
+		}
 
 		logrus.Debugf("Starting analysis of code ownership")
 		ownershipResults, err := ownership.AnalyseCodeOwnership(repo, ownershipOpts)
