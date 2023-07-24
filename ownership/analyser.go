@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/fs"
 	"regexp"
+	"runtime"
 	"sort"
 	"strings"
 	"sync"
@@ -24,6 +25,7 @@ type OwnershipOptions struct {
 	When       time.Time
 	FilesRegex string
 	RepoDir    string
+	Verbose    bool
 }
 
 type AuthorLines struct {
@@ -31,10 +33,13 @@ type AuthorLines struct {
 	OwnedLines int
 }
 type OwnershipResult struct {
+	TotalFiles     int
 	TotalLines     int
 	authorLinesMap map[string]int // temporary map used during processing
 	AuthorsLines   []AuthorLines
 	CommitId       string
+	FilePath       string
+	blameTime      time.Duration
 }
 
 type blameFileRequest struct {
@@ -43,8 +48,10 @@ type blameFileRequest struct {
 	commitObj   *object.Commit
 }
 
-func AnalyseCodeOwnership(repo *git.Repository, opts OwnershipOptions) (OwnershipResult, error) {
+func AnalyseCodeOwnership(repo *git.Repository, opts OwnershipOptions, progressChan chan<- utils.ProgressInfo) (OwnershipResult, error) {
 	result := OwnershipResult{TotalLines: 0, authorLinesMap: make(map[string]int, 0), AuthorsLines: make([]AuthorLines, 0)}
+
+	progressInfo := utils.ProgressInfo{}
 
 	fre, err := regexp.Compile(opts.FilesRegex)
 	if err != nil {
@@ -77,11 +84,11 @@ func AnalyseCodeOwnership(repo *git.Repository, opts OwnershipOptions) (Ownershi
 	// MAP REDUCE - analyse files in parallel goroutines
 	// we need to start workers in the reverse order so that all the chain
 	// is prepared when submitting tasks to avoid deadlocks
-	BLAME_WORKERS := 5
+	nrWorkers := runtime.NumCPU() - 1
 	logrus.Debugf("Preparing a pool of workers to process file analysis in parallel")
-	blameFileInputChan := make(chan blameFileRequest, 10)
-	blameFileOutputChan := make(chan OwnershipResult, 10)
-	blameFileErrChan := make(chan error, BLAME_WORKERS)
+	blameFileInputChan := make(chan blameFileRequest, 5000)
+	blameFileOutputChan := make(chan OwnershipResult, 5000)
+	blameFileErrChan := make(chan error, nrWorkers)
 
 	// REDUCE - summarise counters (STEP 3/3)
 	var summaryWorkerWaitGroup sync.WaitGroup
@@ -90,14 +97,20 @@ func AnalyseCodeOwnership(repo *git.Repository, opts OwnershipOptions) (Ownershi
 		defer summaryWorkerWaitGroup.Done()
 		logrus.Debugf("Counting total lines owned per author")
 		for fileResult := range blameFileOutputChan {
+			result.TotalFiles += fileResult.TotalFiles
 			result.TotalLines += fileResult.TotalLines
 			for author := range fileResult.authorLinesMap {
 				authorLines := fileResult.authorLinesMap[author]
 				result.authorLinesMap[author] = authorLines + result.authorLinesMap[author]
 			}
+			progressInfo.CompletedTasks += 1
+			progressInfo.Message = fmt.Sprintf("%s (%s)", fileResult.FilePath, fileResult.blameTime)
+			if len(progressChan) < 1 {
+				progressChan <- progressInfo
+			}
 		}
-		logrus.Debugf("Sorting and preparing summary for each author")
 
+		logrus.Debugf("Sorting and preparing summary for each author")
 		authorsLines := make([]AuthorLines, 0)
 		for author := range result.authorLinesMap {
 			lines := result.authorLinesMap[author]
@@ -112,16 +125,17 @@ func AnalyseCodeOwnership(repo *git.Repository, opts OwnershipOptions) (Ownershi
 
 	// MAP - start blame analyser workers (STEP 2/3)
 	var analysisWorkersWaitGroup sync.WaitGroup
-	for i := 0; i < BLAME_WORKERS; i++ {
+	for i := 0; i < nrWorkers; i++ {
 		analysisWorkersWaitGroup.Add(1)
 		go blameFileWorker(blameFileInputChan, blameFileOutputChan, blameFileErrChan, &analysisWorkersWaitGroup)
 	}
-	logrus.Debugf("Launched %d workers for blame analysis", BLAME_WORKERS)
+	logrus.Debugf("Launched %d workers for blame analysis", nrWorkers)
 
 	// MAP - submit tasks (STEP 1/3)
 	go func() {
 		logrus.Debugf("Scheduling files for blame analysis. filesRegex=%s", opts.FilesRegex)
 		totalFiles := 0
+		progressInfo.TotalTasksKnown = false
 		fsutil.Walk(wt.Filesystem, "/", func(path string, finfo fs.FileInfo, err error) error {
 			// fmt.Printf("%s, %s, %s\n", path, finfo, err)
 			if finfo == nil || finfo.IsDir() || finfo.Size() > 30000 || !fre.MatchString(path) || strings.Contains(path, "/.git/") {
@@ -129,6 +143,13 @@ func AnalyseCodeOwnership(repo *git.Repository, opts OwnershipOptions) (Ownershi
 				return nil
 			}
 			totalFiles += 1
+
+			// show progress
+			progressInfo.TotalTasks += 1
+			// if len(progressChan) < 1 {
+			// 	progressChan <- progressInfo
+			// }
+
 			// schedule file to be blamed by parallel workers
 			blameFileInputChan <- blameFileRequest{filePath: path, workingTree: wt, commitObj: commitObj}
 			return nil
@@ -137,6 +158,11 @@ func AnalyseCodeOwnership(repo *git.Repository, opts OwnershipOptions) (Ownershi
 		logrus.Debugf("%d files scheduled for analysis", totalFiles)
 		logrus.Debug("Task submission worker finished")
 		close(blameFileInputChan)
+
+		progressInfo.TotalTasksKnown = true
+		if len(progressChan) < 1 {
+			progressChan <- progressInfo
+		}
 	}()
 
 	analysisWorkersWaitGroup.Wait()
@@ -161,12 +187,17 @@ func AnalyseCodeOwnership(repo *git.Repository, opts OwnershipOptions) (Ownershi
 func blameFileWorker(blameFileInputChan <-chan blameFileRequest, blameFileOutputChan chan<- OwnershipResult, blameFileErrChan chan<- error, wg *sync.WaitGroup) {
 	defer wg.Done()
 	for req := range blameFileInputChan {
+		startTime := time.Now()
 		ownershipResult := OwnershipResult{TotalLines: 0, authorLinesMap: make(map[string]int, 0)}
+		ownershipResult.FilePath = req.filePath
 		blameResult, err := git.Blame(req.commitObj, strings.TrimLeft(req.filePath, "/"))
 		if err != nil {
 			blameFileErrChan <- errors.New(fmt.Sprintf("Error on git blame. file=%s. err=%s", req.filePath, err))
 			break
 		}
+		//FIXME IMPLEMENT IN SHELL GIT TO CHECK
+		parei aqui
+		ownershipResult.TotalFiles += 1
 		for _, lineAuthor := range blameResult.Lines {
 			if strings.Trim(lineAuthor.Text, " ") == "" {
 				continue
@@ -174,6 +205,9 @@ func blameFileWorker(blameFileInputChan <-chan blameFileRequest, blameFileOutput
 			ownershipResult.TotalLines += 1
 			ownershipResult.authorLinesMap[lineAuthor.AuthorName] += 1
 		}
+		ownershipResult.blameTime = time.Since(startTime)
 		blameFileOutputChan <- ownershipResult
+		// time.Sleep(1 * time.Second)
+		// fmt.Printf("Time spent: %s\n", time.Since(startTime))
 	}
 }

@@ -20,7 +20,7 @@ func TestAnalyseCodeOwnershipAllFiles(t *testing.T) {
 	results, err := AnalyseCodeOwnership(repo, OwnershipOptions{
 		Branch: "master",
 		When:   time.Now(),
-	})
+	}, nil)
 	assert.Nil(t, err)
 	if err != nil {
 		return
@@ -37,7 +37,7 @@ func TestAnalyseCodeOwnershipRegexFiles(t *testing.T) {
 		Branch:     "master",
 		When:       time.Now(),
 		FilesRegex: "/dir1.1/",
-	})
+	}, nil)
 	assert.Nil(t, err)
 	if err != nil {
 		return

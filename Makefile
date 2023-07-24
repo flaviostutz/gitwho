@@ -10,10 +10,14 @@ run-files:
 	git checkout main
 
 run-ownership:
-	-go run main.go ownership --repo /Users/flaviostutz/Documents/development/flaviostutz/termdash --branch master
-	git checkout main
+# gocv, orb, conductor
+	go run main.go ownership --repo /Users/flaviostutz/Documents/development/flaviostutz/conductor --branch master --files ^/ui/src/api/.* --verbose true
+	# git checkout main
 
 test:
 	go test
 	cd utils && go test
 	cd ownership && go test
+
+open-profile:
+	go tool pprof -http=:8080 profile.pprof
