@@ -19,6 +19,15 @@ gitwho --days 90
 
 ```
 
+### gitwho ownership
+
+* Gets the current situation of a repository in a moment in time and counts how many lines of code was created by whom by doing git blame in all files in the repo. For more info, check https://git-scm.com/docs/git-blame
+
+
+## gitwho changes
+
+* Go through all the commits in a certain period and classify which kind of change was done to the lines changed. The final result is the sum of all changes, so for example, if the same line was touched in 4 commits, it will show as 4 lines changed in total. The idea is to show the running effort during coding.
+
 ## Types of change concept
 
 When a line is added or deleted by a commit, the context of the change will be analysed so we can classify it in:

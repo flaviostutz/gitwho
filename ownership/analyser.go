@@ -20,12 +20,8 @@ import (
 )
 
 type OwnershipOptions struct {
-	Branch     string
-	WhenStr    string
-	When       time.Time
-	FilesRegex string
-	RepoDir    string
-	Verbose    bool
+	utils.BaseOptions
+	When time.Time
 }
 
 type AuthorLines struct {
@@ -42,7 +38,7 @@ type OwnershipResult struct {
 	blameTime      time.Duration
 }
 
-type blameFileRequest struct {
+type analyseFileRequest struct {
 	filePath    string
 	workingTree *git.Worktree
 	commitObj   *object.Commit
@@ -86,9 +82,9 @@ func AnalyseCodeOwnership(repo *git.Repository, opts OwnershipOptions, progressC
 	// is prepared when submitting tasks to avoid deadlocks
 	nrWorkers := runtime.NumCPU() - 1
 	logrus.Debugf("Preparing a pool of workers to process file analysis in parallel")
-	blameFileInputChan := make(chan blameFileRequest, 5000)
-	blameFileOutputChan := make(chan OwnershipResult, 5000)
-	blameFileErrChan := make(chan error, nrWorkers)
+	analyseFileInputChan := make(chan analyseFileRequest, 5000)
+	analyseFileOutputChan := make(chan OwnershipResult, 5000)
+	analyseFileErrChan := make(chan error, nrWorkers)
 
 	// REDUCE - summarise counters (STEP 3/3)
 	var summaryWorkerWaitGroup sync.WaitGroup
@@ -96,7 +92,7 @@ func AnalyseCodeOwnership(repo *git.Repository, opts OwnershipOptions, progressC
 	go func() {
 		defer summaryWorkerWaitGroup.Done()
 		logrus.Debugf("Counting total lines owned per author")
-		for fileResult := range blameFileOutputChan {
+		for fileResult := range analyseFileOutputChan {
 			result.TotalFiles += fileResult.TotalFiles
 			result.TotalLines += fileResult.TotalLines
 			for author := range fileResult.authorLinesMap {
@@ -123,17 +119,17 @@ func AnalyseCodeOwnership(repo *git.Repository, opts OwnershipOptions, progressC
 		result.AuthorsLines = authorsLines
 	}()
 
-	// MAP - start blame analyser workers (STEP 2/3)
+	// MAP - start analyser workers (STEP 2/3)
 	var analysisWorkersWaitGroup sync.WaitGroup
 	for i := 0; i < nrWorkers; i++ {
 		analysisWorkersWaitGroup.Add(1)
-		go blameFileWorker(blameFileInputChan, blameFileOutputChan, blameFileErrChan, &analysisWorkersWaitGroup)
+		go blameFileWorker(analyseFileInputChan, analyseFileOutputChan, analyseFileErrChan, &analysisWorkersWaitGroup)
 	}
-	logrus.Debugf("Launched %d workers for blame analysis", nrWorkers)
+	logrus.Debugf("Launched %d workers for analysis", nrWorkers)
 
 	// MAP - submit tasks (STEP 1/3)
 	go func() {
-		logrus.Debugf("Scheduling files for blame analysis. filesRegex=%s", opts.FilesRegex)
+		logrus.Debugf("Scheduling files for analysis. filesRegex=%s", opts.FilesRegex)
 		totalFiles := 0
 		progressInfo.TotalTasksKnown = false
 		fsutil.Walk(wt.Filesystem, "/", func(path string, finfo fs.FileInfo, err error) error {
@@ -151,13 +147,13 @@ func AnalyseCodeOwnership(repo *git.Repository, opts OwnershipOptions, progressC
 			// }
 
 			// schedule file to be blamed by parallel workers
-			blameFileInputChan <- blameFileRequest{filePath: path, workingTree: wt, commitObj: commitObj}
+			analyseFileInputChan <- analyseFileRequest{filePath: path, workingTree: wt, commitObj: commitObj}
 			return nil
 		})
 		// finished publishing request messages
 		logrus.Debugf("%d files scheduled for analysis", totalFiles)
 		logrus.Debug("Task submission worker finished")
-		close(blameFileInputChan)
+		close(analyseFileInputChan)
 
 		progressInfo.TotalTasksKnown = true
 		if len(progressChan) < 1 {
@@ -167,10 +163,10 @@ func AnalyseCodeOwnership(repo *git.Repository, opts OwnershipOptions, progressC
 
 	analysisWorkersWaitGroup.Wait()
 	logrus.Debug("Analysis workers finished")
-	close(blameFileOutputChan)
-	close(blameFileErrChan)
+	close(analyseFileOutputChan)
+	close(analyseFileErrChan)
 
-	for workerErr := range blameFileErrChan {
+	for workerErr := range analyseFileErrChan {
 		logrus.Errorf("Error during analysis. err=%s", workerErr)
 		panic(2)
 	}
@@ -184,19 +180,18 @@ func AnalyseCodeOwnership(repo *git.Repository, opts OwnershipOptions, progressC
 }
 
 // this will be run by multiple goroutines
-func blameFileWorker(blameFileInputChan <-chan blameFileRequest, blameFileOutputChan chan<- OwnershipResult, blameFileErrChan chan<- error, wg *sync.WaitGroup) {
+func blameFileWorker(analyseFileInputChan <-chan analyseFileRequest, analyseFileOutputChan chan<- OwnershipResult, analyseFileErrChan chan<- error, wg *sync.WaitGroup) {
 	defer wg.Done()
-	for req := range blameFileInputChan {
+	for req := range analyseFileInputChan {
 		startTime := time.Now()
 		ownershipResult := OwnershipResult{TotalLines: 0, authorLinesMap: make(map[string]int, 0)}
 		ownershipResult.FilePath = req.filePath
 		blameResult, err := git.Blame(req.commitObj, strings.TrimLeft(req.filePath, "/"))
 		if err != nil {
-			blameFileErrChan <- errors.New(fmt.Sprintf("Error on git blame. file=%s. err=%s", req.filePath, err))
+			analyseFileErrChan <- errors.New(fmt.Sprintf("Error on git blame. file=%s. err=%s", req.filePath, err))
 			break
 		}
-		//FIXME IMPLEMENT IN SHELL GIT TO CHECK
-		parei aqui
+		//TODO: IMPLEMENT IN GIT TO COMPARE SPEED
 		ownershipResult.TotalFiles += 1
 		for _, lineAuthor := range blameResult.Lines {
 			if strings.Trim(lineAuthor.Text, " ") == "" {
@@ -206,7 +201,7 @@ func blameFileWorker(blameFileInputChan <-chan blameFileRequest, blameFileOutput
 			ownershipResult.authorLinesMap[lineAuthor.AuthorName] += 1
 		}
 		ownershipResult.blameTime = time.Since(startTime)
-		blameFileOutputChan <- ownershipResult
+		analyseFileOutputChan <- ownershipResult
 		// time.Sleep(1 * time.Second)
 		// fmt.Printf("Time spent: %s\n", time.Since(startTime))
 	}
