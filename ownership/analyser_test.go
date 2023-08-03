@@ -18,8 +18,8 @@ func TestAnalyseCodeOwnershipAllFiles(t *testing.T) {
 	repo, err := utils.GetTestOwnershipRepo()
 	assert.Nil(t, err)
 	results, err := AnalyseCodeOwnership(repo, OwnershipOptions{
-		Branch: "master",
-		When:   time.Now(),
+		BaseOptions: utils.BaseOptions{Branch: "master"},
+		When:        time.Now(),
 	}, nil)
 	assert.Nil(t, err)
 	if err != nil {
@@ -34,9 +34,11 @@ func TestAnalyseCodeOwnershipRegexFiles(t *testing.T) {
 	repo, err := utils.GetTestOwnershipRepo()
 	assert.Nil(t, err)
 	results, err := AnalyseCodeOwnership(repo, OwnershipOptions{
-		Branch:     "master",
-		When:       time.Now(),
-		FilesRegex: "/dir1.1/",
+		BaseOptions: utils.BaseOptions{
+			Branch:     "master",
+			FilesRegex: "/dir1.1/",
+		},
+		When: time.Now(),
 	}, nil)
 	assert.Nil(t, err)
 	if err != nil {

@@ -49,7 +49,7 @@ func main() {
 	ownershipFlag.StringVar(&ownershipOpts.FilesRegex, "files", ".*", "Regex for selecting which file paths to include in analysis. Defaults to '.*'")
 	ownershipFlag.StringVar(&ownershipOpts.RepoDir, "repo", ".", "Repository path to analyse. Defaults to current dir")
 	ownershipFlag.BoolVar(&ownershipOpts.Verbose, "verbose", false, "Show verbose logs during processing. Defaults to false")
-	changesFlag.StringVar(&profileFile, "profile-file", "", "Profile file to dump golang runtime data to. Defaults to none")
+	ownershipFlag.StringVar(&profileFile, "profile-file", "", "Profile file to dump golang runtime data to. Defaults to none")
 
 	if len(os.Args) < 2 {
 		fmt.Println("Expected 'gitwho changes' or 'gitwho ownership' command")
@@ -68,7 +68,7 @@ func main() {
 	}
 
 	switch os.Args[1] {
-	case "changesFlag":
+	case "changes":
 		changesFlag.Parse(os.Args[2:])
 
 		// parse 'to' date
@@ -107,7 +107,7 @@ func main() {
 		}
 
 		logrus.Debugf("Starting analysis of code changes")
-		progressChan := make(chan utils.ProgressInfo, 1)
+		progressChan := make(chan utils.ProgressInfo, 10)
 		if ownershipOpts.Verbose {
 			go utils.ShowProgress(progressChan)
 		}
@@ -118,7 +118,7 @@ func main() {
 			fmt.Println("Failed to perform changes analysis. err=", err)
 			os.Exit(2)
 		}
-		output := changes.FormatTextResults(changesResults, ownershipOpts)
+		output := changes.FormatTextResults(changesResults, changesOpts)
 		fmt.Println(output)
 
 	case "ownership":

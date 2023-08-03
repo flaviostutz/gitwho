@@ -8,7 +8,7 @@ import (
 )
 
 func TestGetBranchHash(t *testing.T) {
-	repo, err := GetTestRepo()
+	repo, err := GetTestOwnershipRepo()
 	assert.Nil(t, err)
 	if err != nil {
 		return
@@ -26,7 +26,7 @@ func TestGetBranchHash(t *testing.T) {
 }
 
 func TestGetCommitHashForDate(t *testing.T) {
-	repo, err := GetTestRepo()
+	repo, err := GetTestOwnershipRepo()
 	assert.Nil(t, err)
 
 	// should work on default master branch for a time after commits

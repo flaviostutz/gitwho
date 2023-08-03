@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io/fs"
 	"regexp"
-	"runtime"
 	"sort"
 	"strings"
 	"sync"
@@ -72,7 +71,10 @@ func AnalyseCodeOwnership(repo *git.Repository, opts OwnershipOptions, progressC
 		return result, err
 	}
 	logrus.Debugf("Checking out commit %s", chash0.String())
-	err = wt.Checkout(&git.CheckoutOptions{Hash: plumbing.NewHash(chash0.String())})
+	err = wt.Checkout(&git.CheckoutOptions{
+		Hash: plumbing.NewHash(chash0.String()),
+		// SparseCheckoutDirectories: []string{"docs"},
+	})
 	if err != nil {
 		return result, err
 	}
@@ -80,7 +82,8 @@ func AnalyseCodeOwnership(repo *git.Repository, opts OwnershipOptions, progressC
 	// MAP REDUCE - analyse files in parallel goroutines
 	// we need to start workers in the reverse order so that all the chain
 	// is prepared when submitting tasks to avoid deadlocks
-	nrWorkers := runtime.NumCPU() - 1
+	// nrWorkers := runtime.NumCPU() - 1
+	nrWorkers := 1
 	logrus.Debugf("Preparing a pool of workers to process file analysis in parallel")
 	analyseFileInputChan := make(chan analyseFileRequest, 5000)
 	analyseFileOutputChan := make(chan OwnershipResult, 5000)
@@ -99,6 +102,8 @@ func AnalyseCodeOwnership(repo *git.Repository, opts OwnershipOptions, progressC
 				authorLines := fileResult.authorLinesMap[author]
 				result.authorLinesMap[author] = authorLines + result.authorLinesMap[author]
 			}
+			// FIXME remove later
+			fmt.Printf("%s\n", fileResult.FilePath)
 			progressInfo.CompletedTasks += 1
 			progressInfo.Message = fmt.Sprintf("%s (%s)", fileResult.FilePath, fileResult.blameTime)
 			if len(progressChan) < 1 {

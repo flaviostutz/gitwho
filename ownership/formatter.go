@@ -8,7 +8,7 @@ import (
 func FormatTextResults(ownershipResult OwnershipResult, opts OwnershipOptions) string {
 	text := "Line ownership analysis\n"
 	text += "\n"
-	text += fmt.Sprintf("Branch: %s at %s (%s)\n", opts.Branch, opts.WhenStr, ownershipResult.CommitId)
+	text += fmt.Sprintf("Branch: %s at %s (%s)\n", opts.Branch, opts.When, ownershipResult.CommitId)
 	filesStr := "all"
 	if opts.FilesRegex != "" {
 		filesStr = opts.FilesRegex

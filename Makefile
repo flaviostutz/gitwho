@@ -11,7 +11,8 @@ run-files:
 
 run-ownership:
 # gocv, orb, conductor
-	go run main.go ownership --repo /Users/flaviostutz/Documents/development/flaviostutz/conductor --branch master --files ^/ui/src/api/.* --verbose true
+	# go run main.go ownership --repo /Users/flaviostutz/Documents/development/nn/it4it-pipelines --branch no-build-stage --files .* --verbose true
+	go run main.go ownership --repo /Users/flaviostutz/Documents/development/nn/mortgage-loan --branch master --files ^/docs/.* --verbose true
 	# git checkout main
 
 test:
