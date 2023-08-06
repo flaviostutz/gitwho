@@ -17,7 +17,7 @@ type BlameLine struct {
 }
 
 func ExecGitBlame(repoPath string, filePath string, revision string) ([]BlameLine, error) {
-	cmdResult, err := ExecShellf(repoPath, "git blame --line-porcelain %s -- %s", revision, filePath)
+	cmdResult, err := ExecShellf(repoPath, "/usr/bin/git blame --line-porcelain %s -- %s", revision, filePath)
 	if err != nil {
 		return nil, err
 	}
@@ -77,7 +77,7 @@ func ExecGitBlame(repoPath string, filePath string, revision string) ([]BlameLin
 }
 
 func ExecListTree(repoDir string, commitId string) ([]string, error) {
-	cmdResult, err := ExecShellf(repoDir, "git ls-tree --name-only -r %s", commitId)
+	cmdResult, err := ExecShellf(repoDir, "/usr/bin/git ls-tree --name-only -r %s", commitId)
 	if err != nil {
 		return nil, err
 	}
@@ -89,7 +89,7 @@ func ExecListTree(repoDir string, commitId string) ([]string, error) {
 }
 
 func ExecGetCommitAtDate(repoDir string, branch string, when string) (string, error) {
-	cmdResult, err := ExecShellf(repoDir, "git rev-list -n 1 %s --until=\"%s\"", branch, when)
+	cmdResult, err := ExecShellf(repoDir, "/usr/bin/git rev-list -n 1 %s --until=\"%s\"", branch, when)
 	if err != nil {
 		return "", err
 	}
