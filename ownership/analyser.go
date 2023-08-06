@@ -3,24 +3,21 @@ package ownership
 import (
 	"errors"
 	"fmt"
-	"io/fs"
+	"os"
 	"regexp"
+	"runtime"
 	"sort"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/flaviostutz/gitwho/utils"
-	fsutil "github.com/go-git/go-billy/v5/util"
-	"github.com/go-git/go-git/v5"
-	"github.com/go-git/go-git/v5/plumbing"
-	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/sirupsen/logrus"
 )
 
 type OwnershipOptions struct {
 	utils.BaseOptions
-	When time.Time
+	When string
 }
 
 type AuthorLines struct {
@@ -38,12 +35,12 @@ type OwnershipResult struct {
 }
 
 type analyseFileRequest struct {
-	filePath    string
-	workingTree *git.Worktree
-	commitObj   *object.Commit
+	repoDir  string
+	filePath string
+	commitId string
 }
 
-func AnalyseCodeOwnership(repo *git.Repository, opts OwnershipOptions, progressChan chan<- utils.ProgressInfo) (OwnershipResult, error) {
+func AnalyseCodeOwnership(opts OwnershipOptions, progressChan chan<- utils.ProgressInfo) (OwnershipResult, error) {
 	result := OwnershipResult{TotalLines: 0, authorLinesMap: make(map[string]int, 0), AuthorsLines: make([]AuthorLines, 0)}
 
 	progressInfo := utils.ProgressInfo{}
@@ -55,35 +52,17 @@ func AnalyseCodeOwnership(repo *git.Repository, opts OwnershipOptions, progressC
 
 	logrus.Debugf("Analysing branch %s at %s", opts.Branch, opts.When)
 
-	chash0, err := utils.GetCommitHashForTime(repo, opts.Branch, opts.When)
+	commitId, err := utils.ExecGetCommitAtDate(opts.RepoDir, opts.Branch, opts.When)
 	if err != nil {
 		return result, err
 	}
-	result.CommitId = chash0.String()
-
-	commitObj, err := repo.CommitObject(chash0)
-	if err != nil {
-		return result, err
-	}
-
-	wt, err := repo.Worktree()
-	if err != nil {
-		return result, err
-	}
-	logrus.Debugf("Checking out commit %s", chash0.String())
-	err = wt.Checkout(&git.CheckoutOptions{
-		Hash: plumbing.NewHash(chash0.String()),
-		// SparseCheckoutDirectories: []string{"docs"},
-	})
-	if err != nil {
-		return result, err
-	}
+	result.CommitId = commitId
 
 	// MAP REDUCE - analyse files in parallel goroutines
 	// we need to start workers in the reverse order so that all the chain
 	// is prepared when submitting tasks to avoid deadlocks
-	// nrWorkers := runtime.NumCPU() - 1
-	nrWorkers := 1
+	nrWorkers := runtime.NumCPU() - 1
+	// nrWorkers := 1
 	logrus.Debugf("Preparing a pool of workers to process file analysis in parallel")
 	analyseFileInputChan := make(chan analyseFileRequest, 5000)
 	analyseFileOutputChan := make(chan OwnershipResult, 5000)
@@ -102,13 +81,11 @@ func AnalyseCodeOwnership(repo *git.Repository, opts OwnershipOptions, progressC
 				authorLines := fileResult.authorLinesMap[author]
 				result.authorLinesMap[author] = authorLines + result.authorLinesMap[author]
 			}
-			// FIXME remove later
-			fmt.Printf("%s\n", fileResult.FilePath)
 			progressInfo.CompletedTasks += 1
 			progressInfo.Message = fmt.Sprintf("%s (%s)", fileResult.FilePath, fileResult.blameTime)
-			if len(progressChan) < 1 {
-				progressChan <- progressInfo
-			}
+			// if len(progressChan) < 1 {
+			progressChan <- progressInfo
+			// }
 		}
 
 		logrus.Debugf("Sorting and preparing summary for each author")
@@ -137,24 +114,23 @@ func AnalyseCodeOwnership(repo *git.Repository, opts OwnershipOptions, progressC
 		logrus.Debugf("Scheduling files for analysis. filesRegex=%s", opts.FilesRegex)
 		totalFiles := 0
 		progressInfo.TotalTasksKnown = false
-		fsutil.Walk(wt.Filesystem, "/", func(path string, finfo fs.FileInfo, err error) error {
-			// fmt.Printf("%s, %s, %s\n", path, finfo, err)
-			if finfo == nil || finfo.IsDir() || finfo.Size() > 30000 || !fre.MatchString(path) || strings.Contains(path, "/.git/") {
-				// logrus.Debugf("Ignoring file %s", finfo)
-				return nil
+		files, err := utils.ExecListTree(opts.RepoDir, commitId)
+		// tree, err := commitObj.Tree()
+		if err != nil {
+			logrus.Errorf("Error getting commit tree. err=%s", err)
+			panic(5)
+		}
+
+		for _, fileName := range files {
+			if !fre.MatchString(fileName) {
+				// logrus.Debugf("Ignoring file %s", file.Name)
+				continue
 			}
 			totalFiles += 1
-
-			// show progress
 			progressInfo.TotalTasks += 1
-			// if len(progressChan) < 1 {
-			// 	progressChan <- progressInfo
-			// }
+			analyseFileInputChan <- analyseFileRequest{repoDir: opts.RepoDir, filePath: fileName, commitId: commitId}
+		}
 
-			// schedule file to be blamed by parallel workers
-			analyseFileInputChan <- analyseFileRequest{filePath: path, workingTree: wt, commitObj: commitObj}
-			return nil
-		})
 		// finished publishing request messages
 		logrus.Debugf("%d files scheduled for analysis", totalFiles)
 		logrus.Debug("Task submission worker finished")
@@ -191,15 +167,26 @@ func blameFileWorker(analyseFileInputChan <-chan analyseFileRequest, analyseFile
 		startTime := time.Now()
 		ownershipResult := OwnershipResult{TotalLines: 0, authorLinesMap: make(map[string]int, 0)}
 		ownershipResult.FilePath = req.filePath
-		blameResult, err := git.Blame(req.commitObj, strings.TrimLeft(req.filePath, "/"))
+
+		finfo, err := os.Stat(fmt.Sprintf("%s/%s", req.repoDir, req.filePath))
+		if err != nil {
+			analyseFileErrChan <- errors.New(fmt.Sprintf("Couldn't open file. file=%s. err=%s", req.filePath, err))
+			break
+		}
+		if finfo.Size() > 30000 {
+			logrus.Debugf("Ignoring file because it's too big. file=%s, size=%d", req.filePath, finfo.Size())
+			continue
+		}
+
+		blameResult, err := utils.ExecGitBlame(req.repoDir, req.filePath, req.commitId)
 		if err != nil {
 			analyseFileErrChan <- errors.New(fmt.Sprintf("Error on git blame. file=%s. err=%s", req.filePath, err))
 			break
 		}
-		//TODO: IMPLEMENT IN GIT TO COMPARE SPEED
+
 		ownershipResult.TotalFiles += 1
-		for _, lineAuthor := range blameResult.Lines {
-			if strings.Trim(lineAuthor.Text, " ") == "" {
+		for _, lineAuthor := range blameResult {
+			if strings.Trim(lineAuthor.LineContents, " ") == "" {
 				continue
 			}
 			ownershipResult.TotalLines += 1

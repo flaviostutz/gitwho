@@ -1,61 +1,97 @@
 package utils
 
 import (
-	"errors"
+	"strconv"
+	"strings"
 	"time"
-
-	"github.com/go-git/go-git/v5"
-	"github.com/go-git/go-git/v5/plumbing"
 )
 
-func GetBranchHash(repo *git.Repository, branchName string) (plumbing.Hash, error) {
-	brefs, err := repo.Branches()
-	if err != nil {
-		return plumbing.Hash{}, err
-	}
-
-	var branchHash plumbing.Hash
-	for {
-		bref, err := brefs.Next()
-		if err != nil {
-			break
-		}
-		if bref.Name().Short() == branchName {
-			branchHash = bref.Hash()
-			break
-		}
-	}
-	if branchHash.IsZero() {
-		return plumbing.Hash{}, errors.New("Couldn't find branch " + branchName)
-	}
-	return branchHash, nil
+type BlameLine struct {
+	// AuthorName is the name of the last author that modified the line.
+	AuthorName string
+	// Date is when the original text of the line was introduced
+	AuthorDate time.Time
+	// Hash is the commit hash that introduced the original line
+	CommitId     string
+	LineContents string
 }
 
-func GetCommitHashForTime(repo *git.Repository, branchName string, when time.Time) (plumbing.Hash, error) {
-	// find branch
-	branchHash, err := GetBranchHash(repo, branchName)
+func ExecGitBlame(repoPath string, filePath string, revision string) ([]BlameLine, error) {
+	cmdResult, err := ExecShellf(repoPath, "git blame --line-porcelain %s -- %s", revision, filePath)
 	if err != nil {
-		return plumbing.Hash{}, err
+		return nil, err
+	}
+	lines, err := linesToArray(cmdResult)
+	if err != nil {
+		return nil, err
 	}
 
-	// walk through git log for this branch (DESC order)
-	ci, err := repo.Log(&git.LogOptions{Order: git.LogOrderCommitterTime, From: branchHash})
+	blameLine := BlameLine{}
+	result := make([]BlameLine, 0)
+	next := true
+	for _, line := range lines {
+		// line-porcelain EXAMPLE
+		// 92a77046dd4c181cc6810854c4dbe3a56e8ac6e9 1 1 1
+		// author Viren Baraiya
+		// author-mail <vbaraiya@netflix.com>
+		// author-time 1484267213
+		// author-tz -0800
+		// committer Viren Baraiya
+		// committer-mail <vbaraiya@netflix.com>
+		// committer-time 1484267213
+		// committer-tz -0800
+		// summary updated URL for the image
+		// previous 565949b9a9642ba7c79024c797c5d92876da5976 README.md <<< ONLY IF IT'S NOT NEW
+		// filename README.md
+		//         ![Conductor](docs/docs/img/conductor-vector-x.png) <<< TAB AT THE BEGINNING
+
+		// start new line reading
+		// fmt.Printf(">>>>>%s\n", line)
+		if line == "" {
+			continue
+		}
+		if next {
+			next = false
+			blameLine = BlameLine{CommitId: line[:40]}
+		}
+
+		if strings.HasPrefix(line, "author ") {
+			blameLine.AuthorName = line[7:]
+		}
+		if strings.HasPrefix(line, "author-time ") {
+			epoch, err := strconv.ParseInt(line[12:], 10, 64)
+			if err != nil {
+				return nil, err
+			}
+			blameLine.AuthorDate = time.Unix(epoch, 0)
+		}
+
+		// end of line reading detected
+		if strings.HasPrefix(line, "\t") {
+			blameLine.LineContents = line[1:]
+			result = append(result, blameLine)
+			next = true
+		}
+	}
+	return result, nil
+}
+
+func ExecListTree(repoDir string, commitId string) ([]string, error) {
+	cmdResult, err := ExecShellf(repoDir, "git ls-tree --name-only -r %s", commitId)
 	if err != nil {
-		return plumbing.Hash{}, nil
+		return nil, err
 	}
-	prevCommit := plumbing.Hash{}
-	for {
-		c, err := ci.Next()
-		if err != nil {
-			break
-		}
-		if c.Author.When.Before(when) {
-			prevCommit = c.Hash
-			break
-		}
+	lines, err := linesToArray(cmdResult)
+	if err != nil {
+		return nil, err
 	}
-	if prevCommit.IsZero() {
-		return plumbing.Hash{}, errors.New("Couldn't find a commit before date")
+	return lines, nil
+}
+
+func ExecGetCommitAtDate(repoDir string, branch string, when string) (string, error) {
+	cmdResult, err := ExecShellf(repoDir, "git rev-list -n 1 %s --until=\"%s\"", branch, when)
+	if err != nil {
+		return "", err
 	}
-	return prevCommit, nil
+	return strings.Trim(cmdResult, "\n"), nil
 }

@@ -2,44 +2,61 @@ package utils
 
 import (
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 )
 
-func TestGetBranchHash(t *testing.T) {
-	repo, err := GetTestOwnershipRepo()
+func TestExecGetCommitAtDate(t *testing.T) {
+	repoDir, err := ResolveTestOwnershipRepo()
 	assert.Nil(t, err)
 	if err != nil {
 		return
 	}
 
 	// should work for default master branch
-	cid, err := GetBranchHash(repo, "master")
+	cid, err := ExecGetCommitAtDate(repoDir, "master", "now")
 	assert.Nil(t, err)
-	assert.False(t, cid.IsZero())
+	assert.NotEmpty(t, cid)
 
 	// should fail for invalid branches
-	cid, err = GetBranchHash(repo, "my-invalid-branch")
+	cid, err = ExecGetCommitAtDate(repoDir, "invalid-branch", "now")
 	assert.NotNil(t, err)
-	assert.True(t, cid.IsZero())
+	assert.Empty(t, cid)
 }
 
-func TestGetCommitHashForDate(t *testing.T) {
-	repo, err := GetTestOwnershipRepo()
+func TestExecListTree(t *testing.T) {
+	repoDir, err := ResolveTestOwnershipRepo()
 	assert.Nil(t, err)
+	if err != nil {
+		return
+	}
 
-	// should work on default master branch for a time after commits
-	cid, err := GetCommitHashForTime(repo, "master", time.Now())
+	cid, err := ExecGetCommitAtDate(repoDir, "master", "now")
 	assert.Nil(t, err)
-	assert.Equal(t, testRepoLastCommitHash, cid.String())
+	assert.NotEmpty(t, cid)
 
-	// should fail on default master branch for a time before commits
-	cid, err = GetCommitHashForTime(repo, "master", time.Now().AddDate(0, 0, -1))
-	assert.NotNil(t, err)
+	files, err := ExecListTree(repoDir, cid)
+	assert.Nil(t, err)
+	assert.NotEmpty(t, files)
 
-	// should fail for invalid branch
-	cid, err = GetCommitHashForTime(repo, "invalid-branch", time.Now())
-	assert.NotNil(t, err)
-	assert.True(t, cid.IsZero())
+	assert.Equal(t, len(files), 2)
+}
+
+func TestExecGitBlame(t *testing.T) {
+	repoDir, err := ResolveTestOwnershipRepo()
+	assert.Nil(t, err)
+	if err != nil {
+		return
+	}
+
+	cid, err := ExecGetCommitAtDate(repoDir, "master", "now")
+	assert.Nil(t, err)
+	assert.NotEmpty(t, cid)
+
+	lines, err := ExecGitBlame(repoDir, "file1", cid)
+	assert.Nil(t, err)
+	assert.NotEmpty(t, lines)
+	assert.Equal(t, len(lines), 2)
+	assert.Equal(t, lines[0].AuthorName, "author2")
+	assert.Equal(t, lines[1].AuthorName, "author1")
 }

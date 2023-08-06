@@ -33,6 +33,7 @@ func main() {
 	fromStr := ""
 	toStr := ""
 	profileFile := ""
+	verbose := false
 
 	changesFlag := flag.NewFlagSet("changes", flag.ExitOnError)
 	changesFlag.StringVar(&changesOpts.AuthorsRegex, "authors", ".*", "Regex for filtering changes by author name. Defaults to '.*'")
@@ -41,15 +42,15 @@ func main() {
 	changesFlag.StringVar(&fromStr, "from", "", "Filter changes made from this date. Defaults to last 30 days")
 	changesFlag.StringVar(&toStr, "to", "", "Filter changes made util this date. Defaults to current date")
 	changesFlag.StringVar(&profileFile, "profile-file", "", "Profile file to dump golang runtime data to. Defaults to none")
+	changesFlag.BoolVar(&verbose, "verbose", true, "Show verbose logs during processing. Defaults to false")
 
-	whenStr := ""
 	ownershipFlag := flag.NewFlagSet("ownership", flag.ExitOnError)
 	ownershipFlag.StringVar(&ownershipOpts.Branch, "branch", "main", "Branch name to analyse. Defaults to 'main'")
-	ownershipFlag.StringVar(&whenStr, "when", "", "Date time to analyse. Defaults to 'now'")
+	ownershipFlag.StringVar(&ownershipOpts.When, "when", "now", "Date time to analyse. Defaults to 'now'")
 	ownershipFlag.StringVar(&ownershipOpts.FilesRegex, "files", ".*", "Regex for selecting which file paths to include in analysis. Defaults to '.*'")
 	ownershipFlag.StringVar(&ownershipOpts.RepoDir, "repo", ".", "Repository path to analyse. Defaults to current dir")
-	ownershipFlag.BoolVar(&ownershipOpts.Verbose, "verbose", false, "Show verbose logs during processing. Defaults to false")
 	ownershipFlag.StringVar(&profileFile, "profile-file", "", "Profile file to dump golang runtime data to. Defaults to none")
+	ownershipFlag.BoolVar(&verbose, "verbose", true, "Show verbose logs during processing. Defaults to false")
 
 	if len(os.Args) < 2 {
 		fmt.Println("Expected 'gitwho changes' or 'gitwho ownership' command")
@@ -85,7 +86,7 @@ func main() {
 		// parse 'from' date
 		if fromStr == "" {
 			// defaults to one month before current time
-			whenStr = parsedToTime.Add(-720 * time.Hour).Format(time.RFC3339)
+			// whenStr = parsedToTime.Add(-720 * time.Hour).Format(time.RFC3339)
 		}
 		parsedFromTime, err := time.Parse(time.RFC3339, fromStr)
 		if err != nil {
@@ -107,9 +108,15 @@ func main() {
 		}
 
 		logrus.Debugf("Starting analysis of code changes")
-		progressChan := make(chan utils.ProgressInfo, 10)
-		if ownershipOpts.Verbose {
+		progressChan := make(chan utils.ProgressInfo, 1)
+		if verbose {
 			go utils.ShowProgress(progressChan)
+		} else {
+			go func() {
+				// simply empty progress
+				for range progressChan {
+				}
+			}()
 		}
 
 		changesResults, err := changes.AnalyseChanges(repo, changesOpts, progressChan)
@@ -124,31 +131,13 @@ func main() {
 	case "ownership":
 		ownershipFlag.Parse(os.Args[2:])
 
-		// parse date
-		if whenStr == "" || whenStr == "now" {
-			whenStr = time.Now().Format(time.RFC3339)
-		}
-		parsedTime, err := time.Parse(time.RFC3339, whenStr)
-		if err != nil {
-			fmt.Println("Invalid date used")
-			os.Exit(1)
-		}
-		ownershipOpts.When = parsedTime
-
-		logrus.Debugf("Loading git repo at %s", ownershipOpts.RepoDir)
-		repo, err := git.PlainOpen(ownershipOpts.RepoDir)
-		if err != nil {
-			fmt.Printf("Cannot load git repo at %s. err=%s", ownershipOpts.RepoDir, err)
-			os.Exit(2)
-		}
-
-		logrus.Debugf("Starting analysis of code ownership")
 		progressChan := make(chan utils.ProgressInfo, 1)
-		if ownershipOpts.Verbose {
+		if verbose {
 			go utils.ShowProgress(progressChan)
 		}
 
-		ownershipResults, err := ownership.AnalyseCodeOwnership(repo, ownershipOpts, progressChan)
+		logrus.Debugf("Starting analysis of code ownership")
+		ownershipResults, err := ownership.AnalyseCodeOwnership(ownershipOpts, progressChan)
 		close(progressChan)
 		if err != nil {
 			fmt.Println("Failed to perform ownership analysis. err=", err)

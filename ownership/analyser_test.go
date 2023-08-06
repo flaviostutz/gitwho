@@ -2,7 +2,6 @@ package ownership
 
 import (
 	"testing"
-	"time"
 
 	"github.com/flaviostutz/gitwho/utils"
 	"github.com/sirupsen/logrus"
@@ -15,11 +14,14 @@ func init() {
 
 func TestAnalyseCodeOwnershipAllFiles(t *testing.T) {
 	// assert.InDeltaf(t, float64(0), v, 0.01, "")
-	repo, err := utils.GetTestOwnershipRepo()
+	repoDir, err := utils.ResolveTestOwnershipRepo()
 	assert.Nil(t, err)
-	results, err := AnalyseCodeOwnership(repo, OwnershipOptions{
-		BaseOptions: utils.BaseOptions{Branch: "master"},
-		When:        time.Now(),
+	results, err := AnalyseCodeOwnership(OwnershipOptions{
+		BaseOptions: utils.BaseOptions{
+			RepoDir: repoDir,
+			Branch:  "master",
+		},
+		When: "now",
 	}, nil)
 	assert.Nil(t, err)
 	if err != nil {
@@ -31,14 +33,15 @@ func TestAnalyseCodeOwnershipAllFiles(t *testing.T) {
 
 func TestAnalyseCodeOwnershipRegexFiles(t *testing.T) {
 	// assert.InDeltaf(t, float64(0), v, 0.01, "")
-	repo, err := utils.GetTestOwnershipRepo()
+	repo, err := utils.ResolveTestOwnershipRepo()
 	assert.Nil(t, err)
-	results, err := AnalyseCodeOwnership(repo, OwnershipOptions{
+	results, err := AnalyseCodeOwnership(OwnershipOptions{
 		BaseOptions: utils.BaseOptions{
+			RepoDir:    repo,
 			Branch:     "master",
 			FilesRegex: "/dir1.1/",
 		},
-		When: time.Now(),
+		When: "now",
 	}, nil)
 	assert.Nil(t, err)
 	if err != nil {
