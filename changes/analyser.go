@@ -12,8 +12,8 @@ import (
 type ChangesOptions struct {
 	utils.BaseOptions
 	AuthorsRegex string
-	From         time.Time
-	To           time.Time
+	Since        string
+	Until        string
 }
 
 type LinesChanges struct {

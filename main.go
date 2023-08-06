@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"runtime/pprof"
-	"time"
 
 	"github.com/flaviostutz/gitwho/changes"
 	"github.com/flaviostutz/gitwho/ownership"
@@ -30,8 +29,6 @@ func main() {
 
 	logrus.SetLevel(logrus.DebugLevel)
 
-	fromStr := ""
-	toStr := ""
 	profileFile := ""
 	verbose := false
 
@@ -39,8 +36,8 @@ func main() {
 	changesFlag.StringVar(&changesOpts.AuthorsRegex, "authors", ".*", "Regex for filtering changes by author name. Defaults to '.*'")
 	changesFlag.StringVar(&changesOpts.Branch, "branch", "main", "Regex for filtering changes by branch name. Defaults to 'main'")
 	changesFlag.StringVar(&changesOpts.FilesRegex, "files", ".*", "Regex for filtering which files paths to analyse. Defaults to '.*'")
-	changesFlag.StringVar(&fromStr, "from", "", "Filter changes made from this date. Defaults to last 30 days")
-	changesFlag.StringVar(&toStr, "to", "", "Filter changes made util this date. Defaults to current date")
+	changesFlag.StringVar(&changesOpts.Since, "since", "", "Filter changes made from this date. Defaults to last 30 days")
+	changesFlag.StringVar(&changesOpts.Until, "until", "", "Filter changes made util this date. Defaults to current date")
 	changesFlag.StringVar(&profileFile, "profile-file", "", "Profile file to dump golang runtime data to. Defaults to none")
 	changesFlag.BoolVar(&verbose, "verbose", true, "Show verbose logs during processing. Defaults to false")
 
@@ -71,34 +68,6 @@ func main() {
 	switch os.Args[1] {
 	case "changes":
 		changesFlag.Parse(os.Args[2:])
-
-		// parse 'to' date
-		if toStr == "" {
-			toStr = time.Now().Format(time.RFC3339)
-		}
-		parsedToTime, err := time.Parse(time.RFC3339, toStr)
-		if err != nil {
-			fmt.Println("Invalid date used in 'to'")
-			os.Exit(1)
-		}
-		changesOpts.To = parsedToTime
-
-		// parse 'from' date
-		if fromStr == "" {
-			// defaults to one month before current time
-			// whenStr = parsedToTime.Add(-720 * time.Hour).Format(time.RFC3339)
-		}
-		parsedFromTime, err := time.Parse(time.RFC3339, fromStr)
-		if err != nil {
-			fmt.Println("Invalid date used in 'from'")
-			os.Exit(1)
-		}
-		changesOpts.From = parsedFromTime
-
-		if parsedToTime.Before(parsedFromTime) {
-			fmt.Println("Invalid dates: 'from' must be before 'to' date")
-			os.Exit(1)
-		}
 
 		logrus.Debugf("Loading git repo at %s", changesOpts.RepoDir)
 		repo, err := git.PlainOpen(changesOpts.RepoDir)

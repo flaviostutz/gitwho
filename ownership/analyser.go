@@ -82,10 +82,11 @@ func AnalyseCodeOwnership(opts OwnershipOptions, progressChan chan<- utils.Progr
 				result.authorLinesMap[author] = authorLines + result.authorLinesMap[author]
 			}
 			progressInfo.CompletedTasks += 1
-			progressInfo.Message = fmt.Sprintf("%s (%s)", fileResult.FilePath, fileResult.blameTime)
-			// if len(progressChan) < 1 {
-			progressChan <- progressInfo
-			// }
+			progressInfo.CompletedTotalTime += fileResult.blameTime
+			progressInfo.Message = fmt.Sprintf("%s (%dms)", fileResult.FilePath, fileResult.blameTime.Milliseconds())
+			if progressChan != nil {
+				progressChan <- progressInfo
+			}
 		}
 
 		logrus.Debugf("Sorting and preparing summary for each author")
@@ -137,7 +138,7 @@ func AnalyseCodeOwnership(opts OwnershipOptions, progressChan chan<- utils.Progr
 		close(analyseFileInputChan)
 
 		progressInfo.TotalTasksKnown = true
-		if len(progressChan) < 1 {
+		if progressChan != nil {
 			progressChan <- progressInfo
 		}
 	}()
