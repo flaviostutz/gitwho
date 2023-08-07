@@ -9,7 +9,6 @@ import (
 	"github.com/flaviostutz/gitwho/changes"
 	"github.com/flaviostutz/gitwho/ownership"
 	"github.com/flaviostutz/gitwho/utils"
-	"github.com/go-git/go-git/v5"
 	"github.com/sirupsen/logrus"
 )
 
@@ -33,21 +32,22 @@ func main() {
 	verbose := false
 
 	changesFlag := flag.NewFlagSet("changes", flag.ExitOnError)
-	changesFlag.StringVar(&changesOpts.AuthorsRegex, "authors", ".*", "Regex for filtering changes by author name. Defaults to '.*'")
-	changesFlag.StringVar(&changesOpts.Branch, "branch", "main", "Regex for filtering changes by branch name. Defaults to 'main'")
-	changesFlag.StringVar(&changesOpts.FilesRegex, "files", ".*", "Regex for filtering which files paths to analyse. Defaults to '.*'")
-	changesFlag.StringVar(&changesOpts.Since, "since", "", "Filter changes made from this date. Defaults to last 30 days")
-	changesFlag.StringVar(&changesOpts.Until, "until", "", "Filter changes made util this date. Defaults to current date")
-	changesFlag.StringVar(&profileFile, "profile-file", "", "Profile file to dump golang runtime data to. Defaults to none")
-	changesFlag.BoolVar(&verbose, "verbose", true, "Show verbose logs during processing. Defaults to false")
+	// changesFlag.StringVar(&changesOpts.AuthorsRegex, "authors", ".*", "Regex for filtering changes by author name")
+	changesFlag.StringVar(&changesOpts.RepoDir, "repo", ".", "Repository path to analyse")
+	changesFlag.StringVar(&changesOpts.Branch, "branch", "main", "Regex for filtering changes by branch name")
+	changesFlag.StringVar(&changesOpts.FilesRegex, "files", ".*", "Regex for filtering which files paths to analyse")
+	changesFlag.StringVar(&changesOpts.Since, "since", "30 days ago", "Filter changes made from this date")
+	changesFlag.StringVar(&changesOpts.Until, "until", "now", "Filter changes made util this date")
+	changesFlag.StringVar(&profileFile, "profile-file", "", "Profile file to dump golang runtime data to")
+	changesFlag.BoolVar(&verbose, "verbose", true, "Show verbose logs during processing")
 
 	ownershipFlag := flag.NewFlagSet("ownership", flag.ExitOnError)
-	ownershipFlag.StringVar(&ownershipOpts.Branch, "branch", "main", "Branch name to analyse. Defaults to 'main'")
-	ownershipFlag.StringVar(&ownershipOpts.When, "when", "now", "Date time to analyse. Defaults to 'now'")
-	ownershipFlag.StringVar(&ownershipOpts.FilesRegex, "files", ".*", "Regex for selecting which file paths to include in analysis. Defaults to '.*'")
-	ownershipFlag.StringVar(&ownershipOpts.RepoDir, "repo", ".", "Repository path to analyse. Defaults to current dir")
-	ownershipFlag.StringVar(&profileFile, "profile-file", "", "Profile file to dump golang runtime data to. Defaults to none")
-	ownershipFlag.BoolVar(&verbose, "verbose", true, "Show verbose logs during processing. Defaults to false")
+	ownershipFlag.StringVar(&ownershipOpts.RepoDir, "repo", ".", "Repository path to analyse")
+	ownershipFlag.StringVar(&ownershipOpts.Branch, "branch", "main", "Branch name to analyse")
+	ownershipFlag.StringVar(&ownershipOpts.When, "when", "now", "Date time to analyse")
+	ownershipFlag.StringVar(&ownershipOpts.FilesRegex, "files", ".*", "Regex for selecting which file paths to include in analysis")
+	ownershipFlag.StringVar(&profileFile, "profile-file", "", "Profile file to dump golang runtime data to")
+	ownershipFlag.BoolVar(&verbose, "verbose", true, "Show verbose logs during processing")
 
 	if len(os.Args) < 2 {
 		fmt.Println("Expected 'gitwho changes' or 'gitwho ownership' command")
@@ -69,26 +69,13 @@ func main() {
 	case "changes":
 		changesFlag.Parse(os.Args[2:])
 
-		logrus.Debugf("Loading git repo at %s", changesOpts.RepoDir)
-		repo, err := git.PlainOpen(changesOpts.RepoDir)
-		if err != nil {
-			fmt.Printf("Cannot load git repo at %s. err=%s", changesOpts.RepoDir, err)
-			os.Exit(2)
-		}
-
 		logrus.Debugf("Starting analysis of code changes")
 		progressChan := make(chan utils.ProgressInfo, 1)
 		if verbose {
 			go utils.ShowProgress(progressChan)
-		} else {
-			go func() {
-				// simply empty progress
-				for range progressChan {
-				}
-			}()
 		}
 
-		changesResults, err := changes.AnalyseChanges(repo, changesOpts, progressChan)
+		changesResults, err := changes.AnalyseChanges(changesOpts, progressChan)
 		close(progressChan)
 		if err != nil {
 			fmt.Println("Failed to perform changes analysis. err=", err)

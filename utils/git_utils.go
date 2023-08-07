@@ -88,6 +88,50 @@ func ExecListTree(repoDir string, commitId string) ([]string, error) {
 	return lines, nil
 }
 
+func ExecPreviousCommitId(repoDir string, commitId string) (string, error) {
+	cmdResult, err := ExecShellf(repoDir, "/usr/bin/git rev-list --parents -n 1 %s", commitId)
+	if err != nil {
+		return "", err
+	}
+	cmdResult = strings.ReplaceAll(cmdResult, " ", "\n")
+	lines, err := linesToArray(cmdResult)
+	if err != nil {
+		return "", err
+	}
+	if len(lines) != 2 {
+		return "", nil
+	}
+	return lines[1], nil
+}
+
+func ExecDiffTree(repoDir string, commitId string) ([]string, error) {
+	cmdResult, err := ExecShellf(repoDir, "/usr/bin/git diff-tree --no-commit-id --name-only -r %s", commitId)
+	if err != nil {
+		return nil, err
+	}
+	lines, err := linesToArray(cmdResult)
+	if err != nil {
+		return nil, err
+	}
+	return lines, nil
+}
+
+func ExecCommitsInRange(repoDir string, branch string, since string, until string) ([]string, error) {
+	cmdResult, err := ExecShellf(repoDir, "/usr/bin/git log --pretty=format:\"%%h\" --since=\"%s\" --until=\"%s\" %s", since, until, branch)
+	if err != nil {
+		return nil, err
+	}
+	if strings.Trim(cmdResult, "\n") == "" {
+		return []string{}, nil
+	}
+	commitIds, err := linesToArray(cmdResult)
+	if err != nil {
+		return nil, err
+	}
+	return commitIds, nil
+}
+
+// FIXME check if this is used and delete it
 func ExecGetCommitAtDate(repoDir string, branch string, when string) (string, error) {
 	cmdResult, err := ExecShellf(repoDir, "/usr/bin/git rev-list -n 1 %s --until=\"%s\"", branch, when)
 	if err != nil {

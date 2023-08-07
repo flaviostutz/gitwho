@@ -15,6 +15,7 @@ import (
 // ExecShellTimeout execute a shell command (like bash -c 'your command') with a timeout. After that time, the process will be cancelled
 func ExecShellTimeout(workingDir string, command string, timeout time.Duration) (string, error) {
 	// logrus.Debugf("shell command: %s", command)
+	// fmt.Printf("shell command: %s\n", command)
 
 	acmd := cmd.NewCmd("sh", "-c", command)
 
@@ -23,6 +24,7 @@ func ExecShellTimeout(workingDir string, command string, timeout time.Duration) 
 		!strings.Contains(command, "|") &&
 		!strings.Contains(command, ">") &&
 		!strings.Contains(command, "&") &&
+		!strings.Contains(command, "\"") &&
 		!strings.Contains(command, ";") {
 		cmdArgs := strings.Split(command, " ")
 		acmd = cmd.NewCmd(cmdArgs[0], cmdArgs[1:]...)

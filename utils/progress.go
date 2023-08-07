@@ -16,6 +16,10 @@ type ProgressInfo struct {
 func ShowProgress(progressChan <-chan ProgressInfo) {
 	// fmt.Print("\033[s")
 	for pc := range progressChan {
+		if pc.TotalTasks == 0 || pc.CompletedTasks == 0 {
+			continue
+		}
+
 		perc := 100 * float32(pc.CompletedTasks) / float32(pc.TotalTasks)
 		pending := ""
 		if !pc.TotalTasksKnown {

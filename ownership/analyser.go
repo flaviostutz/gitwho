@@ -174,7 +174,7 @@ func blameFileWorker(analyseFileInputChan <-chan analyseFileRequest, analyseFile
 			analyseFileErrChan <- errors.New(fmt.Sprintf("Couldn't open file. file=%s. err=%s", req.filePath, err))
 			break
 		}
-		if finfo.Size() > 30000 {
+		if finfo.Size() > 80000 {
 			logrus.Debugf("Ignoring file because it's too big. file=%s, size=%d", req.filePath, finfo.Size())
 			continue
 		}

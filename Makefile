@@ -1,13 +1,8 @@
 build:
 	go build -o dist/gitwho main.go
 
-run-authors:
-	-go run main.go authors
-	git checkout main
-
-run-files:
-	-go run main.go files
-	git checkout main
+run-changes:
+	go run main.go changes --repo /Users/flaviostutz/Documents/development/flaviostutz/conductor --branch master --files go/README.md --since "48 months ago" --until "47 months ago"
 
 run-ownership:
 # gocv, orb, conductor
@@ -15,7 +10,6 @@ run-ownership:
 	go run main.go ownership --repo /Users/flaviostutz/Documents/development/flaviostutz/moby --branch master --files .*
 	# go run main.go ownership --repo /Users/flaviostutz/Documents/development/nn/it4it-pipelines --branch no-build-stage --files .*
 	# go run main.go ownership --repo /Users/flaviostutz/Documents/development/nn/mortgage-loan --branch master --files ^/docs/.*
-	# git checkout main
 
 test:
 	go test
