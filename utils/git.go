@@ -7,8 +7,10 @@ import (
 )
 
 type BlameLine struct {
-	// AuthorName is the name of the last author that modified the line.
+	// AuthorName is the name of the last author that modified the line
 	AuthorName string
+	// AuthorMail is the mail of the last author that modified the line
+	AuthorMail string
 	// Date is when the original text of the line was introduced
 	AuthorDate time.Time
 	// Hash is the commit hash that introduced the original line
@@ -57,6 +59,9 @@ func ExecGitBlame(repoPath string, filePath string, revision string) ([]BlameLin
 
 		if strings.HasPrefix(line, "author ") {
 			blameLine.AuthorName = line[7:]
+		}
+		if strings.HasPrefix(line, "author-mail ") {
+			blameLine.AuthorMail = line[12:]
 		}
 		if strings.HasPrefix(line, "author-time ") {
 			epoch, err := strconv.ParseInt(line[12:], 10, 64)

@@ -21,7 +21,7 @@ type OwnershipOptions struct {
 }
 
 type AuthorLines struct {
-	Author     string
+	AuthorName string
 	OwnedLines int
 }
 type OwnershipResult struct {
@@ -93,7 +93,7 @@ func AnalyseCodeOwnership(opts OwnershipOptions, progressChan chan<- utils.Progr
 		authorsLines := make([]AuthorLines, 0)
 		for author := range result.authorLinesMap {
 			lines := result.authorLinesMap[author]
-			authorsLines = append(authorsLines, AuthorLines{Author: author, OwnedLines: lines})
+			authorsLines = append(authorsLines, AuthorLines{AuthorName: author, OwnedLines: lines})
 		}
 
 		sort.Slice(authorsLines, func(i, j int) bool {

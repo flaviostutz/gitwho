@@ -11,7 +11,7 @@ func FormatTextResults(ownershipResult OwnershipResult, opts OwnershipOptions) s
 	text += fmt.Sprintf("Total lines: %d\n", ownershipResult.TotalLines)
 	text += "\n"
 	for _, authorLines := range ownershipResult.AuthorsLines {
-		text += fmt.Sprintf("%s: %d (%s%%)\n", authorLines.Author, authorLines.OwnedLines, strconv.FormatFloat(float64(100)*(float64(authorLines.OwnedLines)/float64(ownershipResult.TotalLines)), 'f', 1, 32))
+		text += fmt.Sprintf("%s: %d (%s%%)\n", authorLines.AuthorName, authorLines.OwnedLines, strconv.FormatFloat(float64(100)*(float64(authorLines.OwnedLines)/float64(ownershipResult.TotalLines)), 'f', 1, 32))
 	}
 	return text
 }

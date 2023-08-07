@@ -1,0 +1,7 @@
+First line CHANGED
+Fourth line
+
+Sixth line
+Additional line1
+Additional line2
+Seventh line

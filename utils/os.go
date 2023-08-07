@@ -13,7 +13,7 @@ import (
 // Most of this file was inspired on https://github.com/flaviostutz/promster/blob/master/utils.go
 
 // ExecShellTimeout execute a shell command (like bash -c 'your command') with a timeout. After that time, the process will be cancelled
-func ExecShellTimeout(workingDir string, command string, timeout time.Duration) (string, error) {
+func ExecShellTimeout(workingDir string, command string, timeout time.Duration, expectedExitCode int) (string, error) {
 	// logrus.Debugf("shell command: %s", command)
 	// fmt.Printf("shell command: %s\n", command)
 
@@ -59,7 +59,7 @@ func ExecShellTimeout(workingDir string, command string, timeout time.Duration) 
 	out := GetCmdOutput(acmd)
 	status := acmd.Status()
 	// logrus.Debugf("shell output (%d): %s", status.Exit, out)
-	if status.Exit != 0 {
+	if status.Exit != expectedExitCode {
 		return out, fmt.Errorf("Failed to run command: '%s'; exit=%d; out=%s", command, status.Exit, out)
 	} else {
 		return out, nil
@@ -68,13 +68,13 @@ func ExecShellTimeout(workingDir string, command string, timeout time.Duration) 
 
 // ExecShell execute a shell command (like bash -c 'your command')
 func ExecShell(workingDir string, command string) (string, error) {
-	return ExecShellTimeout(workingDir, command, 0)
+	return ExecShellTimeout(workingDir, command, 0, 0)
 }
 
 // ExecShellf execute a shell command (like bash -c 'your command') but with format replacements
 func ExecShellf(workingDir string, command string, args ...interface{}) (string, error) {
 	cmd := fmt.Sprintf(command, args...)
-	return ExecShellTimeout(workingDir, cmd, 0)
+	return ExecShellTimeout(workingDir, cmd, 0, 0)
 }
 
 // GetCmdOutput join stdout and stderr in a single string from Cmd
