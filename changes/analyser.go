@@ -1,7 +1,6 @@
 package changes
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 	"os"
@@ -12,7 +11,6 @@ import (
 	"time"
 
 	"github.com/flaviostutz/gitwho/utils"
-	"github.com/sergi/go-diff/diffmatchpatch"
 	"github.com/sirupsen/logrus"
 )
 
@@ -197,7 +195,7 @@ func AnalyseChanges(opts ChangesOptions, progressChan chan<- utils.ProgressInfo)
 // this will be run by multiple goroutines
 func analyseFileChangesWorker(analyseFileInputChan <-chan analyseFileRequest, analyseFileOutputChan chan<- ChangesFileResult, analyseFileErrChan chan<- error, wg *sync.WaitGroup) {
 	defer wg.Done()
-	diffMatcher := diffmatchpatch.New()
+	// diffMatcher := diffmatchpatch.New()
 	// diffMatcher.MatchDistance = 200
 
 	for req := range analyseFileInputChan {
@@ -242,12 +240,12 @@ func analyseFileChangesWorker(analyseFileInputChan <-chan analyseFileRequest, an
 			analyseFileErrChan <- errors.New(fmt.Sprintf("Error on git blame prev. file=%s. err=%s", req.filePath, err))
 			break
 		}
-		var prevBuffer bytes.Buffer
-		for _, line := range filePrevBlame {
-			prevBuffer.WriteString(line.LineContents)
-			prevBuffer.WriteString("\n")
-		}
-		filePrevContents := prevBuffer.String()
+		// var prevBuffer bytes.Buffer
+		// for _, line := range filePrevBlame {
+		// 	prevBuffer.WriteString(line.LineContents)
+		// 	prevBuffer.WriteString("\n")
+		// }
+		// filePrevContents := prevBuffer.String()
 
 		// blame current version of the file
 		fileCurBlame, err := utils.ExecGitBlame(req.repoDir, req.filePath, req.commitId)
@@ -255,24 +253,25 @@ func analyseFileChangesWorker(analyseFileInputChan <-chan analyseFileRequest, an
 			analyseFileErrChan <- errors.New(fmt.Sprintf("Error on git blame cur. file=%s. err=%s", req.filePath, err))
 			break
 		}
-		var curBuffer bytes.Buffer
-		for _, line := range fileCurBlame {
-			curBuffer.WriteString(line.LineContents)
-			curBuffer.WriteString("\n")
-		}
-		fileCurContents := curBuffer.String()
+		// var curBuffer bytes.Buffer
+		// for _, line := range fileCurBlame {
+		// 	curBuffer.WriteString(line.LineContents)
+		// 	curBuffer.WriteString("\n")
+		// }
+		// fileCurContents := curBuffer.String()
 
 		// diff both versions of the file
 		// diffs := diffMatcher.DiffMain(filePrevContents, fileCurContents, false)
+		diffs, err := utils.ExecDiffFileRevisions(req.repoDir, req.filePath, prevCommitId, req.commitId)
+		if err != nil {
+			analyseFileErrChan <- errors.New(fmt.Sprintf("Couldn't diff file revisions. file=%s; srcCommit=%s; dstCommit=%s; err=%s", req.filePath, prevCommitId, req.commitId, err))
+			break
+		}
 
-		fileAdmp, fileBdmp, dmpStrings := diffMatcher.DiffLinesToChars(filePrevContents, fileCurContents)
-		diffs := diffMatcher.DiffMain(fileAdmp, fileBdmp, false)
-		diffs = diffMatcher.DiffCharsToLines(diffs, dmpStrings)
-		diffs = diffMatcher.DiffCleanupSemantic(diffs)
-
-		fmt.Printf("curCommitId=%s; prevCommitId=%s\n", req.commitId, prevCommitId)
+		// fmt.Printf("curCommitId=%s; prevCommitId=%s\n", req.commitId, prevCommitId)
 
 		fmt.Println("###############")
+		// fmt.Println(diffs)
 		// fmt.Println(diffMatcher.DiffPrettyText(diffs))
 		fmt.Println("###############")
 
@@ -280,11 +279,8 @@ func analyseFileChangesWorker(analyseFileInputChan <-chan analyseFileRequest, an
 		// for each line, classify change type
 		for li, diff := range diffs {
 			// fmt.Printf("%s - %s | %s -> %s\n", diff.Text, diff.Type.String(), filePrevBlame[li], fileCurBlame[li])
-			fmt.Printf("%s %s\n", diff.Type.String(), diff.Text)
-			if strings.Trim(diff.Text, " ") == "" {
-				continue
-			}
-			changesFileResult.TotalLines.Churn += 1
+			// fmt.Printf("%v %v %v\n", diff.Operation, diff.DstLines, filePrevBlame)
+			changesFileResult.TotalLines.Churn += len(diff.DstLines)
 			// changesFileResult.TotalLines.Helper += 1
 			// changesFileResult.TotalLines.New += 1
 			// changesFileResult.TotalLines.Refactor += 1
@@ -292,7 +288,7 @@ func analyseFileChangesWorker(analyseFileInputChan <-chan analyseFileRequest, an
 			if !ok {
 				authorLine = LinesChanges{}
 			}
-			authorLine.Churn += 1
+			authorLine.Churn += len(filePrevBlame)
 			// authorLine.Helper += 1
 			// authorLine.New += 1
 			// authorLine.Refactor += 1

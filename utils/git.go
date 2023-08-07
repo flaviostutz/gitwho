@@ -136,6 +136,14 @@ func ExecCommitsInRange(repoDir string, branch string, since string, until strin
 	return commitIds, nil
 }
 
+func ExecDiffFileRevisions(repoDir string, filePath string, srcCommitId string, dstCommitId string) ([]DiffEntry, error) {
+	cmdResult, err := ExecShellf(repoDir, "/usr/bin/git difftool -x \"diff\" --no-prompt %s %s -- \"%s\"", srcCommitId, dstCommitId, filePath)
+	if err != nil {
+		return nil, err
+	}
+	return ParseNormalDiffOutput(cmdResult)
+}
+
 // FIXME check if this is used and delete it
 func ExecGetCommitAtDate(repoDir string, branch string, when string) (string, error) {
 	cmdResult, err := ExecShellf(repoDir, "/usr/bin/git rev-list -n 1 %s --until=\"%s\"", branch, when)

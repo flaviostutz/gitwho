@@ -5,6 +5,8 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+
+	"github.com/sergi/go-diff/diffmatchpatch"
 )
 
 type DiffOp int
@@ -38,7 +40,12 @@ func ExecDiffFiles(fileSrc string, fileDst string) ([]DiffEntry, error) {
 		return nil, err
 	}
 
-	lines, err := linesToArray(cmdResult)
+	return ParseNormalDiffOutput(cmdResult)
+}
+
+func ParseNormalDiffOutput(contents string) ([]DiffEntry, error) {
+	// fmt.Printf("%s\n", contents)
+	lines, err := linesToArray(contents)
 	if err != nil {
 		return nil, err
 	}
@@ -111,6 +118,10 @@ func ExecDiffFiles(fileSrc string, fileDst string) ([]DiffEntry, error) {
 				diffEntry.SrcLines[i].Text = srcTextMatches[1]
 			}
 		}
+		if li+1 < len(lines) && strings.HasPrefix(lines[li+1], "\\") {
+			// shown to indicate no new line at the end of the file. skip it
+			li += 1
+		}
 
 		if diffEntry.Operation == OperationChange {
 			// skip separator line "---"
@@ -128,6 +139,10 @@ func ExecDiffFiles(fileSrc string, fileDst string) ([]DiffEntry, error) {
 				}
 				diffEntry.DstLines[i].Text = dstTextMatches[1]
 			}
+		}
+		if li+1 < len(lines) && strings.HasPrefix(lines[li+1], "\\") {
+			// shown to indicate no new line at the end of the file. skip it
+			li += 1
 		}
 
 		result = append(result, diffEntry)
@@ -161,4 +176,13 @@ func extractLines(input string) ([]LineText, error) {
 	}
 
 	return lines, nil
+}
+
+// FIXME remove later if not used
+func DiffContents(src string, dst string) []diffmatchpatch.Diff {
+	dmp := diffmatchpatch.New()
+	wSrc, wDst, warray := dmp.DiffLinesToRunes(src, dst)
+	diffs := dmp.DiffMainRunes(wSrc, wDst, false)
+	diffs = dmp.DiffCharsToLines(diffs, warray)
+	return diffs
 }
