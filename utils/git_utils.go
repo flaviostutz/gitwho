@@ -17,7 +17,7 @@ type BlameLine struct {
 }
 
 func ExecGitBlame(repoPath string, filePath string, revision string) ([]BlameLine, error) {
-	cmdResult, err := ExecShellf(repoPath, "/usr/bin/git blame --line-porcelain %s -- %s", revision, filePath)
+	cmdResult, err := ExecShellf(repoPath, "/usr/bin/git blame --line-porcelain %s -- \"%s\"", revision, filePath)
 	if err != nil {
 		return nil, err
 	}
