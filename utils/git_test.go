@@ -60,6 +60,29 @@ func TestExecDiffTree(t *testing.T) {
 	assert.Equal(t, 1, len(files))
 }
 
+func TestExecTreeFileSize(t *testing.T) {
+	repoDir, err := ResolveTestOwnershipRepo()
+	assert.Nil(t, err)
+	if err != nil {
+		return
+	}
+
+	commitIds, err := ExecCommitsInRange(repoDir, "master", "1 month ago", "now")
+	if err != nil {
+		return
+	}
+
+	size1, err := ExecTreeFileSize(repoDir, commitIds[0], "file1")
+	assert.Nil(t, err)
+	assert.Equal(t, 3, size1)
+
+	size2, err := ExecTreeFileSize(repoDir, commitIds[len(commitIds)-1], "file1")
+	assert.Nil(t, err)
+	assert.Equal(t, 1, size2)
+
+	assert.NotEqual(t, size1, size2)
+}
+
 func TestExecDiffFileRevisions(t *testing.T) {
 	repoDir, err := ResolveTestOwnershipRepo()
 	assert.Nil(t, err)

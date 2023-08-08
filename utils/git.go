@@ -1,6 +1,8 @@
 package utils
 
 import (
+	"fmt"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -107,6 +109,25 @@ func ExecPreviousCommitId(repoDir string, commitId string) (string, error) {
 		return "", nil
 	}
 	return lines[1], nil
+}
+
+func ExecTreeFileSize(repoDir string, commitId string, filePath string) (int, error) {
+	cmdResult, err := ExecShellf(repoDir, "/usr/bin/git ls-tree -r --long %s %s", commitId, filePath)
+	if err != nil {
+		return -1, err
+	}
+	cleanre := regexp.MustCompile(`\s+`)
+	results := cleanre.ReplaceAllString(cmdResult, " ")
+	if strings.Trim(results, " ") == "" {
+		return -1, fmt.Errorf("File doesn't exist. commitId=%s; filePath=%s", commitId, filePath)
+	}
+	parts := strings.Split(results, " ")
+	fmt.Printf("%v", parts)
+	size, err := strconv.Atoi(parts[3])
+	if err != nil {
+		return -1, err
+	}
+	return size, nil
 }
 
 func ExecDiffTree(repoDir string, commitId string) ([]string, error) {

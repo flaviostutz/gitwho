@@ -6,10 +6,10 @@ run-changes:
 
 run-ownership:
 # gocv, orb, conductor
-	# go run main.go ownership --repo /Users/flaviostutz/Documents/development/flaviostutz/conductor --branch master --files .md
-	go run main.go ownership --repo /Users/flaviostutz/Documents/development/flaviostutz/moby --branch master --files .*
+	go run main.go ownership --repo /Users/flaviostutz/Documents/development/flaviostutz/conductor --branch master --files .md
+	# go run main.go ownership --repo /Users/flaviostutz/Documents/development/flaviostutz/moby --branch master --files .*
 	# go run main.go ownership --repo /Users/flaviostutz/Documents/development/nn/it4it-pipelines --branch no-build-stage --files .*
-	# go run main.go ownership --repo /Users/flaviostutz/Documents/development/nn/mortgage-loan --branch master --files ^/docs/.*
+	# go run main.go ownership --repo /Users/flaviostutz/Documents/development/nn/mortgage-loan --branch master --files ".ts" --when "2 year ago"
 
 test:
 	go test
