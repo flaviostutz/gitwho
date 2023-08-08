@@ -57,6 +57,7 @@ func AnalyseCodeOwnership(opts OwnershipOptions, progressChan chan<- utils.Progr
 		return result, err
 	}
 	result.CommitId = commitId
+	logrus.Debugf("Using commitId %s", commitId)
 
 	// MAP REDUCE - analyse files in parallel goroutines
 	// we need to start workers in the reverse order so that all the chain
@@ -116,7 +117,6 @@ func AnalyseCodeOwnership(opts OwnershipOptions, progressChan chan<- utils.Progr
 		totalFiles := 0
 		progressInfo.TotalTasksKnown = false
 		files, err := utils.ExecListTree(opts.RepoDir, commitId)
-		// tree, err := commitObj.Tree()
 		if err != nil {
 			logrus.Errorf("Error getting commit tree. err=%s", err)
 			panic(5)
@@ -169,6 +169,7 @@ func blameFileWorker(analyseFileInputChan <-chan analyseFileRequest, analyseFile
 		ownershipResult := OwnershipResult{TotalLines: 0, authorLinesMap: make(map[string]int, 0)}
 		ownershipResult.FilePath = req.filePath
 
+		fix - create file stat from git instead of from workspace dir
 		finfo, err := os.Stat(fmt.Sprintf("%s/%s", req.repoDir, req.filePath))
 		if err != nil {
 			analyseFileErrChan <- errors.New(fmt.Sprintf("Couldn't open file. file=%s. err=%s", req.filePath, err))
