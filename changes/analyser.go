@@ -3,7 +3,6 @@ package changes
 import (
 	"errors"
 	"fmt"
-	"os"
 	"regexp"
 	"sort"
 	"strings"
@@ -22,15 +21,33 @@ type ChangesOptions struct {
 }
 
 type LinesChanges struct {
-	New      int
-	Refactor int
-	Churn    int
-	Helper   int
+	/* New lines found in commits */
+	New int
+
+	/* Lines changed in commits. If the same line is changed in two commits, for example, it will count as two changes. This is the sum of RefactorOwn, RefactorOther, ChurnOwn and ChurnOther */
+	Changes int
+
+	/* Lines changed after a while in which the author of the previous version was the same person */
+	RefactorOwn int
+	/* Lines changed after a while in which the author of the previous version was another person */
+	RefactorOther int
+	/* Lines you owned that were changed by another person after a while. When adding RefactorOther to someone, the author of the previous version of the line will have this counter incremented */
+	RefactorReceived int
+
+	/* Lines changed in a short term in which the author of the previous version was the same person */
+	ChurnOwn int
+	/* Lines changed in a short term in which the author of the previous version was another person */
+	ChurnOther int
+	/* Lines you owned that were changed by another person in a short term. When adding ChurnOther to someone, the author of the previous version of the line will have this counter incremented */
+	ChurnReceived int
+
+	/* Sum of age of lines in the moment they are changed. AgeSum/Changes gives you the average survival duration of a line before it's changed by someone */
+	AgeSum time.Duration
 }
 
 type AuthorLines struct {
-	Author string
-	Lines  LinesChanges
+	AuthorName string
+	Lines      LinesChanges
 }
 
 type ChangesFileResult struct {
@@ -40,12 +57,16 @@ type ChangesFileResult struct {
 }
 
 type ChangesResult struct {
-	TotalLines     LinesChanges
-	TotalFiles     int
+	/* Lines change stats */
+	TotalLines LinesChanges
+	/* Total files changed in the different commits. If the same file is changed in two commits, for example, it will count as two. */
+	TotalFiles int
+	/* Number of commits analysed */
 	TotalCommits   int
 	authorLinesMap map[string]LinesChanges // temporary map used during processing
-	AuthorsLines   []AuthorLines
-	analysisTime   time.Duration
+	/* Change stats per author */
+	AuthorsLines []AuthorLines
+	analysisTime time.Duration
 }
 
 type analyseFileRequest struct {
@@ -61,6 +82,10 @@ func AnalyseChanges(opts ChangesOptions, progressChan chan<- utils.ProgressInfo)
 		AuthorsLines:   make([]AuthorLines, 0)}
 
 	progressInfo := utils.ProgressInfo{}
+
+	if opts.Branch == "" {
+		return ChangesResult{}, fmt.Errorf("opts.Branch is required")
+	}
 
 	logrus.Debugf("Analysing changes in branch %s from %s to %s", opts.Branch, opts.Since, opts.Until)
 
@@ -84,42 +109,29 @@ func AnalyseChanges(opts ChangesOptions, progressChan chan<- utils.ProgressInfo)
 	summaryWorkerWaitGroup.Add(1)
 	go func() {
 		defer summaryWorkerWaitGroup.Done()
+
+		commitsWithFiles := make(map[string]bool, 0)
+
 		logrus.Debugf("Counting total lines changed per author")
 		for fileResult := range analyseFileOutputChan {
+			commitsWithFiles[fileResult.CommitId] = true
 			result.TotalFiles += fileResult.TotalFiles
-			result.TotalLines.Churn += fileResult.TotalLines.Churn
-			result.TotalLines.Helper += fileResult.TotalLines.Helper
-			result.TotalLines.New += fileResult.TotalLines.New
-			result.TotalLines.Refactor += fileResult.TotalLines.Refactor
+			result.TotalLines = sumLinesChanges(result.TotalLines, fileResult.TotalLines)
 			for author := range fileResult.authorLinesMap {
 				fileAuthorLines := fileResult.authorLinesMap[author]
-				resultAuthorLines := result.authorLinesMap[author]
-				resultAuthorLines.Churn += fileAuthorLines.Churn
-				resultAuthorLines.Helper += fileAuthorLines.Helper
-				resultAuthorLines.New += fileAuthorLines.New
-				resultAuthorLines.Refactor += fileAuthorLines.Refactor
+				authorLines := result.authorLinesMap[author]
+				authorLines = sumLinesChanges(authorLines, fileAuthorLines)
+				result.authorLinesMap[author] = authorLines
 			}
 			progressInfo.CompletedTasks += 1
 			progressInfo.CompletedTotalTime += result.analysisTime
 			progressInfo.Message = fmt.Sprintf("%s", fileResult.FilePath)
-			if len(progressChan) < 1 {
+			if progressChan != nil {
 				progressChan <- progressInfo
 			}
 		}
 
-		logrus.Debugf("Sorting and preparing summary for each author")
-		authorsLines := make([]AuthorLines, 0)
-		for author := range result.authorLinesMap {
-			lines := result.authorLinesMap[author]
-			authorsLines = append(authorsLines, AuthorLines{Author: author, Lines: lines})
-		}
-
-		sort.Slice(authorsLines, func(i, j int) bool {
-			ai := authorsLines[i].Lines
-			aj := authorsLines[j].Lines
-			return ai.Churn+ai.Helper+ai.New+ai.Refactor > aj.Churn+aj.Helper+aj.New+aj.Refactor
-		})
-		result.AuthorsLines = authorsLines
+		result.TotalCommits = len(commitsWithFiles)
 	}()
 
 	// MAP - start analyser workers (STEP 2/3)
@@ -142,7 +154,6 @@ func AnalyseChanges(opts ChangesOptions, progressChan chan<- utils.ProgressInfo)
 			logrus.Errorf("Error getting commits. err=%s", err)
 			panic(5)
 		}
-		result.TotalCommits = len(commits)
 
 		for _, commitId := range commits {
 			// fmt.Printf(">>>>%s\n", commitId)
@@ -187,117 +198,34 @@ func AnalyseChanges(opts ChangesOptions, progressChan chan<- utils.ProgressInfo)
 	summaryWorkerWaitGroup.Wait()
 	logrus.Debug("Summary worker finished")
 
+	logrus.Debugf("Preparing summary for each author")
+	authorsLines := make([]AuthorLines, 0)
+	for author := range result.authorLinesMap {
+		lines := result.authorLinesMap[author]
+		authorsLines = append(authorsLines, AuthorLines{AuthorName: author, Lines: lines})
+	}
+
+	sort.Slice(authorsLines, func(i, j int) bool {
+		ai := authorsLines[i].Lines
+		aj := authorsLines[j].Lines
+		return ai.New+ai.Changes > aj.New+aj.Changes
+	})
+	result.AuthorsLines = authorsLines
+
 	// fmt.Printf("SUMMARY: %v\n", result)
 
 	return result, nil
 }
 
-// this will be run by multiple goroutines
-func analyseFileChangesWorker(analyseFileInputChan <-chan analyseFileRequest, analyseFileOutputChan chan<- ChangesFileResult, analyseFileErrChan chan<- error, wg *sync.WaitGroup) {
-	defer wg.Done()
-	// diffMatcher := diffmatchpatch.New()
-	// diffMatcher.MatchDistance = 200
-
-	for req := range analyseFileInputChan {
-
-		fmt.Printf(">>>>%s %s\n", req.commitId, req.filePath)
-
-		startTime := time.Now()
-		changesFileResult := ChangesFileResult{
-			CommitId: req.commitId,
-			FilePath: req.filePath,
-			ChangesResult: ChangesResult{
-				TotalLines:     LinesChanges{},
-				authorLinesMap: make(map[string]LinesChanges, 0),
-				AuthorsLines:   []AuthorLines{},
-			},
-		}
-
-		finfo, err := os.Stat(fmt.Sprintf("%s/%s", req.repoDir, req.filePath))
-		if err != nil {
-			analyseFileErrChan <- errors.New(fmt.Sprintf("Couldn't open file. file=%s. err=%s", req.filePath, err))
-			break
-		}
-		if finfo.Size() > 80000 {
-			logrus.Debugf("Ignoring file because it's too big. file=%s, size=%d", req.filePath, finfo.Size())
-			continue
-		}
-
-		// blame previous version of the file (so we can compare from->to contents)
-		prevCommitId, err := utils.ExecPreviousCommitId(req.repoDir, req.commitId)
-		if err != nil {
-			analyseFileErrChan <- errors.New(fmt.Sprintf("Error on getting prev commit id. err=%s", err))
-			break
-		}
-
-		if prevCommitId == "" {
-			logrus.Debugf("No previous commit found. Skipping. commitId=%s", req.commitId)
-			continue
-		}
-
-		filePrevBlame, err := utils.ExecGitBlame(req.repoDir, req.filePath, prevCommitId)
-		if err != nil {
-			analyseFileErrChan <- errors.New(fmt.Sprintf("Error on git blame prev. file=%s. err=%s", req.filePath, err))
-			break
-		}
-		// var prevBuffer bytes.Buffer
-		// for _, line := range filePrevBlame {
-		// 	prevBuffer.WriteString(line.LineContents)
-		// 	prevBuffer.WriteString("\n")
-		// }
-		// filePrevContents := prevBuffer.String()
-
-		// blame current version of the file
-		fileCurBlame, err := utils.ExecGitBlame(req.repoDir, req.filePath, req.commitId)
-		if err != nil {
-			analyseFileErrChan <- errors.New(fmt.Sprintf("Error on git blame cur. file=%s. err=%s", req.filePath, err))
-			break
-		}
-		// var curBuffer bytes.Buffer
-		// for _, line := range fileCurBlame {
-		// 	curBuffer.WriteString(line.LineContents)
-		// 	curBuffer.WriteString("\n")
-		// }
-		// fileCurContents := curBuffer.String()
-
-		// diff both versions of the file
-		// diffs := diffMatcher.DiffMain(filePrevContents, fileCurContents, false)
-		diffs, err := utils.ExecDiffFileRevisions(req.repoDir, req.filePath, prevCommitId, req.commitId)
-		if err != nil {
-			analyseFileErrChan <- errors.New(fmt.Sprintf("Couldn't diff file revisions. file=%s; srcCommit=%s; dstCommit=%s; err=%s", req.filePath, prevCommitId, req.commitId, err))
-			break
-		}
-
-		// fmt.Printf("curCommitId=%s; prevCommitId=%s\n", req.commitId, prevCommitId)
-
-		fmt.Println("###############")
-		// fmt.Println(diffs)
-		// fmt.Println(diffMatcher.DiffPrettyText(diffs))
-		fmt.Println("###############")
-
-		changesFileResult.TotalFiles += 1
-		// for each line, classify change type
-		for li, diff := range diffs {
-			// fmt.Printf("%s - %s | %s -> %s\n", diff.Text, diff.Type.String(), filePrevBlame[li], fileCurBlame[li])
-			// fmt.Printf("%v %v %v\n", diff.Operation, diff.DstLines, filePrevBlame)
-			changesFileResult.TotalLines.Churn += len(diff.DstLines)
-			// changesFileResult.TotalLines.Helper += 1
-			// changesFileResult.TotalLines.New += 1
-			// changesFileResult.TotalLines.Refactor += 1
-			authorLine, ok := changesFileResult.authorLinesMap[fileCurBlame[li].AuthorName]
-			if !ok {
-				authorLine = LinesChanges{}
-			}
-			authorLine.Churn += len(filePrevBlame)
-			// authorLine.Helper += 1
-			// authorLine.New += 1
-			// authorLine.Refactor += 1
-			changesFileResult.authorLinesMap[fileCurBlame[li].AuthorName] = authorLine
-		}
-		changesFileResult.analysisTime = time.Since(startTime)
-		analyseFileOutputChan <- changesFileResult
-		// time.Sleep(1 * time.Second)
-		// fmt.Printf("Time spent: %s\n", time.Since(startTime))
-	}
-
+func sumLinesChanges(changes1 LinesChanges, changes2 LinesChanges) LinesChanges {
+	changes1.Changes += changes2.Changes
+	changes1.ChurnOther += changes2.ChurnOther
+	changes1.ChurnOwn += changes2.ChurnOwn
+	changes1.ChurnReceived += changes2.ChurnReceived
+	changes1.New += changes2.New
+	changes1.RefactorOther += changes2.RefactorOther
+	changes1.RefactorOwn += changes2.RefactorOwn
+	changes1.RefactorReceived += changes2.RefactorReceived
+	changes1.AgeSum += changes2.AgeSum
+	return changes1
 }

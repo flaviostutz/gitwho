@@ -2,7 +2,7 @@ build:
 	go build -o dist/gitwho main.go
 
 run-changes:
-	go run main.go changes --repo /Users/flaviostutz/Documents/development/flaviostutz/conductor --branch master --files go/README.md --since "48 months ago" --until "47 months ago"
+	go run main.go changes --repo /Users/flaviostutz/Documents/development/flaviostutz/conductor --branch master --files ^README.md --since "6 years ago" --until "5 years ago"
 
 run-ownership:
 # gocv, orb, conductor

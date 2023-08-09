@@ -42,6 +42,27 @@ func TestExecListTree(t *testing.T) {
 	assert.Equal(t, 2, len(files))
 }
 
+func TestExecCommitDate(t *testing.T) {
+	repoDir, err := ResolveTestOwnershipRepo()
+	assert.Nil(t, err)
+	if err != nil {
+		return
+	}
+
+	commitIds, err := ExecCommitsInRange(repoDir, "master", "1 month ago", "now")
+	if err != nil {
+		return
+	}
+
+	cinfo, err := ExecGitCommitInfo(repoDir, commitIds[0])
+	assert.Nil(t, err)
+	assert.False(t, cinfo.Date.IsZero())
+
+	cinfo2, err := ExecGitCommitInfo(repoDir, commitIds[len(commitIds)-1])
+	assert.Nil(t, err)
+	assert.True(t, cinfo.Date.After(cinfo2.Date))
+}
+
 func TestExecDiffTree(t *testing.T) {
 	repoDir, err := ResolveTestOwnershipRepo()
 	assert.Nil(t, err)
@@ -117,7 +138,7 @@ func TestExecCommitsInRange(t *testing.T) {
 	assert.Equal(t, 5, len(cid))
 }
 
-func TestExecPreviousCommitId(t *testing.T) {
+func TestExecPreviousCommitIdForFile(t *testing.T) {
 	repoDir, err := ResolveTestOwnershipRepo()
 	assert.Nil(t, err)
 	if err != nil {
@@ -128,7 +149,7 @@ func TestExecPreviousCommitId(t *testing.T) {
 	assert.Nil(t, err)
 	assert.NotEmpty(t, cid)
 
-	prevCid, err := ExecPreviousCommitId(repoDir, cid)
+	prevCid, err := ExecPreviousCommitIdForFile(repoDir, cid, "file1")
 	assert.Nil(t, err)
 	assert.NotEmpty(t, prevCid)
 	assert.NotEqual(t, prevCid, cid)

@@ -69,6 +69,7 @@ c`)
 	// commit 4
 	writeAddFile(repoDir, "file1", `a
 c`)
+	time.Sleep(1100 * time.Millisecond)
 	testRepoLastCommitHash, _ = createCommit(repoDir, "commit 4", "author1")
 
 	// DIR /dir1
@@ -119,6 +120,5 @@ func createCommit(repoDir string, comment string, author string) (string, error)
 	if matches == nil {
 		return "", fmt.Errorf("Couldn't find commit id in the result of commit. result=%s", cmdResult)
 	}
-	time.Sleep(50 * time.Millisecond)
 	return matches[0], nil
 }

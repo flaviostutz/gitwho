@@ -20,6 +20,11 @@ type BlameLine struct {
 	LineContents string
 }
 
+type CommitInfo struct {
+	AuthorName string
+	Date       time.Time
+}
+
 func ExecGitBlame(repoPath string, filePath string, revision string) ([]BlameLine, error) {
 	cmdResult, err := ExecShellf(repoPath, "/usr/bin/git blame --line-porcelain %s -- \"%s\"", revision, filePath)
 	if err != nil {
@@ -95,8 +100,8 @@ func ExecListTree(repoDir string, commitId string) ([]string, error) {
 	return lines, nil
 }
 
-func ExecPreviousCommitId(repoDir string, commitId string) (string, error) {
-	cmdResult, err := ExecShellf(repoDir, "/usr/bin/git rev-list --parents -n 1 %s", commitId)
+func ExecPreviousCommitIdForFile(repoDir string, commitId string, filePath string) (string, error) {
+	cmdResult, err := ExecShellf(repoDir, "/usr/bin/git rev-list --parents -n 1 %s %s", commitId, filePath)
 	if err != nil {
 		return "", err
 	}
@@ -122,7 +127,6 @@ func ExecTreeFileSize(repoDir string, commitId string, filePath string) (int, er
 		return -1, fmt.Errorf("File doesn't exist. commitId=%s; filePath=%s", commitId, filePath)
 	}
 	parts := strings.Split(results, " ")
-	fmt.Printf("%v", parts)
 	size, err := strconv.Atoi(parts[3])
 	if err != nil {
 		return -1, err
@@ -130,10 +134,32 @@ func ExecTreeFileSize(repoDir string, commitId string, filePath string) (int, er
 	return size, nil
 }
 
+func ExecGitCommitInfo(repoDir string, commitId string) (CommitInfo, error) {
+	cmdResult, err := ExecShellf(repoDir, "/usr/bin/git show -s --format=\"%%aN---%%aI\" %s", commitId)
+	if err != nil {
+		return CommitInfo{}, err
+	}
+	if strings.Trim(cmdResult, " ") == "" {
+		return CommitInfo{}, fmt.Errorf("Commit not found. commitId=%s", commitId)
+	}
+	result := strings.Trim(cmdResult, "\n")
+	parts := strings.Split(result, "---")
+	// parts := strings.Split(result, " ")
+	// dstr := fmt.Sprintf("%sT%sZ%s", parts[0], parts[1], strings.Replace(parts[2], "+", "", 1))
+	ctime, err := time.Parse(time.RFC3339, parts[1])
+	if err != nil {
+		return CommitInfo{}, err
+	}
+	return CommitInfo{Date: ctime, AuthorName: parts[0]}, nil
+}
+
 func ExecDiffTree(repoDir string, commitId string) ([]string, error) {
-	cmdResult, err := ExecShellf(repoDir, "/usr/bin/git diff-tree --no-commit-id --name-only -r %s", commitId)
+	cmdResult, err := ExecShellf(repoDir, "/usr/bin/git diff-tree --no-commit-id --root --name-only -r %s", commitId)
 	if err != nil {
 		return nil, err
+	}
+	if strings.ReplaceAll(cmdResult, " ", "") == "" || strings.ReplaceAll(cmdResult, "\n", "") == "" {
+		return nil, fmt.Errorf("No files found in commit")
 	}
 	lines, err := linesToArray(cmdResult)
 	if err != nil {
@@ -143,11 +169,20 @@ func ExecDiffTree(repoDir string, commitId string) ([]string, error) {
 }
 
 func ExecCommitsInRange(repoDir string, branch string, since string, until string) ([]string, error) {
-	cmdResult, err := ExecShellf(repoDir, "/usr/bin/git log --pretty=format:\"%%h\" --since=\"%s\" --until=\"%s\" %s", since, until, branch)
+	sinceStr := ""
+	if since != "" {
+		sinceStr = fmt.Sprintf("--since=\"%s\"", since)
+	}
+	untilStr := ""
+	if until != "" {
+		untilStr = fmt.Sprintf("--until=\"%s\"", until)
+	}
+
+	cmdResult, err := ExecShellf(repoDir, "/usr/bin/git log --pretty=format:\"%%h\" %s %s %s", sinceStr, untilStr, branch)
 	if err != nil {
 		return nil, err
 	}
-	if strings.Trim(cmdResult, "\n") == "" {
+	if strings.ReplaceAll(cmdResult, " ", "") == "" || strings.ReplaceAll(cmdResult, "\n", "") == "" {
 		return []string{}, nil
 	}
 	commitIds, err := linesToArray(cmdResult)
