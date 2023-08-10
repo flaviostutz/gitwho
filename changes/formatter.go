@@ -66,7 +66,7 @@ func FormatTopTextResults(changes ChangesResult, opts ChangesOptions) string {
 	text += "\nTop Helpers\n"
 	for i := 0; i < len(changes.AuthorsLines) && i < 2; i++ {
 		al := changes.AuthorsLines[i]
-		text += fmt.Sprintf("  %s: %d%s\n", al.AuthorName, al.Lines.ChurnOther, calcPercStr(al.Lines.ChurnOther, al.Lines.ChurnOther))
+		text += fmt.Sprintf("  %s: %d%s\n", al.AuthorName, al.Lines.ChurnOther, calcPercStr(al.Lines.ChurnOther, changes.TotalLines.ChurnOther))
 	}
 
 	// top churners
@@ -81,7 +81,23 @@ func FormatTopTextResults(changes ChangesResult, opts ChangesOptions) string {
 		text += fmt.Sprintf("  %s: %d%s\n", al.AuthorName, al.Lines.ChurnOwn+al.Lines.ChurnReceived, calcPercStr(al.Lines.ChurnOwn+al.Lines.ChurnReceived, changes.TotalLines.ChurnOwn+changes.TotalLines.ChurnReceived))
 	}
 
+	// top coders
+	sort.Slice(changes.AuthorsLines, func(i, j int) bool {
+		ai := changes.AuthorsLines[i].Lines
+		aj := changes.AuthorsLines[j].Lines
+		return calcTopCoderScore(ai) > calcTopCoderScore(aj)
+	})
+	text += "\nTop Coders (new + refactor - churn)\n"
+	for i := 0; i < len(changes.AuthorsLines) && i < 2; i++ {
+		al := changes.AuthorsLines[i]
+		text += fmt.Sprintf("  %s: %d%s\n", al.AuthorName, calcTopCoderScore(al.Lines), calcPercStr(calcTopCoderScore(al.Lines), calcTopCoderScore(changes.TotalLines)))
+	}
+
 	return text
+}
+
+func calcTopCoderScore(ai LinesChanges) int {
+	return ai.New + 3*ai.RefactorOther + 2*ai.RefactorOwn - ai.ChurnOwn - 3*ai.ChurnOther - 2*ai.ChurnReceived
 }
 
 func FormatLinesChanges(changes LinesChanges, totals LinesChanges) string {

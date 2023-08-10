@@ -2,7 +2,7 @@ build:
 	go build -o dist/gitwho main.go
 
 run-changes:
-	go run main.go changes --repo /Users/flaviostutz/Documents/development/flaviostutz/conductor --branch main --files . --since "5 years ago" --until "3 years ago" --format top
+	go run main.go changes --repo /Users/flaviostutz/Documents/development/flaviostutz/conductor --branch main --files .md --since "5 years ago" --until "3 years ago" --format top
 	# go run main.go changes --repo /Users/flaviostutz/Documents/development/flaviostutz/conductor --branch main --files contribs/src/test/resources/log4j.properties --since "4 years ago" --until "3 years ago"
 
 run-ownership:
