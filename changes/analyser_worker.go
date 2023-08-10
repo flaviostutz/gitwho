@@ -16,7 +16,7 @@ func analyseFileChangesWorker(analyseFileInputChan <-chan analyseFileRequest, an
 
 	for req := range analyseFileInputChan {
 
-		fmt.Printf(">>>>%s %s\n", req.commitId, req.filePath)
+		// fmt.Printf(">>>>%s %s\n", req.commitId, req.filePath)
 
 		startTime := time.Now()
 		changesFileResult := ChangesFileResult{
@@ -31,11 +31,22 @@ func analyseFileChangesWorker(analyseFileInputChan <-chan analyseFileRequest, an
 
 		fsize, err := utils.ExecTreeFileSize(req.repoDir, req.commitId, req.filePath)
 		if err != nil {
-			analyseFileErrChan <- errors.New(fmt.Sprintf("Couldn't find file. file=%s. err=%s", req.filePath, err))
-			break
+			// can't get file size when the file was deleted by commit, so it's not present anymore
+			// TODO get previous version of the file and count these lines as "changed" because they were deleted?
+			continue
 		}
 		if fsize > 80000 {
 			logrus.Debugf("Ignoring file because it's too big. file=%s, size=%d", req.filePath, fsize)
+			continue
+		}
+
+		isBin, err := utils.ExecDiffIsBinary(req.repoDir, req.commitId, req.filePath)
+		if err != nil {
+			analyseFileErrChan <- errors.New(fmt.Sprintf("Couldn't determine if file is binary. file=%s; commitId=%s; err=%s", req.filePath, req.commitId, err))
+			break
+		}
+		if isBin {
+			logrus.Debugf("Ignoring binary file. file=%s, commitId=%s", req.filePath, req.commitId)
 			continue
 		}
 
@@ -122,6 +133,7 @@ func analyseFileChangesWorker(analyseFileInputChan <-chan analyseFileRequest, an
 						addAuthorLines(&changesFileResult,
 							dstAuthorName,
 							LinesChanges{
+								Changes:     1,
 								RefactorOwn: 1,
 								AgeSum:      commitInfo.Date.Sub(srcline.AuthorDate),
 							})
@@ -171,7 +183,7 @@ func analyseFileChangesWorker(analyseFileInputChan <-chan analyseFileRequest, an
 				// if someone changed your line, you receive a "churn received" count
 				addAuthorLines(&changesFileResult,
 					srcline.AuthorName,
-					LinesChanges{RefactorReceived: 1})
+					LinesChanges{ChurnReceived: 1})
 			}
 
 			// special case when changes led to additional lines in destination

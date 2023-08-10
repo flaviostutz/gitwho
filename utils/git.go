@@ -26,7 +26,7 @@ type CommitInfo struct {
 }
 
 func ExecGitBlame(repoPath string, filePath string, revision string) ([]BlameLine, error) {
-	cmdResult, err := ExecShellf(repoPath, "/usr/bin/git blame --line-porcelain %s -- \"%s\"", revision, filePath)
+	cmdResult, err := ExecShellf(repoPath, "/usr/bin/git blame --line-porcelain %s \"%s\"", revision, filePath)
 	if err != nil {
 		return nil, err
 	}
@@ -101,7 +101,7 @@ func ExecListTree(repoDir string, commitId string) ([]string, error) {
 }
 
 func ExecPreviousCommitIdForFile(repoDir string, commitId string, filePath string) (string, error) {
-	cmdResult, err := ExecShellf(repoDir, "/usr/bin/git rev-list --parents -n 1 %s %s", commitId, filePath)
+	cmdResult, err := ExecShellTimeout(repoDir, fmt.Sprintf("/usr/bin/git rev-list --parents -n 1 %s %s", commitId, filePath), 0, []int{0, 128})
 	if err != nil {
 		return "", err
 	}
@@ -116,7 +116,22 @@ func ExecPreviousCommitIdForFile(repoDir string, commitId string, filePath strin
 	return lines[1], nil
 }
 
+func ExecDiffIsBinary(repoDir string, commitId string, filePath string) (bool, error) {
+	// https://www.closedinterval.com/determine-if-a-file-is-binary-using-git/
+	// fmt.Printf("/usr/bin/git diff 4b825dc642cb6eb9a060e54bf8d69288fbee4904 --numstat %s -- %s\n", commitId, filePath)
+	cmdResult, err := ExecShellf(repoDir, "/usr/bin/git diff 4b825dc642cb6eb9a060e54bf8d69288fbee4904 --numstat %s -- %s", commitId, filePath)
+	if err != nil {
+		return false, err
+	}
+	if cmdResult == "" {
+		return false, fmt.Errorf("No response returned")
+	}
+	isBinary := strings.HasPrefix(strings.ReplaceAll(cmdResult, "\t", ""), "--")
+	return isBinary, nil
+}
+
 func ExecTreeFileSize(repoDir string, commitId string, filePath string) (int, error) {
+	// fmt.Printf(">>> /usr/bin/git ls-tree -r --long %s %s", commitId, filePath)
 	cmdResult, err := ExecShellf(repoDir, "/usr/bin/git ls-tree -r --long %s %s", commitId, filePath)
 	if err != nil {
 		return -1, err
@@ -153,13 +168,13 @@ func ExecGitCommitInfo(repoDir string, commitId string) (CommitInfo, error) {
 	return CommitInfo{Date: ctime, AuthorName: parts[0]}, nil
 }
 
-func ExecDiffTree(repoDir string, commitId string) ([]string, error) {
-	cmdResult, err := ExecShellf(repoDir, "/usr/bin/git diff-tree --no-commit-id --root --name-only -r %s", commitId)
+func ExecDiffTree(repoDir string, commitId1 string) ([]string, error) {
+	cmdResult, err := ExecShellf(repoDir, "/usr/bin/git diff-tree --no-commit-id --root --name-only -r %s", commitId1)
 	if err != nil {
 		return nil, err
 	}
 	if strings.ReplaceAll(cmdResult, " ", "") == "" || strings.ReplaceAll(cmdResult, "\n", "") == "" {
-		return nil, fmt.Errorf("No files found in commit")
+		return []string{}, nil
 	}
 	lines, err := linesToArray(cmdResult)
 	if err != nil {

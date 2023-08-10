@@ -35,7 +35,7 @@ var (
 )
 
 func ExecDiffFiles(fileSrc string, fileDst string) ([]DiffEntry, error) {
-	cmdResult, err := ExecShellTimeout("", fmt.Sprintf("/usr/bin/diff \"%s\" \"%s\"", fileSrc, fileDst), 0, 1)
+	cmdResult, err := ExecShellTimeout("", fmt.Sprintf("/usr/bin/diff \"%s\" \"%s\"", fileSrc, fileDst), 0, []int{0, 1})
 	if err != nil {
 		return nil, err
 	}

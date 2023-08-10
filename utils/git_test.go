@@ -138,6 +138,22 @@ func TestExecCommitsInRange(t *testing.T) {
 	assert.Equal(t, 5, len(cid))
 }
 
+func TestExecDiffIsBinary(t *testing.T) {
+	repoDir, err := ResolveTestOwnershipRepo()
+	assert.Nil(t, err)
+	if err != nil {
+		return
+	}
+
+	cid, err := ExecGetCommitAtDate(repoDir, "master", "now")
+	assert.Nil(t, err)
+	assert.NotEmpty(t, cid)
+
+	isBin, err := ExecDiffIsBinary(repoDir, cid, "file1")
+	assert.Nil(t, err)
+	assert.False(t, isBin)
+}
+
 func TestExecPreviousCommitIdForFile(t *testing.T) {
 	repoDir, err := ResolveTestOwnershipRepo()
 	assert.Nil(t, err)

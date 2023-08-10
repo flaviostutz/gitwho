@@ -8,12 +8,13 @@ import (
 
 	"github.com/go-cmd/cmd"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/exp/slices"
 )
 
 // Most of this file was inspired on https://github.com/flaviostutz/promster/blob/master/utils.go
 
 // ExecShellTimeout execute a shell command (like bash -c 'your command') with a timeout. After that time, the process will be cancelled
-func ExecShellTimeout(workingDir string, command string, timeout time.Duration, expectedExitCode int) (string, error) {
+func ExecShellTimeout(workingDir string, command string, timeout time.Duration, expectedExitCodes []int) (string, error) {
 	// logrus.Debugf("shell command: %s", command)
 	// fmt.Printf("shell command: %s\n", command)
 
@@ -59,22 +60,21 @@ func ExecShellTimeout(workingDir string, command string, timeout time.Duration, 
 	out := GetCmdOutput(acmd)
 	status := acmd.Status()
 	// logrus.Debugf("shell output (%d): %s", status.Exit, out)
-	if status.Exit != expectedExitCode {
+	if !slices.Contains(expectedExitCodes, status.Exit) {
 		return out, fmt.Errorf("Failed to run command: '%s'; exit=%d; out=%s", command, status.Exit, out)
-	} else {
-		return out, nil
 	}
+	return out, nil
 }
 
 // ExecShell execute a shell command (like bash -c 'your command')
 func ExecShell(workingDir string, command string) (string, error) {
-	return ExecShellTimeout(workingDir, command, 0, 0)
+	return ExecShellTimeout(workingDir, command, 0, []int{0})
 }
 
 // ExecShellf execute a shell command (like bash -c 'your command') but with format replacements
 func ExecShellf(workingDir string, command string, args ...interface{}) (string, error) {
 	cmd := fmt.Sprintf(command, args...)
-	return ExecShellTimeout(workingDir, cmd, 0, 0)
+	return ExecShellTimeout(workingDir, cmd, 0, []int{0})
 }
 
 // GetCmdOutput join stdout and stderr in a single string from Cmd

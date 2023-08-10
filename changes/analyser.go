@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"regexp"
+	"runtime"
 	"sort"
 	"strings"
 	"sync"
@@ -97,8 +98,8 @@ func AnalyseChanges(opts ChangesOptions, progressChan chan<- utils.ProgressInfo)
 	// MAP REDUCE - analyse files in parallel goroutines
 	// we need to start workers in the reverse order so that all the chain
 	// is prepared when submitting tasks to avoid deadlocks
-	// nrWorkers := runtime.NumCPU() - 1
-	nrWorkers := 1
+	nrWorkers := runtime.NumCPU() - 1
+	// nrWorkers := 1
 	logrus.Debugf("Preparing a pool of workers to process file analysis in parallel")
 	analyseFileInputChan := make(chan analyseFileRequest, 5000)
 	analyseFileOutputChan := make(chan ChangesFileResult, 5000)
