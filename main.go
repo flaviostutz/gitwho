@@ -28,6 +28,7 @@ func main() {
 
 	logrus.SetLevel(logrus.DebugLevel)
 
+	format := "full"
 	profileFile := ""
 	verbose := false
 
@@ -39,6 +40,7 @@ func main() {
 	changesFlag.StringVar(&changesOpts.Since, "since", "30 days ago", "Filter changes made from this date")
 	changesFlag.StringVar(&changesOpts.Until, "until", "now", "Filter changes made util this date")
 	changesFlag.StringVar(&profileFile, "profile-file", "", "Profile file to dump golang runtime data to")
+	changesFlag.StringVar(&format, "format", "full", "Output format. 'full' (all authors with details) or 'top' (top authors by change type)")
 	changesFlag.BoolVar(&verbose, "verbose", true, "Show verbose logs during processing")
 
 	ownershipFlag := flag.NewFlagSet("ownership", flag.ExitOnError)
@@ -52,6 +54,10 @@ func main() {
 	if len(os.Args) < 2 {
 		fmt.Println("Expected 'gitwho changes' or 'gitwho ownership' command")
 		os.Exit(1)
+	}
+
+	if format != "full" && format != "top" {
+		fmt.Println("'--format' should be 'full or 'top''")
 	}
 
 	if profileFile != "" {
@@ -81,8 +87,17 @@ func main() {
 			fmt.Println("Failed to perform changes analysis. err=", err)
 			os.Exit(2)
 		}
-		output := changes.FormatTextResults(changesResults, changesOpts)
-		fmt.Println(output)
+		if format == "top" {
+			output := changes.FormatTopTextResults(changesResults, changesOpts)
+			fmt.Println(output)
+		} else {
+			output := changes.FormatFullTextResults(changesResults, changesOpts)
+			fmt.Println(output)
+		}
+
+		if changesResults.TotalCommits == 0 {
+			os.Exit(3)
+		}
 
 	case "ownership":
 		ownershipFlag.Parse(os.Args[2:])
