@@ -38,7 +38,7 @@ func TestAnalyseCodeOwnershipRegexFiles(t *testing.T) {
 	results, err := AnalyseCodeOwnership(OwnershipOptions{
 		BaseOptions: utils.BaseOptions{
 			RepoDir:    repo,
-			Branch:     "master",
+			Branch:     "main",
 			FilesRegex: "/dir1.1/",
 		},
 		When: "now",

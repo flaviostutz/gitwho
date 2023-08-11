@@ -2,7 +2,6 @@ package changes
 
 import (
 	"testing"
-	"time"
 
 	"github.com/flaviostutz/gitwho/utils"
 	"github.com/sirupsen/logrus"
@@ -36,7 +35,7 @@ func TestAnalyseChangesNewFile2(t *testing.T) {
 		ChurnOwn:         0,
 		ChurnOther:       0,
 		ChurnReceived:    0,
-		AgeSum:           time.Duration(0),
+		AgeDaysSum:       0,
 	}, result.TotalLines)
 
 	assert.Equal(t, 1, len(result.AuthorsLines))
@@ -50,7 +49,7 @@ func TestAnalyseChangesNewFile2(t *testing.T) {
 		ChurnOwn:         0,
 		ChurnOther:       0,
 		ChurnReceived:    0,
-		AgeSum:           time.Duration(0),
+		AgeDaysSum:       0,
 	}, result.AuthorsLines[0].Lines)
 }
 
@@ -81,7 +80,7 @@ func TestAnalyseChangesFile1(t *testing.T) {
 		ChurnOwn:         0,
 		ChurnOther:       0,
 		ChurnReceived:    0,
-		AgeSum:           time.Duration(0),
+		AgeDaysSum:       0,
 	}, result.TotalLines)
 
 	assert.Equal(t, 2, len(result.AuthorsLines))
@@ -96,7 +95,7 @@ func TestAnalyseChangesFile1(t *testing.T) {
 		ChurnOwn:         0,
 		ChurnOther:       0,
 		ChurnReceived:    0,
-		AgeSum:           time.Duration(0),
+		AgeDaysSum:       0,
 	}, result.AuthorsLines[0].Lines)
 
 	assert.Equal(t, "author2", result.AuthorsLines[1].AuthorName)
@@ -109,7 +108,7 @@ func TestAnalyseChangesFile1(t *testing.T) {
 		ChurnOwn:         0,
 		ChurnOther:       0,
 		ChurnReceived:    0,
-		AgeSum:           time.Duration(0),
+		AgeDaysSum:       0,
 	}, result.AuthorsLines[0].Lines)
 
 }

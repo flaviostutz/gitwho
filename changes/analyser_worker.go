@@ -14,6 +14,7 @@ import (
 func analyseFileChangesWorker(analyseFileInputChan <-chan analyseFileRequest, analyseFileOutputChan chan<- ChangesFileResult, analyseFileErrChan chan<- error, wg *sync.WaitGroup) {
 	defer wg.Done()
 
+	skippedFiles := 0
 	for req := range analyseFileInputChan {
 
 		// fmt.Printf(">>>>%s %s\n", req.commitId, req.filePath)
@@ -33,10 +34,12 @@ func analyseFileChangesWorker(analyseFileInputChan <-chan analyseFileRequest, an
 		if err != nil {
 			// can't get file size when the file was deleted by commit, so it's not present anymore
 			// TODO get previous version of the file and count these lines as "changed" because they were deleted?
+			skippedFiles++
 			continue
 		}
 		if fsize > 80000 {
 			logrus.Debugf("Ignoring file because it's too big. file=%s, size=%d", req.filePath, fsize)
+			skippedFiles++
 			continue
 		}
 
@@ -47,6 +50,7 @@ func analyseFileChangesWorker(analyseFileInputChan <-chan analyseFileRequest, an
 		}
 		if isBin {
 			logrus.Debugf("Ignoring binary file. file=%s, commitId=%s", req.filePath, req.commitId)
+			skippedFiles++
 			continue
 		}
 
@@ -59,8 +63,9 @@ func analyseFileChangesWorker(analyseFileInputChan <-chan analyseFileRequest, an
 		// blame current version of the file
 		fileDstBlame, err := utils.ExecGitBlame(req.repoDir, req.filePath, req.commitId)
 		if err != nil {
-			analyseFileErrChan <- errors.New(fmt.Sprintf("Error on git blame cur. file=%s. err=%s", req.filePath, err))
-			break
+			logrus.Infof("Couldn't git blame cur version of file. Ignoring it. file=%s; commitId=%s", req.filePath, req.commitId)
+			skippedFiles++
+			continue
 		}
 
 		// find the previous commit in which this file was changed
@@ -78,6 +83,7 @@ func analyseFileChangesWorker(analyseFileInputChan <-chan analyseFileRequest, an
 			for _, dstBlame := range fileDstBlame {
 				addAuthorLines(&changesFileResult,
 					dstBlame.AuthorName,
+					dstBlame.AuthorMail,
 					LinesChanges{New: 1})
 			}
 			changesFileResult.analysisTime = time.Since(startTime)
@@ -88,8 +94,11 @@ func analyseFileChangesWorker(analyseFileInputChan <-chan analyseFileRequest, an
 		// blame previous version of the file (so we can compare from->to contents)
 		fileSrcBlame, err := utils.ExecGitBlame(req.repoDir, req.filePath, prevCommitId)
 		if err != nil {
-			analyseFileErrChan <- errors.New(fmt.Sprintf("Error on git blame prev. file=%s. err=%s", req.filePath, err))
-			break
+			// analyseFileErrChan <- errors.New(fmt.Sprintf("Error on git blame prev. file=%s. err=%s", req.filePath, err))
+			// break
+			logrus.Infof("Couldn't git blame prev version of file. Ignoring it. file=%s; commitId=%s", req.filePath, prevCommitId)
+			skippedFiles++
+			continue
 		}
 
 		// diff both versions of the file
@@ -108,6 +117,7 @@ func analyseFileChangesWorker(analyseFileInputChan <-chan analyseFileRequest, an
 				// added lines are simply "new"
 				addAuthorLines(&changesFileResult,
 					fileDstBlame[diff.DstLines[0].Number-1].AuthorName,
+					fileDstBlame[diff.DstLines[0].Number-1].AuthorMail,
 					LinesChanges{New: len(diff.DstLines)})
 				continue
 			}
@@ -121,8 +131,10 @@ func analyseFileChangesWorker(analyseFileInputChan <-chan analyseFileRequest, an
 				lineAge := commitInfo.Date.Sub(srcline.AuthorDate)
 
 				dstAuthorName := commitInfo.AuthorName
+				dstAuthorMail := commitInfo.AuthorMail
 				if diff.Operation == utils.OperationChange {
 					dstAuthorName = fileDstBlame[diff.DstLines[0].Number-1].AuthorName
+					dstAuthorMail = fileDstBlame[diff.DstLines[0].Number-1].AuthorMail
 				}
 
 				// REFACTOR - changes to "old" lines
@@ -132,10 +144,11 @@ func analyseFileChangesWorker(analyseFileInputChan <-chan analyseFileRequest, an
 					if srcline.AuthorName == commitInfo.AuthorName {
 						addAuthorLines(&changesFileResult,
 							dstAuthorName,
+							dstAuthorMail,
 							LinesChanges{
 								Changes:     1,
 								RefactorOwn: 1,
-								AgeSum:      commitInfo.Date.Sub(srcline.AuthorDate),
+								AgeDaysSum:  commitInfo.Date.Sub(srcline.AuthorDate).Hours() / float64(24),
 							})
 						continue
 					}
@@ -143,15 +156,17 @@ func analyseFileChangesWorker(analyseFileInputChan <-chan analyseFileRequest, an
 					// REFACTORED someone else's line
 					addAuthorLines(&changesFileResult,
 						dstAuthorName,
+						dstAuthorMail,
 						LinesChanges{
 							Changes:       1,
 							RefactorOther: 1,
-							AgeSum:        commitInfo.Date.Sub(srcline.AuthorDate),
+							AgeDaysSum:    commitInfo.Date.Sub(srcline.AuthorDate).Hours() / float64(24),
 						})
 
 					// if someone changed your line, you receive a "refactor received" count
 					addAuthorLines(&changesFileResult,
 						srcline.AuthorName,
+						srcline.AuthorMail,
 						LinesChanges{RefactorReceived: 1})
 
 					continue
@@ -163,10 +178,11 @@ func analyseFileChangesWorker(analyseFileInputChan <-chan analyseFileRequest, an
 				if srcline.AuthorName == commitInfo.AuthorName {
 					addAuthorLines(&changesFileResult,
 						dstAuthorName,
+						dstAuthorMail,
 						LinesChanges{
-							Changes:  1,
-							ChurnOwn: 1,
-							AgeSum:   commitInfo.Date.Sub(srcline.AuthorDate),
+							Changes:    1,
+							ChurnOwn:   1,
+							AgeDaysSum: commitInfo.Date.Sub(srcline.AuthorDate).Hours() / float64(24),
 						})
 					continue
 				}
@@ -174,15 +190,17 @@ func analyseFileChangesWorker(analyseFileInputChan <-chan analyseFileRequest, an
 				// churn by a different author
 				addAuthorLines(&changesFileResult,
 					dstAuthorName,
+					dstAuthorMail,
 					LinesChanges{
 						Changes:    1,
 						ChurnOther: 1,
-						AgeSum:     commitInfo.Date.Sub(srcline.AuthorDate),
+						AgeDaysSum: commitInfo.Date.Sub(srcline.AuthorDate).Hours() / float64(24),
 					})
 
 				// if someone changed your line, you receive a "churn received" count
 				addAuthorLines(&changesFileResult,
 					srcline.AuthorName,
+					srcline.AuthorMail,
 					LinesChanges{ChurnReceived: 1})
 			}
 
@@ -192,6 +210,7 @@ func analyseFileChangesWorker(analyseFileInputChan <-chan analyseFileRequest, an
 					dstline := fileDstBlame[i+diff.DstLines[0].Number-1]
 					addAuthorLines(&changesFileResult,
 						dstline.AuthorName,
+						dstline.AuthorMail,
 						LinesChanges{New: 1})
 				}
 			}
@@ -199,18 +218,21 @@ func analyseFileChangesWorker(analyseFileInputChan <-chan analyseFileRequest, an
 		}
 
 		changesFileResult.analysisTime = time.Since(startTime)
+		changesFileResult.skippedFiles = skippedFiles
+		skippedFiles = 0
 		analyseFileOutputChan <- changesFileResult
 		// time.Sleep(1 * time.Second)
 		// fmt.Printf("Time spent: %s\n", time.Since(startTime))
 	}
 }
 
-func addAuthorLines(changesFileResult *ChangesFileResult, authorName string, linesChanges LinesChanges) {
-	authorLine := changesFileResult.authorLinesMap[authorName]
+func addAuthorLines(changesFileResult *ChangesFileResult, authorName string, authorMail string, linesChanges LinesChanges) {
+	authorKey := fmt.Sprintf("%s###%s", authorName, authorMail)
+	authorLine := changesFileResult.authorLinesMap[authorKey]
 	// add to author totals
 	authorLine = sumLinesChanges(authorLine, linesChanges)
-	changesFileResult.authorLinesMap[authorName] = authorLine
+	changesFileResult.authorLinesMap[authorKey] = authorLine
 
-	// addo to overall totals
+	// add to overall totals
 	changesFileResult.TotalLines = sumLinesChanges(changesFileResult.TotalLines, linesChanges)
 }

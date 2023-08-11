@@ -22,6 +22,7 @@ type BlameLine struct {
 
 type CommitInfo struct {
 	AuthorName string
+	AuthorMail string
 	Date       time.Time
 }
 
@@ -52,7 +53,7 @@ func ExecGitBlame(repoPath string, filePath string, revision string) ([]BlameLin
 		// summary updated URL for the image
 		// previous 565949b9a9642ba7c79024c797c5d92876da5976 README.md <<< ONLY IF IT'S NOT NEW
 		// filename README.md
-		//         ![Conductor](docs/docs/img/conductor-vector-x.png) <<< TAB AT THE BEGINNING
+		//         \![Conductor](docs/docs/img/conductor-vector-x.png) <<< TAB AT THE BEGINNING
 
 		// start new line reading
 		// fmt.Printf(">>>>>%s\n", line)
@@ -150,7 +151,7 @@ func ExecTreeFileSize(repoDir string, commitId string, filePath string) (int, er
 }
 
 func ExecGitCommitInfo(repoDir string, commitId string) (CommitInfo, error) {
-	cmdResult, err := ExecShellf(repoDir, "/usr/bin/git show -s --format=\"%%aN---%%aI\" %s", commitId)
+	cmdResult, err := ExecShellf(repoDir, "/usr/bin/git show -s --format=\"%%aN###<%%aE>---%%aI\" %s", commitId)
 	if err != nil {
 		return CommitInfo{}, err
 	}
@@ -159,13 +160,14 @@ func ExecGitCommitInfo(repoDir string, commitId string) (CommitInfo, error) {
 	}
 	result := strings.Trim(cmdResult, "\n")
 	parts := strings.Split(result, "---")
+	nparts := strings.Split(parts[0], "###")
 	// parts := strings.Split(result, " ")
 	// dstr := fmt.Sprintf("%sT%sZ%s", parts[0], parts[1], strings.Replace(parts[2], "+", "", 1))
 	ctime, err := time.Parse(time.RFC3339, parts[1])
 	if err != nil {
 		return CommitInfo{}, err
 	}
-	return CommitInfo{Date: ctime, AuthorName: parts[0]}, nil
+	return CommitInfo{Date: ctime, AuthorName: nparts[0], AuthorMail: nparts[1]}, nil
 }
 
 func ExecDiffTree(repoDir string, commitId1 string) ([]string, error) {
@@ -221,5 +223,9 @@ func ExecGetCommitAtDate(repoDir string, branch string, when string) (string, er
 	if err != nil {
 		return "", err
 	}
-	return strings.Trim(cmdResult, "\n"), nil
+	result := strings.Trim(cmdResult, "\n")
+	if result == "" {
+		return "", fmt.Errorf("Couldn't find any commit at '%s'", when)
+	}
+	return result, nil
 }

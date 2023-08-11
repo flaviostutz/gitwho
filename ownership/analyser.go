@@ -20,17 +20,21 @@ type OwnershipOptions struct {
 }
 
 type AuthorLines struct {
-	AuthorName string
-	OwnedLines int
+	AuthorName           string
+	AuthorMail           string
+	OwnedLines           int
+	OwnedLinesAgeDaysSum float64
 }
 type OwnershipResult struct {
-	TotalFiles     int
-	TotalLines     int
-	authorLinesMap map[string]int // temporary map used during processing
-	AuthorsLines   []AuthorLines
-	CommitId       string
-	FilePath       string
-	blameTime      time.Duration
+	TotalFiles      int
+	TotalLines      int
+	LinesAgeDaysSum float64
+	authorLinesMap  map[string]AuthorLines // temporary map used during processing
+	AuthorsLines    []AuthorLines
+	CommitId        string
+	FilePath        string
+	blameTime       time.Duration
+	skippedFiles    int
 }
 
 type analyseFileRequest struct {
@@ -40,7 +44,7 @@ type analyseFileRequest struct {
 }
 
 func AnalyseCodeOwnership(opts OwnershipOptions, progressChan chan<- utils.ProgressInfo) (OwnershipResult, error) {
-	result := OwnershipResult{TotalLines: 0, authorLinesMap: make(map[string]int, 0), AuthorsLines: make([]AuthorLines, 0)}
+	result := OwnershipResult{TotalLines: 0, authorLinesMap: make(map[string]AuthorLines, 0), AuthorsLines: make([]AuthorLines, 0)}
 
 	progressInfo := utils.ProgressInfo{}
 
@@ -77,29 +81,23 @@ func AnalyseCodeOwnership(opts OwnershipOptions, progressChan chan<- utils.Progr
 		for fileResult := range analyseFileOutputChan {
 			result.TotalFiles += fileResult.TotalFiles
 			result.TotalLines += fileResult.TotalLines
+			result.LinesAgeDaysSum += fileResult.LinesAgeDaysSum
 			for author := range fileResult.authorLinesMap {
-				authorLines := fileResult.authorLinesMap[author]
-				result.authorLinesMap[author] = authorLines + result.authorLinesMap[author]
+				fileAuthorLines := fileResult.authorLinesMap[author]
+				resultAuthorLines := result.authorLinesMap[author]
+				resultAuthorLines.AuthorName = fileAuthorLines.AuthorName
+				resultAuthorLines.AuthorMail = fileAuthorLines.AuthorMail
+				resultAuthorLines.OwnedLines += fileAuthorLines.OwnedLines
+				resultAuthorLines.OwnedLinesAgeDaysSum += fileAuthorLines.OwnedLinesAgeDaysSum
+				result.authorLinesMap[author] = resultAuthorLines
 			}
-			progressInfo.CompletedTasks += 1
+			progressInfo.CompletedTasks += 1 + fileResult.skippedFiles
 			progressInfo.CompletedTotalTime += fileResult.blameTime
 			progressInfo.Message = fmt.Sprintf("%s (%dms)", fileResult.FilePath, fileResult.blameTime.Milliseconds())
 			if progressChan != nil {
 				progressChan <- progressInfo
 			}
 		}
-
-		logrus.Debugf("Sorting and preparing summary for each author")
-		authorsLines := make([]AuthorLines, 0)
-		for author := range result.authorLinesMap {
-			lines := result.authorLinesMap[author]
-			authorsLines = append(authorsLines, AuthorLines{AuthorName: author, OwnedLines: lines})
-		}
-
-		sort.Slice(authorsLines, func(i, j int) bool {
-			return authorsLines[i].OwnedLines > authorsLines[j].OwnedLines
-		})
-		result.AuthorsLines = authorsLines
 	}()
 
 	// MAP - start analyser workers (STEP 2/3)
@@ -155,6 +153,18 @@ func AnalyseCodeOwnership(opts OwnershipOptions, progressChan chan<- utils.Progr
 	summaryWorkerWaitGroup.Wait()
 	logrus.Debug("Summary worker finished")
 
+	logrus.Debugf("Sorting and preparing summary for each author")
+	authorsLines := make([]AuthorLines, 0)
+	for author := range result.authorLinesMap {
+		lines := result.authorLinesMap[author]
+		authorsLines = append(authorsLines, lines)
+	}
+
+	sort.Slice(authorsLines, func(i, j int) bool {
+		return authorsLines[i].OwnedLines > authorsLines[j].OwnedLines
+	})
+	result.AuthorsLines = authorsLines
+
 	// fmt.Printf("SUMMARY: %v\n", result)
 
 	return result, nil
@@ -163,18 +173,39 @@ func AnalyseCodeOwnership(opts OwnershipOptions, progressChan chan<- utils.Progr
 // this will be run by multiple goroutines
 func blameFileWorker(analyseFileInputChan <-chan analyseFileRequest, analyseFileOutputChan chan<- OwnershipResult, analyseFileErrChan chan<- error, wg *sync.WaitGroup) {
 	defer wg.Done()
+	skippedFiles := 0
 	for req := range analyseFileInputChan {
 		startTime := time.Now()
-		ownershipResult := OwnershipResult{TotalLines: 0, authorLinesMap: make(map[string]int, 0)}
+		ownershipResult := OwnershipResult{TotalLines: 0, authorLinesMap: make(map[string]AuthorLines, 0)}
 		ownershipResult.FilePath = req.filePath
+
+		commitInfo, err := utils.ExecGitCommitInfo(req.repoDir, req.commitId)
+		if err != nil {
+			analyseFileErrChan <- errors.New(fmt.Sprintf("Couldn't get commit info. commitId=%s; err=%s", req.commitId, err))
+			break
+		}
 
 		fsize, err := utils.ExecTreeFileSize(req.repoDir, req.commitId, req.filePath)
 		if err != nil {
-			analyseFileErrChan <- errors.New(fmt.Sprintf("Couldn't find file. file=%s. err=%s", req.filePath, err))
-			break
+			// can't get file size when the file was deleted by commit, so it's not present anymore
+			// TODO get previous version of the file and count these lines as "changed" because they were deleted?
+			skippedFiles++
+			continue
 		}
 		if fsize > 80000 {
 			logrus.Debugf("Ignoring file because it's too big. file=%s, size=%d", req.filePath, fsize)
+			skippedFiles++
+			continue
+		}
+
+		isBin, err := utils.ExecDiffIsBinary(req.repoDir, req.commitId, req.filePath)
+		if err != nil {
+			analyseFileErrChan <- errors.New(fmt.Sprintf("Couldn't determine if file is binary. file=%s; commitId=%s; err=%s", req.filePath, req.commitId, err))
+			break
+		}
+		if isBin {
+			logrus.Debugf("Ignoring binary file. file=%s, commitId=%s", req.filePath, req.commitId)
+			skippedFiles++
 			continue
 		}
 
@@ -190,9 +221,20 @@ func blameFileWorker(analyseFileInputChan <-chan analyseFileRequest, analyseFile
 				continue
 			}
 			ownershipResult.TotalLines += 1
-			ownershipResult.authorLinesMap[lineAuthor.AuthorName] += 1
+			authorLines := ownershipResult.authorLinesMap[lineAuthor.AuthorName]
+			authorLines.AuthorName = lineAuthor.AuthorName
+			authorLines.AuthorMail = lineAuthor.AuthorMail
+			authorLines.OwnedLines += 1
+			// fmt.Printf(">>>>%s %s %f %s\n", commitInfo.Date, lineAuthor.AuthorDate, commitInfo.Date.Sub(lineAuthor.AuthorDate).Hours(), commitInfo.Date.Sub(lineAuthor.AuthorDate))
+			lineAge := (commitInfo.Date.Sub(lineAuthor.AuthorDate).Hours()) / float64(24)
+			authorLines.OwnedLinesAgeDaysSum += lineAge
+			ownershipResult.LinesAgeDaysSum += lineAge
+			// fmt.Printf("]]]]%s\n", authorLines.OwnedLinesAgeSum)
+			ownershipResult.authorLinesMap[lineAuthor.AuthorName] = authorLines
 		}
 		ownershipResult.blameTime = time.Since(startTime)
+		ownershipResult.skippedFiles += skippedFiles
+		skippedFiles = 0
 		analyseFileOutputChan <- ownershipResult
 		// time.Sleep(1 * time.Second)
 		// fmt.Printf("Time spent: %s\n", time.Since(startTime))

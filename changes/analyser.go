@@ -42,12 +42,13 @@ type LinesChanges struct {
 	/* Lines you owned that were changed by another person in a short term. When adding ChurnOther to someone, the author of the previous version of the line will have this counter incremented */
 	ChurnReceived int
 
-	/* Sum of age of lines in the moment they are changed. AgeSum/Changes gives you the average survival duration of a line before it's changed by someone */
-	AgeSum time.Duration
+	/* Sum of age of lines in the moment they are changed. AgeDaysSum/Changes gives you the average survival duration of a line before it's changed by someone */
+	AgeDaysSum float64
 }
 
 type AuthorLines struct {
 	AuthorName string
+	AuthorMail string
 	Lines      LinesChanges
 }
 
@@ -68,6 +69,7 @@ type ChangesResult struct {
 	/* Change stats per author */
 	AuthorsLines []AuthorLines
 	analysisTime time.Duration
+	skippedFiles int
 }
 
 type analyseFileRequest struct {
@@ -124,7 +126,8 @@ func AnalyseChanges(opts ChangesOptions, progressChan chan<- utils.ProgressInfo)
 				authorLines = sumLinesChanges(authorLines, fileAuthorLines)
 				result.authorLinesMap[author] = authorLines
 			}
-			progressInfo.CompletedTasks += 1
+			progressInfo.CompletedTotalTime += fileResult.analysisTime
+			progressInfo.CompletedTasks += 1 + fileResult.skippedFiles
 			progressInfo.CompletedTotalTime += result.analysisTime
 			progressInfo.Message = fmt.Sprintf("%s", fileResult.FilePath)
 			if progressChan != nil {
@@ -201,9 +204,10 @@ func AnalyseChanges(opts ChangesOptions, progressChan chan<- utils.ProgressInfo)
 
 	logrus.Debugf("Preparing summary for each author")
 	authorsLines := make([]AuthorLines, 0)
-	for author := range result.authorLinesMap {
-		lines := result.authorLinesMap[author]
-		authorsLines = append(authorsLines, AuthorLines{AuthorName: author, Lines: lines})
+	for authorKeys := range result.authorLinesMap {
+		lines := result.authorLinesMap[authorKeys]
+		authorParts := strings.Split(authorKeys, "###")
+		authorsLines = append(authorsLines, AuthorLines{AuthorName: authorParts[0], AuthorMail: authorParts[1], Lines: lines})
 	}
 
 	sort.Slice(authorsLines, func(i, j int) bool {
@@ -227,6 +231,6 @@ func sumLinesChanges(changes1 LinesChanges, changes2 LinesChanges) LinesChanges 
 	changes1.RefactorOther += changes2.RefactorOther
 	changes1.RefactorOwn += changes2.RefactorOwn
 	changes1.RefactorReceived += changes2.RefactorReceived
-	changes1.AgeSum += changes2.AgeSum
+	changes1.AgeDaysSum += changes2.AgeDaysSum
 	return changes1
 }

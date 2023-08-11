@@ -29,6 +29,7 @@ func main() {
 	logrus.SetLevel(logrus.DebugLevel)
 
 	format := "full"
+	showMail := false
 	profileFile := ""
 	verbose := false
 
@@ -41,6 +42,7 @@ func main() {
 	changesFlag.StringVar(&changesOpts.Until, "until", "now", "Filter changes made util this date")
 	changesFlag.StringVar(&profileFile, "profile-file", "", "Profile file to dump golang runtime data to")
 	changesFlag.StringVar(&format, "format", "full", "Output format. 'full' (all authors with details) or 'top' (top authors by change type)")
+	changesFlag.BoolVar(&showMail, "show-mail", false, "Show author mail in output")
 	changesFlag.BoolVar(&verbose, "verbose", true, "Show verbose logs during processing")
 
 	ownershipFlag := flag.NewFlagSet("ownership", flag.ExitOnError)
@@ -49,6 +51,7 @@ func main() {
 	ownershipFlag.StringVar(&ownershipOpts.When, "when", "now", "Date time to analyse")
 	ownershipFlag.StringVar(&ownershipOpts.FilesRegex, "files", ".*", "Regex for selecting which file paths to include in analysis")
 	ownershipFlag.StringVar(&profileFile, "profile-file", "", "Profile file to dump golang runtime data to")
+	ownershipFlag.BoolVar(&showMail, "show-mail", false, "Show author mail in output")
 	ownershipFlag.BoolVar(&verbose, "verbose", true, "Show verbose logs during processing")
 
 	if len(os.Args) < 2 {
@@ -75,6 +78,12 @@ func main() {
 	case "changes":
 		changesFlag.Parse(os.Args[2:])
 
+		_, err := utils.ExecCommitsInRange(changesOpts.RepoDir, changesOpts.Branch, "", "")
+		if err != nil {
+			fmt.Printf("Branch not found\n")
+			os.Exit(1)
+		}
+
 		logrus.Debugf("Starting analysis of code changes")
 		progressChan := make(chan utils.ProgressInfo, 1)
 		if verbose {
@@ -88,10 +97,10 @@ func main() {
 			os.Exit(2)
 		}
 		if format == "top" {
-			output := changes.FormatTopTextResults(changesResults, changesOpts)
+			output := changes.FormatTopTextResults(changesResults, changesOpts, showMail)
 			fmt.Println(output)
 		} else {
-			output := changes.FormatFullTextResults(changesResults, changesOpts)
+			output := changes.FormatFullTextResults(changesResults, changesOpts, showMail)
 			fmt.Println(output)
 		}
 
@@ -101,6 +110,12 @@ func main() {
 
 	case "ownership":
 		ownershipFlag.Parse(os.Args[2:])
+
+		_, err := utils.ExecCommitsInRange(ownershipOpts.RepoDir, ownershipOpts.Branch, "", "")
+		if err != nil {
+			fmt.Printf("Branch not found\n")
+			os.Exit(1)
+		}
 
 		progressChan := make(chan utils.ProgressInfo, 1)
 		if verbose {
@@ -114,7 +129,7 @@ func main() {
 			fmt.Println("Failed to perform ownership analysis. err=", err)
 			os.Exit(2)
 		}
-		output := ownership.FormatTextResults(ownershipResults, ownershipOpts)
+		output := ownership.FormatTextResults(ownershipResults, ownershipOpts, showMail)
 		fmt.Println(output)
 
 	default:

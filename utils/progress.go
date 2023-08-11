@@ -2,6 +2,7 @@ package utils
 
 import (
 	"fmt"
+	"strings"
 	"time"
 )
 
@@ -14,7 +15,6 @@ type ProgressInfo struct {
 }
 
 func ShowProgress(progressChan <-chan ProgressInfo) {
-	// fmt.Print("\033[s")
 	for pc := range progressChan {
 		if pc.TotalTasks == 0 || pc.CompletedTasks == 0 {
 			continue
@@ -25,9 +25,21 @@ func ShowProgress(progressChan <-chan ProgressInfo) {
 		if !pc.TotalTasksKnown {
 			pending = "+"
 		}
-		// fmt.Print("\033[u\033[K")
-		// fmt.Printf("%d%% %s\n", int(perc), pc.Message)
 		avg := float64(pc.CompletedTotalTime.Milliseconds()) / float64(pc.CompletedTasks)
-		fmt.Printf("%d%% (%d/%d%s) %s - %dms\n", int(perc), pc.CompletedTasks, pc.TotalTasks, pending, pc.Message, int(avg))
+
+		filler := "                                        "
+		fileName := ""
+		i := strings.LastIndex(pc.Message, "/")
+		if i != -1 {
+			fileName = pc.Message[i+1:]
+			if len(fileName) < len(filler) {
+				fileName += filler[:len(filler)-len(fileName)]
+			}
+			if len(fileName) > 40 {
+				fileName = fileName[:40]
+			}
+		}
+		// fmt.Printf("%d%% (%d/%d%s) %s - %dms\n", int(perc), pc.CompletedTasks, pc.TotalTasks, pending, pc.Message, int(avg))
+		fmt.Printf("%d%% (%d/%d%s) %dms %s \r \a", int(perc), pc.CompletedTasks, pc.TotalTasks, pending, int(avg), fileName)
 	}
 }
