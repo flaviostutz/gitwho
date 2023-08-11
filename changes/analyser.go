@@ -46,10 +46,17 @@ type LinesChanges struct {
 	AgeDaysSum float64
 }
 
+type FileChanges struct {
+	Name  string
+	Lines int
+}
+
 type AuthorLines struct {
 	AuthorName string
 	AuthorMail string
 	Lines      LinesChanges
+	Files      FileChanges
+	filesMap   map[string]FileChanges // temporary map used during processing
 }
 
 type ChangesFileResult struct {
@@ -65,7 +72,7 @@ type ChangesResult struct {
 	TotalFiles int
 	/* Number of commits analysed */
 	TotalCommits   int
-	authorLinesMap map[string]LinesChanges // temporary map used during processing
+	authorLinesMap map[string]AuthorLines // temporary map used during processing
 	/* Change stats per author */
 	AuthorsLines []AuthorLines
 	analysisTime time.Duration
@@ -81,7 +88,7 @@ type analyseFileRequest struct {
 func AnalyseChanges(opts ChangesOptions, progressChan chan<- utils.ProgressInfo) (ChangesResult, error) {
 	result := ChangesResult{
 		TotalLines:     LinesChanges{},
-		authorLinesMap: make(map[string]LinesChanges, 0),
+		authorLinesMap: make(map[string]AuthorLines, 0),
 		AuthorsLines:   make([]AuthorLines, 0)}
 
 	progressInfo := utils.ProgressInfo{}
@@ -123,7 +130,8 @@ func AnalyseChanges(opts ChangesOptions, progressChan chan<- utils.ProgressInfo)
 			for author := range fileResult.authorLinesMap {
 				fileAuthorLines := fileResult.authorLinesMap[author]
 				authorLines := result.authorLinesMap[author]
-				authorLines = sumLinesChanges(authorLines, fileAuthorLines)
+				authorLines.Lines = sumLinesChanges(authorLines.Lines, fileAuthorLines.Lines)
+				// FIXME ver se precisa
 				result.authorLinesMap[author] = authorLines
 			}
 			progressInfo.CompletedTotalTime += fileResult.analysisTime
@@ -205,9 +213,9 @@ func AnalyseChanges(opts ChangesOptions, progressChan chan<- utils.ProgressInfo)
 	logrus.Debugf("Preparing summary for each author")
 	authorsLines := make([]AuthorLines, 0)
 	for authorKeys := range result.authorLinesMap {
-		lines := result.authorLinesMap[authorKeys]
+		authorLines := result.authorLinesMap[authorKeys]
 		authorParts := strings.Split(authorKeys, "###")
-		authorsLines = append(authorsLines, AuthorLines{AuthorName: authorParts[0], AuthorMail: authorParts[1], Lines: lines})
+		authorsLines = append(authorsLines, AuthorLines{AuthorName: authorParts[0], AuthorMail: authorParts[1], Lines: authorLines.Lines})
 	}
 
 	sort.Slice(authorsLines, func(i, j int) bool {

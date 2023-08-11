@@ -38,7 +38,7 @@ func ResolveTestOwnershipRepo() (string, error) {
 	ExecShellf("", "mkdir -p %s", testCasesDir)
 
 	fmt.Println("Creating test repo")
-	_, err = ExecShellf(testCasesDir, "git init ownership")
+	_, err = ExecShellf(testCasesDir, "git init ownership --initial-branch main")
 	if err != nil {
 		return "", err
 	}

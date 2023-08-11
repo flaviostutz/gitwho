@@ -39,7 +39,6 @@ func ExecDiffFiles(fileSrc string, fileDst string) ([]DiffEntry, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	return ParseNormalDiffOutput(cmdResult)
 }
 

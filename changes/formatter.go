@@ -106,7 +106,7 @@ func calcTopCoderScore(ai LinesChanges) int {
 }
 
 func FormatLinesChanges(changes LinesChanges, totals LinesChanges) string {
-	text := fmt.Sprintf("- Total lines: %d%s\n", changes.New+changes.Changes, calcPercStr(changes.New+changes.Changes, totals.New+totals.Changes))
+	text := fmt.Sprintf("- Total lines touched: %d%s\n", changes.New+changes.Changes, calcPercStr(changes.New+changes.Changes, totals.New+totals.Changes))
 	text += fmt.Sprintf("  - New lines: %d%s\n", changes.New, calcPercStr(changes.New, totals.New))
 	text += fmt.Sprintf("  - Changed lines: %d%s\n", changes.Changes, calcPercStr(changes.Changes, totals.Changes))
 	text += fmt.Sprintf("    - Refactor: %d%s\n", changes.RefactorOwn+changes.RefactorOther, calcPercStr(changes.RefactorOwn+changes.RefactorOther, totals.RefactorOwn+totals.RefactorOther))

@@ -12,7 +12,9 @@ import (
 
 // this will be run by multiple goroutines
 func analyseFileChangesWorker(analyseFileInputChan <-chan analyseFileRequest, analyseFileOutputChan chan<- ChangesFileResult, analyseFileErrChan chan<- error, wg *sync.WaitGroup) {
-	defer wg.Done()
+	if wg != nil {
+		defer wg.Done()
+	}
 
 	skippedFiles := 0
 	for req := range analyseFileInputChan {
@@ -25,7 +27,7 @@ func analyseFileChangesWorker(analyseFileInputChan <-chan analyseFileRequest, an
 			FilePath: req.filePath,
 			ChangesResult: ChangesResult{
 				TotalLines:     LinesChanges{},
-				authorLinesMap: make(map[string]LinesChanges, 0),
+				authorLinesMap: make(map[string]AuthorLines, 0),
 				AuthorsLines:   []AuthorLines{},
 			},
 		}
@@ -84,7 +86,8 @@ func analyseFileChangesWorker(analyseFileInputChan <-chan analyseFileRequest, an
 				addAuthorLines(&changesFileResult,
 					dstBlame.AuthorName,
 					dstBlame.AuthorMail,
-					LinesChanges{New: 1})
+					LinesChanges{New: 1},
+					req.filePath)
 			}
 			changesFileResult.analysisTime = time.Since(startTime)
 			analyseFileOutputChan <- changesFileResult
@@ -118,7 +121,8 @@ func analyseFileChangesWorker(analyseFileInputChan <-chan analyseFileRequest, an
 				addAuthorLines(&changesFileResult,
 					fileDstBlame[diff.DstLines[0].Number-1].AuthorName,
 					fileDstBlame[diff.DstLines[0].Number-1].AuthorMail,
-					LinesChanges{New: len(diff.DstLines)})
+					LinesChanges{New: len(diff.DstLines)},
+					req.filePath)
 				continue
 			}
 
@@ -128,6 +132,13 @@ func analyseFileChangesWorker(analyseFileInputChan <-chan analyseFileRequest, an
 			//   CHURN - when the line changed was less than 21 days old
 			for i := 0; i < len(diff.SrcLines); i++ {
 				srcline := fileSrcBlame[i+diff.SrcLines[0].Number-1]
+				// dstline := fileDstBlame[i+diff.DstLines[0].Number-1]
+
+				// if srcline == dstline {
+				// 	// ignoring unchanged line
+				// 	continue
+				// }
+
 				lineAge := commitInfo.Date.Sub(srcline.AuthorDate)
 
 				dstAuthorName := commitInfo.AuthorName
@@ -148,8 +159,9 @@ func analyseFileChangesWorker(analyseFileInputChan <-chan analyseFileRequest, an
 							LinesChanges{
 								Changes:     1,
 								RefactorOwn: 1,
-								AgeDaysSum:  commitInfo.Date.Sub(srcline.AuthorDate).Hours() / float64(24),
-							})
+								AgeDaysSum:  lineAge.Hours() / float64(24),
+							},
+							req.filePath)
 						continue
 					}
 
@@ -160,14 +172,16 @@ func analyseFileChangesWorker(analyseFileInputChan <-chan analyseFileRequest, an
 						LinesChanges{
 							Changes:       1,
 							RefactorOther: 1,
-							AgeDaysSum:    commitInfo.Date.Sub(srcline.AuthorDate).Hours() / float64(24),
-						})
+							AgeDaysSum:    lineAge.Hours() / float64(24),
+						},
+						req.filePath)
 
 					// if someone changed your line, you receive a "refactor received" count
 					addAuthorLines(&changesFileResult,
 						srcline.AuthorName,
 						srcline.AuthorMail,
-						LinesChanges{RefactorReceived: 1})
+						LinesChanges{RefactorReceived: 1},
+						req.filePath)
 
 					continue
 				}
@@ -182,8 +196,10 @@ func analyseFileChangesWorker(analyseFileInputChan <-chan analyseFileRequest, an
 						LinesChanges{
 							Changes:    1,
 							ChurnOwn:   1,
-							AgeDaysSum: commitInfo.Date.Sub(srcline.AuthorDate).Hours() / float64(24),
-						})
+							AgeDaysSum: lineAge.Hours() / float64(24),
+						},
+						req.filePath)
+
 					continue
 				}
 
@@ -194,24 +210,27 @@ func analyseFileChangesWorker(analyseFileInputChan <-chan analyseFileRequest, an
 					LinesChanges{
 						Changes:    1,
 						ChurnOther: 1,
-						AgeDaysSum: commitInfo.Date.Sub(srcline.AuthorDate).Hours() / float64(24),
-					})
+						AgeDaysSum: lineAge.Hours() / float64(24),
+					},
+					req.filePath)
 
 				// if someone changed your line, you receive a "churn received" count
 				addAuthorLines(&changesFileResult,
 					srcline.AuthorName,
 					srcline.AuthorMail,
-					LinesChanges{ChurnReceived: 1})
+					LinesChanges{ChurnReceived: 1},
+					req.filePath)
 			}
 
 			// special case when changes led to additional lines in destination
 			if len(diff.DstLines) > len(diff.SrcLines) {
-				for i := 0; i < len(diff.SrcLines); i++ {
+				for i := len(diff.SrcLines); i < len(diff.DstLines); i++ {
 					dstline := fileDstBlame[i+diff.DstLines[0].Number-1]
 					addAuthorLines(&changesFileResult,
 						dstline.AuthorName,
 						dstline.AuthorMail,
-						LinesChanges{New: 1})
+						LinesChanges{New: 1},
+						req.filePath)
 				}
 			}
 
@@ -226,12 +245,23 @@ func analyseFileChangesWorker(analyseFileInputChan <-chan analyseFileRequest, an
 	}
 }
 
-func addAuthorLines(changesFileResult *ChangesFileResult, authorName string, authorMail string, linesChanges LinesChanges) {
+func addAuthorLines(changesFileResult *ChangesFileResult, authorName string, authorMail string, linesChanges LinesChanges, filePath string) {
 	authorKey := fmt.Sprintf("%s###%s", authorName, authorMail)
-	authorLine := changesFileResult.authorLinesMap[authorKey]
-	// add to author totals
-	authorLine = sumLinesChanges(authorLine, linesChanges)
+
+	// add lines changes
+	authorLine, ok := changesFileResult.authorLinesMap[authorKey]
+	if !ok {
+		authorLine.filesMap = make(map[string]FileChanges, 0)
+	}
+	authorLine.Lines = sumLinesChanges(authorLine.Lines, linesChanges)
+	// FIXME ver se precisa desse reasign de mapa
 	changesFileResult.authorLinesMap[authorKey] = authorLine
+
+	// add files changed
+	fileChanges := authorLine.filesMap[filePath]
+	fileChanges.Name = filePath
+	fileChanges.Lines += linesChanges.New + linesChanges.ChurnOther + linesChanges.ChurnOwn + linesChanges.RefactorOther + linesChanges.RefactorOwn
+	authorLine.filesMap[filePath] = fileChanges
 
 	// add to overall totals
 	changesFileResult.TotalLines = sumLinesChanges(changesFileResult.TotalLines, linesChanges)

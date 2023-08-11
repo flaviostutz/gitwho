@@ -18,7 +18,7 @@ func TestAnalyseChangesNewFile2(t *testing.T) {
 	logrus.SetLevel(logrus.DebugLevel)
 
 	result, err := AnalyseChanges(ChangesOptions{
-		BaseOptions: utils.BaseOptions{RepoDir: repoDir, Branch: "master", FilesRegex: "file2"},
+		BaseOptions: utils.BaseOptions{RepoDir: repoDir, Branch: "main", FilesRegex: "file2"},
 	}, nil)
 
 	// file2 was commited only one time with 5 lines of code
@@ -63,7 +63,7 @@ func TestAnalyseChangesFile1(t *testing.T) {
 	logrus.SetLevel(logrus.DebugLevel)
 
 	result, err := AnalyseChanges(ChangesOptions{
-		BaseOptions: utils.BaseOptions{RepoDir: repoDir, Branch: "master", FilesRegex: "file1"},
+		BaseOptions: utils.BaseOptions{RepoDir: repoDir, Branch: "main", FilesRegex: "file1"},
 	}, nil)
 
 	// file1 was commited 4 times
@@ -72,7 +72,7 @@ func TestAnalyseChangesFile1(t *testing.T) {
 	assert.Equal(t, 4, result.TotalCommits)
 	assert.Equal(t, 4, result.TotalFiles)
 	assert.Equal(t, LinesChanges{
-		New:              3,
+		New:              2,
 		Changes:          2,
 		RefactorOwn:      0,
 		RefactorOther:    0,
@@ -110,5 +110,8 @@ func TestAnalyseChangesFile1(t *testing.T) {
 		ChurnReceived:    0,
 		AgeDaysSum:       0,
 	}, result.AuthorsLines[0].Lines)
+
+	assert.Equal(t, "file1", result.AuthorsLines[0].Files.Name)
+	assert.Equal(t, 1, result.AuthorsLines[0].Files.Lines)
 
 }

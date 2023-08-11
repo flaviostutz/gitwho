@@ -14,7 +14,7 @@ func TestExecGetCommitAtDate(t *testing.T) {
 	}
 
 	// should work for default master branch
-	cid, err := ExecGetCommitAtDate(repoDir, "master", "now")
+	cid, err := ExecGetCommitAtDate(repoDir, "main", "now")
 	assert.Nil(t, err)
 	assert.NotEmpty(t, cid)
 
@@ -31,7 +31,7 @@ func TestExecListTree(t *testing.T) {
 		return
 	}
 
-	cid, err := ExecGetCommitAtDate(repoDir, "master", "now")
+	cid, err := ExecGetCommitAtDate(repoDir, "main", "now")
 	assert.Nil(t, err)
 	assert.NotEmpty(t, cid)
 
@@ -49,7 +49,7 @@ func TestExecCommitDate(t *testing.T) {
 		return
 	}
 
-	commitIds, err := ExecCommitsInRange(repoDir, "master", "1 month ago", "now")
+	commitIds, err := ExecCommitsInRange(repoDir, "main", "1 month ago", "now")
 	if err != nil {
 		return
 	}
@@ -70,7 +70,7 @@ func TestExecDiffTree(t *testing.T) {
 		return
 	}
 
-	cid, err := ExecGetCommitAtDate(repoDir, "master", "now")
+	cid, err := ExecGetCommitAtDate(repoDir, "main", "now")
 	assert.Nil(t, err)
 	assert.NotEmpty(t, cid)
 
@@ -88,7 +88,7 @@ func TestExecTreeFileSize(t *testing.T) {
 		return
 	}
 
-	commitIds, err := ExecCommitsInRange(repoDir, "master", "1 month ago", "now")
+	commitIds, err := ExecCommitsInRange(repoDir, "main", "1 month ago", "now")
 	if err != nil {
 		return
 	}
@@ -111,7 +111,7 @@ func TestExecDiffFileRevisions(t *testing.T) {
 		return
 	}
 
-	commitIds, err := ExecCommitsInRange(repoDir, "master", "1 month ago", "now")
+	commitIds, err := ExecCommitsInRange(repoDir, "main", "1 month ago", "now")
 	if err != nil {
 		return
 	}
@@ -132,7 +132,7 @@ func TestExecCommitsInRange(t *testing.T) {
 		return
 	}
 
-	cid, err := ExecCommitsInRange(repoDir, "master", "1 week ago", "now")
+	cid, err := ExecCommitsInRange(repoDir, "main", "1 week ago", "now")
 	assert.Nil(t, err)
 	assert.NotEmpty(t, cid)
 	assert.Equal(t, 5, len(cid))
@@ -145,7 +145,7 @@ func TestExecDiffIsBinary(t *testing.T) {
 		return
 	}
 
-	cid, err := ExecGetCommitAtDate(repoDir, "master", "now")
+	cid, err := ExecGetCommitAtDate(repoDir, "main", "now")
 	assert.Nil(t, err)
 	assert.NotEmpty(t, cid)
 
@@ -161,7 +161,7 @@ func TestExecPreviousCommitIdForFile(t *testing.T) {
 		return
 	}
 
-	cid, err := ExecGetCommitAtDate(repoDir, "master", "now")
+	cid, err := ExecGetCommitAtDate(repoDir, "main", "now")
 	assert.Nil(t, err)
 	assert.NotEmpty(t, cid)
 
@@ -178,7 +178,7 @@ func TestExecGitBlame(t *testing.T) {
 		return
 	}
 
-	cid, err := ExecGetCommitAtDate(repoDir, "master", "now")
+	cid, err := ExecGetCommitAtDate(repoDir, "main", "now")
 	assert.Nil(t, err)
 	assert.NotEmpty(t, cid)
 

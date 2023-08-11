@@ -19,7 +19,7 @@ func TestAnalyseCodeOwnershipAllFiles(t *testing.T) {
 	results, err := AnalyseCodeOwnership(OwnershipOptions{
 		BaseOptions: utils.BaseOptions{
 			RepoDir: repoDir,
-			Branch:  "master",
+			Branch:  "main",
 		},
 		When: "now",
 	}, nil)
