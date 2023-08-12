@@ -5,12 +5,12 @@ import (
 
 	"github.com/flaviostutz/gitwho/utils"
 	"github.com/sirupsen/logrus"
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestAnalyseChangesNewFile2(t *testing.T) {
 	repoDir, err := utils.ResolveTestOwnershipRepo()
-	assert.Nil(t, err)
+	require.Nil(t, err)
 	if err != nil {
 		return
 	}
@@ -23,39 +23,23 @@ func TestAnalyseChangesNewFile2(t *testing.T) {
 
 	// file2 was commited only one time with 5 lines of code
 
-	assert.Nil(t, err)
-	assert.Equal(t, 1, result.TotalCommits)
-	assert.Equal(t, 1, result.TotalFiles)
-	assert.Equal(t, LinesChanges{
-		New:              5,
-		Changes:          0,
-		RefactorOwn:      0,
-		RefactorOther:    0,
-		RefactorReceived: 0,
-		ChurnOwn:         0,
-		ChurnOther:       0,
-		ChurnReceived:    0,
-		AgeDaysSum:       0,
-	}, result.TotalLines)
+	require.Nil(t, err)
+	require.Equal(t, 1, result.TotalCommits)
+	require.Equal(t, 1, result.TotalFiles)
+	require.Equal(t, 5, result.TotalLines.New)
+	require.Equal(t, 0, result.TotalLines.Changes)
 
-	assert.Equal(t, 1, len(result.AuthorsLines))
-	assert.Equal(t, "author3", result.AuthorsLines[0].AuthorName)
-	assert.Equal(t, LinesChanges{
-		New:              5,
-		Changes:          0,
-		RefactorOwn:      0,
-		RefactorOther:    0,
-		RefactorReceived: 0,
-		ChurnOwn:         0,
-		ChurnOther:       0,
-		ChurnReceived:    0,
-		AgeDaysSum:       0,
-	}, result.AuthorsLines[0].Lines)
+	require.Equal(t, 1, len(result.AuthorsLines))
+	require.Equal(t, "author3", result.AuthorsLines[0].AuthorName)
+	require.Equal(t, 1, len(result.AuthorsLines[0].FilesTouched))
+	require.Equal(t, "dir1/dir1.1/file2", result.AuthorsLines[0].FilesTouched[0].Name)
+	require.Equal(t, 5, result.AuthorsLines[0].FilesTouched[0].Lines)
+
 }
 
 func TestAnalyseChangesFile1(t *testing.T) {
 	repoDir, err := utils.ResolveTestOwnershipRepo()
-	assert.Nil(t, err)
+	require.Nil(t, err)
 	if err != nil {
 		return
 	}
@@ -68,50 +52,84 @@ func TestAnalyseChangesFile1(t *testing.T) {
 
 	// file1 was commited 4 times
 
-	assert.Nil(t, err)
-	assert.Equal(t, 4, result.TotalCommits)
-	assert.Equal(t, 4, result.TotalFiles)
-	assert.Equal(t, LinesChanges{
-		New:              2,
-		Changes:          2,
-		RefactorOwn:      0,
-		RefactorOther:    0,
-		RefactorReceived: 0,
-		ChurnOwn:         0,
-		ChurnOther:       0,
-		ChurnReceived:    0,
-		AgeDaysSum:       0,
-	}, result.TotalLines)
+	require.Nil(t, err)
+	require.Equal(t, 4, result.TotalCommits)
+	require.Equal(t, 1, result.TotalFiles)
+	require.Equal(t, 3, result.TotalLines.New)
+	require.Equal(t, 3, result.TotalLines.Changes)
 
-	assert.Equal(t, 2, len(result.AuthorsLines))
+	require.Equal(t, 2, len(result.AuthorsLines))
 
-	assert.Equal(t, "author1", result.AuthorsLines[0].AuthorName)
-	assert.Equal(t, LinesChanges{
-		New:              2,
-		Changes:          2,
-		RefactorOwn:      0,
-		RefactorOther:    0,
-		RefactorReceived: 0,
-		ChurnOwn:         0,
-		ChurnOther:       0,
-		ChurnReceived:    0,
-		AgeDaysSum:       0,
-	}, result.AuthorsLines[0].Lines)
+	require.Equal(t, "author1", result.AuthorsLines[0].AuthorName)
+	require.Equal(t, "file1", result.AuthorsLines[0].FilesTouched[0].Name)
+	require.Equal(t, 4, result.AuthorsLines[0].FilesTouched[0].Lines)
 
-	assert.Equal(t, "author2", result.AuthorsLines[1].AuthorName)
-	assert.Equal(t, LinesChanges{
-		New:              1,
-		Changes:          0,
-		RefactorOwn:      0,
-		RefactorOther:    0,
-		RefactorReceived: 0,
-		ChurnOwn:         0,
-		ChurnOther:       0,
-		ChurnReceived:    0,
-		AgeDaysSum:       0,
-	}, result.AuthorsLines[0].Lines)
+	require.Equal(t, "author2", result.AuthorsLines[1].AuthorName)
+	require.Equal(t, "file1", result.AuthorsLines[1].FilesTouched[0].Name)
+	require.Equal(t, 2, result.AuthorsLines[1].FilesTouched[0].Lines)
+}
 
-	assert.Equal(t, "file1", result.AuthorsLines[0].Files.Name)
-	assert.Equal(t, 1, result.AuthorsLines[0].Files.Lines)
+func TestAnalyseChangesAllFiles(t *testing.T) {
+	repoDir, err := utils.ResolveTestOwnershipRepo()
+	require.Nil(t, err)
+	if err != nil {
+		return
+	}
 
+	logrus.SetLevel(logrus.DebugLevel)
+
+	result, err := AnalyseChanges(ChangesOptions{
+		BaseOptions: utils.BaseOptions{RepoDir: repoDir, Branch: "main", FilesRegex: "."},
+	}, nil)
+
+	require.Nil(t, err)
+	require.Equal(t, 5, result.TotalCommits)
+	require.Equal(t, 2, result.TotalFiles)
+	require.Equal(t, 8, result.TotalLines.New)
+	require.Equal(t, 3, result.TotalLines.Changes)
+
+	require.Equal(t, 3, len(result.AuthorsLines))
+
+	require.Equal(t, "author3", result.AuthorsLines[0].AuthorName)
+	require.Equal(t, 1, len(result.AuthorsLines[0].FilesTouched))
+	require.Equal(t, "dir1/dir1.1/file2", result.AuthorsLines[0].FilesTouched[0].Name)
+	require.Equal(t, 5, result.AuthorsLines[0].FilesTouched[0].Lines)
+
+	require.Equal(t, "author1", result.AuthorsLines[1].AuthorName)
+	require.Equal(t, "file1", result.AuthorsLines[1].FilesTouched[0].Name)
+	require.Equal(t, 4, result.AuthorsLines[1].FilesTouched[0].Lines)
+
+	require.Equal(t, "author2", result.AuthorsLines[2].AuthorName)
+	require.Equal(t, "file1", result.AuthorsLines[2].FilesTouched[0].Name)
+	require.Equal(t, 2, result.AuthorsLines[2].FilesTouched[0].Lines)
+}
+
+func TestAnalyseChangesCheckTotals(t *testing.T) {
+	repoDir, err := utils.ResolveTestOwnershipRepo()
+	require.Nil(t, err)
+	if err != nil {
+		return
+	}
+
+	logrus.SetLevel(logrus.DebugLevel)
+
+	result, err := AnalyseChanges(ChangesOptions{
+		BaseOptions: utils.BaseOptions{RepoDir: repoDir, Branch: "main", FilesRegex: "."},
+	}, nil)
+
+	rt := result.TotalLines
+	require.Equal(t, rt.New+rt.Changes, rt.New+rt.ChurnOther+rt.ChurnOwn+rt.RefactorOther+rt.RefactorOwn)
+	achanges := 0
+	anew := 0
+	alines := 0
+	for _, authorLines := range result.AuthorsLines {
+		achanges += authorLines.LinesTouched.Changes
+		anew += authorLines.LinesTouched.New
+		for _, authorFilesTouched := range authorLines.FilesTouched {
+			alines += authorFilesTouched.Lines
+		}
+	}
+	require.Equal(t, achanges, rt.Changes)
+	require.Equal(t, anew, rt.New)
+	require.Equal(t, alines, rt.New+rt.Changes)
 }

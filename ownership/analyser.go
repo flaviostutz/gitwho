@@ -98,6 +98,18 @@ func AnalyseCodeOwnership(opts OwnershipOptions, progressChan chan<- utils.Progr
 				progressChan <- progressInfo
 			}
 		}
+
+		logrus.Debugf("Sorting and preparing summary for each author")
+		authorsLines := make([]AuthorLines, 0)
+		for author := range result.authorLinesMap {
+			lines := result.authorLinesMap[author]
+			authorsLines = append(authorsLines, lines)
+		}
+
+		sort.Slice(authorsLines, func(i, j int) bool {
+			return authorsLines[i].OwnedLines > authorsLines[j].OwnedLines
+		})
+		result.AuthorsLines = authorsLines
 	}()
 
 	// MAP - start analyser workers (STEP 2/3)
@@ -152,18 +164,6 @@ func AnalyseCodeOwnership(opts OwnershipOptions, progressChan chan<- utils.Progr
 
 	summaryWorkerWaitGroup.Wait()
 	logrus.Debug("Summary worker finished")
-
-	logrus.Debugf("Sorting and preparing summary for each author")
-	authorsLines := make([]AuthorLines, 0)
-	for author := range result.authorLinesMap {
-		lines := result.authorLinesMap[author]
-		authorsLines = append(authorsLines, lines)
-	}
-
-	sort.Slice(authorsLines, func(i, j int) bool {
-		return authorsLines[i].OwnedLines > authorsLines[j].OwnedLines
-	})
-	result.AuthorsLines = authorsLines
 
 	// fmt.Printf("SUMMARY: %v\n", result)
 

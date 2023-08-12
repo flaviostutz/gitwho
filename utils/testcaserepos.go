@@ -43,7 +43,8 @@ func ResolveTestOwnershipRepo() (string, error) {
 		return "", err
 	}
 
-	// ROOT DIR
+	// DON'T CHANGE THE REPO CONTENTS
+	// there are complex unit tests that depends exactly on how it is
 
 	// commit 1
 	err = writeAddFile(repoDir, "file1", `a`)

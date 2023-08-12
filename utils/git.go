@@ -214,7 +214,7 @@ func ExecDiffFileRevisions(repoDir string, filePath string, srcCommitId string, 
 	if err != nil {
 		return nil, err
 	}
-	fmt.Printf("CMDRESULT=\n%s\n", cmdResult)
+	// fmt.Printf("CMDRESULT=\n%s\n", cmdResult)
 
 	return ParseNormalDiffOutput(cmdResult)
 }

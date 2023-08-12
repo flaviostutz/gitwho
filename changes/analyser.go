@@ -21,7 +21,7 @@ type ChangesOptions struct {
 	Until string
 }
 
-type LinesChanges struct {
+type LinesTouched struct {
 	/* New lines found in commits */
 	New int
 
@@ -46,17 +46,17 @@ type LinesChanges struct {
 	AgeDaysSum float64
 }
 
-type FileChanges struct {
+type FileTouched struct {
 	Name  string
 	Lines int
 }
 
 type AuthorLines struct {
-	AuthorName string
-	AuthorMail string
-	Lines      LinesChanges
-	Files      FileChanges
-	filesMap   map[string]FileChanges // temporary map used during processing
+	AuthorName      string
+	AuthorMail      string
+	LinesTouched    LinesTouched
+	FilesTouched    []FileTouched
+	filesTouchedMap map[string]FileTouched // temporary map used during processing
 }
 
 type ChangesFileResult struct {
@@ -67,8 +67,8 @@ type ChangesFileResult struct {
 
 type ChangesResult struct {
 	/* Lines change stats */
-	TotalLines LinesChanges
-	/* Total files changed in the different commits. If the same file is changed in two commits, for example, it will count as two. */
+	TotalLines LinesTouched
+	/* Total files changed in the different commits. If the same file is changed in two commits, for example, it will count as one. */
 	TotalFiles int
 	/* Number of commits analysed */
 	TotalCommits   int
@@ -87,11 +87,13 @@ type analyseFileRequest struct {
 
 func AnalyseChanges(opts ChangesOptions, progressChan chan<- utils.ProgressInfo) (ChangesResult, error) {
 	result := ChangesResult{
-		TotalLines:     LinesChanges{},
+		TotalLines:     LinesTouched{},
 		authorLinesMap: make(map[string]AuthorLines, 0),
 		AuthorsLines:   make([]AuthorLines, 0)}
 
 	progressInfo := utils.ProgressInfo{}
+
+	fileCounterMap := make(map[string]bool, 0)
 
 	if opts.Branch == "" {
 		return ChangesResult{}, fmt.Errorf("opts.Branch is required")
@@ -125,13 +127,18 @@ func AnalyseChanges(opts ChangesOptions, progressChan chan<- utils.ProgressInfo)
 		logrus.Debugf("Counting total lines changed per author")
 		for fileResult := range analyseFileOutputChan {
 			commitsWithFiles[fileResult.CommitId] = true
-			result.TotalFiles += fileResult.TotalFiles
+			_, ok := fileCounterMap[fileResult.FilePath]
+			if !ok {
+				fileCounterMap[fileResult.FilePath] = true
+				result.TotalFiles++
+			}
 			result.TotalLines = sumLinesChanges(result.TotalLines, fileResult.TotalLines)
 			for author := range fileResult.authorLinesMap {
 				fileAuthorLines := fileResult.authorLinesMap[author]
 				authorLines := result.authorLinesMap[author]
-				authorLines.Lines = sumLinesChanges(authorLines.Lines, fileAuthorLines.Lines)
-				// FIXME ver se precisa
+				authorLines.LinesTouched = sumLinesChanges(authorLines.LinesTouched, fileAuthorLines.LinesTouched)
+				authorLines.filesTouchedMap = sumFilesTouched(authorLines.filesTouchedMap, fileAuthorLines.filesTouchedMap)
+				// FIXME see if this is needed
 				result.authorLinesMap[author] = authorLines
 			}
 			progressInfo.CompletedTotalTime += fileResult.analysisTime
@@ -144,6 +151,33 @@ func AnalyseChanges(opts ChangesOptions, progressChan chan<- utils.ProgressInfo)
 		}
 
 		result.TotalCommits = len(commitsWithFiles)
+
+		logrus.Debugf("Preparing summary for each author")
+		authorsLines := make([]AuthorLines, 0)
+		for authorKeys := range result.authorLinesMap {
+			authorLines := result.authorLinesMap[authorKeys]
+			authorParts := strings.Split(authorKeys, "###")
+
+			filesTouched := make([]FileTouched, 0)
+			for filesKey := range authorLines.filesTouchedMap {
+				filesTouched = append(filesTouched, authorLines.filesTouchedMap[filesKey])
+			}
+
+			authorsLines = append(authorsLines, AuthorLines{
+				AuthorName:   authorParts[0],
+				AuthorMail:   authorParts[1],
+				LinesTouched: authorLines.LinesTouched,
+				FilesTouched: filesTouched,
+			})
+		}
+
+		sort.Slice(authorsLines, func(i, j int) bool {
+			ai := authorsLines[i].LinesTouched
+			aj := authorsLines[j].LinesTouched
+			return ai.New+ai.Changes > aj.New+aj.Changes
+		})
+		result.AuthorsLines = authorsLines
+
 	}()
 
 	// MAP - start analyser workers (STEP 2/3)
@@ -210,27 +244,12 @@ func AnalyseChanges(opts ChangesOptions, progressChan chan<- utils.ProgressInfo)
 	summaryWorkerWaitGroup.Wait()
 	logrus.Debug("Summary worker finished")
 
-	logrus.Debugf("Preparing summary for each author")
-	authorsLines := make([]AuthorLines, 0)
-	for authorKeys := range result.authorLinesMap {
-		authorLines := result.authorLinesMap[authorKeys]
-		authorParts := strings.Split(authorKeys, "###")
-		authorsLines = append(authorsLines, AuthorLines{AuthorName: authorParts[0], AuthorMail: authorParts[1], Lines: authorLines.Lines})
-	}
-
-	sort.Slice(authorsLines, func(i, j int) bool {
-		ai := authorsLines[i].Lines
-		aj := authorsLines[j].Lines
-		return ai.New+ai.Changes > aj.New+aj.Changes
-	})
-	result.AuthorsLines = authorsLines
-
 	// fmt.Printf("SUMMARY: %v\n", result)
 
 	return result, nil
 }
 
-func sumLinesChanges(changes1 LinesChanges, changes2 LinesChanges) LinesChanges {
+func sumLinesChanges(changes1 LinesTouched, changes2 LinesTouched) LinesTouched {
 	changes1.Changes += changes2.Changes
 	changes1.ChurnOther += changes2.ChurnOther
 	changes1.ChurnOwn += changes2.ChurnOwn
@@ -241,4 +260,19 @@ func sumLinesChanges(changes1 LinesChanges, changes2 LinesChanges) LinesChanges 
 	changes1.RefactorReceived += changes2.RefactorReceived
 	changes1.AgeDaysSum += changes2.AgeDaysSum
 	return changes1
+}
+
+func sumFilesTouched(map1 map[string]FileTouched, map2 map[string]FileTouched) map[string]FileTouched {
+	if map1 == nil {
+		map1 = make(map[string]FileTouched, 0)
+	}
+	for fileNameKey := range map2 {
+		fileChanges1 := map1[fileNameKey]
+		fileChanges2 := map2[fileNameKey]
+		fileChanges1.Name = fileChanges2.Name
+		fileChanges1.Lines += fileChanges2.Lines
+		// FIXME check if this is necessary
+		map1[fileNameKey] = fileChanges1
+	}
+	return map1
 }

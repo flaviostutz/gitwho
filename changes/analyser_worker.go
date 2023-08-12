@@ -26,7 +26,7 @@ func analyseFileChangesWorker(analyseFileInputChan <-chan analyseFileRequest, an
 			CommitId: req.commitId,
 			FilePath: req.filePath,
 			ChangesResult: ChangesResult{
-				TotalLines:     LinesChanges{},
+				TotalLines:     LinesTouched{},
 				authorLinesMap: make(map[string]AuthorLines, 0),
 				AuthorsLines:   []AuthorLines{},
 			},
@@ -77,8 +77,6 @@ func analyseFileChangesWorker(analyseFileInputChan <-chan analyseFileRequest, an
 			break
 		}
 
-		changesFileResult.TotalFiles += 1
-
 		// there is no previous commit because this is a brand new file
 		if prevCommitId == "" {
 			// consider all lines as "New"
@@ -86,7 +84,7 @@ func analyseFileChangesWorker(analyseFileInputChan <-chan analyseFileRequest, an
 				addAuthorLines(&changesFileResult,
 					dstBlame.AuthorName,
 					dstBlame.AuthorMail,
-					LinesChanges{New: 1},
+					LinesTouched{New: 1},
 					req.filePath)
 			}
 			changesFileResult.analysisTime = time.Since(startTime)
@@ -121,7 +119,7 @@ func analyseFileChangesWorker(analyseFileInputChan <-chan analyseFileRequest, an
 				addAuthorLines(&changesFileResult,
 					fileDstBlame[diff.DstLines[0].Number-1].AuthorName,
 					fileDstBlame[diff.DstLines[0].Number-1].AuthorMail,
-					LinesChanges{New: len(diff.DstLines)},
+					LinesTouched{New: len(diff.DstLines)},
 					req.filePath)
 				continue
 			}
@@ -156,7 +154,7 @@ func analyseFileChangesWorker(analyseFileInputChan <-chan analyseFileRequest, an
 						addAuthorLines(&changesFileResult,
 							dstAuthorName,
 							dstAuthorMail,
-							LinesChanges{
+							LinesTouched{
 								Changes:     1,
 								RefactorOwn: 1,
 								AgeDaysSum:  lineAge.Hours() / float64(24),
@@ -169,7 +167,7 @@ func analyseFileChangesWorker(analyseFileInputChan <-chan analyseFileRequest, an
 					addAuthorLines(&changesFileResult,
 						dstAuthorName,
 						dstAuthorMail,
-						LinesChanges{
+						LinesTouched{
 							Changes:       1,
 							RefactorOther: 1,
 							AgeDaysSum:    lineAge.Hours() / float64(24),
@@ -180,7 +178,7 @@ func analyseFileChangesWorker(analyseFileInputChan <-chan analyseFileRequest, an
 					addAuthorLines(&changesFileResult,
 						srcline.AuthorName,
 						srcline.AuthorMail,
-						LinesChanges{RefactorReceived: 1},
+						LinesTouched{RefactorReceived: 1},
 						req.filePath)
 
 					continue
@@ -193,7 +191,7 @@ func analyseFileChangesWorker(analyseFileInputChan <-chan analyseFileRequest, an
 					addAuthorLines(&changesFileResult,
 						dstAuthorName,
 						dstAuthorMail,
-						LinesChanges{
+						LinesTouched{
 							Changes:    1,
 							ChurnOwn:   1,
 							AgeDaysSum: lineAge.Hours() / float64(24),
@@ -207,7 +205,7 @@ func analyseFileChangesWorker(analyseFileInputChan <-chan analyseFileRequest, an
 				addAuthorLines(&changesFileResult,
 					dstAuthorName,
 					dstAuthorMail,
-					LinesChanges{
+					LinesTouched{
 						Changes:    1,
 						ChurnOther: 1,
 						AgeDaysSum: lineAge.Hours() / float64(24),
@@ -218,7 +216,7 @@ func analyseFileChangesWorker(analyseFileInputChan <-chan analyseFileRequest, an
 				addAuthorLines(&changesFileResult,
 					srcline.AuthorName,
 					srcline.AuthorMail,
-					LinesChanges{ChurnReceived: 1},
+					LinesTouched{ChurnReceived: 1},
 					req.filePath)
 			}
 
@@ -229,7 +227,7 @@ func analyseFileChangesWorker(analyseFileInputChan <-chan analyseFileRequest, an
 					addAuthorLines(&changesFileResult,
 						dstline.AuthorName,
 						dstline.AuthorMail,
-						LinesChanges{New: 1},
+						LinesTouched{New: 1},
 						req.filePath)
 				}
 			}
@@ -245,23 +243,26 @@ func analyseFileChangesWorker(analyseFileInputChan <-chan analyseFileRequest, an
 	}
 }
 
-func addAuthorLines(changesFileResult *ChangesFileResult, authorName string, authorMail string, linesChanges LinesChanges, filePath string) {
+func addAuthorLines(changesFileResult *ChangesFileResult, authorName string, authorMail string, linesChanges LinesTouched, filePath string) {
 	authorKey := fmt.Sprintf("%s###%s", authorName, authorMail)
 
-	// add lines changes
 	authorLine, ok := changesFileResult.authorLinesMap[authorKey]
 	if !ok {
-		authorLine.filesMap = make(map[string]FileChanges, 0)
+		authorLine.filesTouchedMap = make(map[string]FileTouched, 0)
 	}
-	authorLine.Lines = sumLinesChanges(authorLine.Lines, linesChanges)
-	// FIXME ver se precisa desse reasign de mapa
-	changesFileResult.authorLinesMap[authorKey] = authorLine
 
-	// add files changed
-	fileChanges := authorLine.filesMap[filePath]
+	// lines touched
+	authorLine.LinesTouched = sumLinesChanges(authorLine.LinesTouched, linesChanges)
+
+	// files touched
+	fileChanges := authorLine.filesTouchedMap[filePath]
 	fileChanges.Name = filePath
 	fileChanges.Lines += linesChanges.New + linesChanges.ChurnOther + linesChanges.ChurnOwn + linesChanges.RefactorOther + linesChanges.RefactorOwn
-	authorLine.filesMap[filePath] = fileChanges
+	// FIXME check if this is required
+	authorLine.filesTouchedMap[filePath] = fileChanges
+
+	// FIXME check if this is required
+	changesFileResult.authorLinesMap[authorKey] = authorLine
 
 	// add to overall totals
 	changesFileResult.TotalLines = sumLinesChanges(changesFileResult.TotalLines, linesChanges)

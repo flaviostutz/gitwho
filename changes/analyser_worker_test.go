@@ -5,14 +5,14 @@ import (
 
 	"github.com/flaviostutz/gitwho/utils"
 	"github.com/sirupsen/logrus"
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestAnalyseWorkerFile1(t *testing.T) {
 	logrus.SetLevel(logrus.DebugLevel)
 
 	repoDir, err := utils.ResolveTestOwnershipRepo()
-	assert.Nil(t, err)
+	require.Nil(t, err)
 	if err != nil {
 		return
 	}
@@ -35,50 +35,80 @@ func TestAnalyseWorkerFile1(t *testing.T) {
 	// execute analysis
 	analyseFileChangesWorker(analyseFileInputChan, analyseFileOutputChan, nil, nil)
 
-	// assert commit1 analysis
+	// require commit1 analysis
 	// a1
 	changes1 := <-analyseFileOutputChan
-	assert.Equal(t, "file1", changes1.FilePath)
-	assert.Equal(t, 1, changes1.TotalLines.New)
-	assert.Equal(t, 0, changes1.TotalLines.Changes)
-	assert.Equal(t, 0, changes1.TotalLines.ChurnOwn)
-	assert.Equal(t, 0, changes1.TotalLines.ChurnOther)
+	require.Equal(t, "file1", changes1.FilePath)
+	require.Equal(t, 1, changes1.TotalLines.New)
+	require.Equal(t, 0, changes1.TotalLines.Changes)
+	require.Equal(t, 0, changes1.TotalLines.ChurnOwn)
+	require.Equal(t, 0, changes1.TotalLines.ChurnOther)
+	require.Equal(t, 0, changes1.TotalLines.ChurnReceived)
+	require.Equal(t, 0, changes1.TotalLines.RefactorOther)
+	require.Equal(t, 0, changes1.TotalLines.RefactorOwn)
+	require.Equal(t, 0, changes1.TotalLines.RefactorReceived)
 	authorLines1, ok := changes1.authorLinesMap["author1###<author1@mail.com>"]
-	assert.True(t, ok)
-	assert.Equal(t, 1, authorLines1.Lines.New)
-	assert.Equal(t, 0, authorLines1.Lines.ChurnOther)
+	require.True(t, ok)
+	require.Equal(t, 1, authorLines1.LinesTouched.New)
+	require.Equal(t, 0, authorLines1.LinesTouched.Changes)
+	require.Equal(t, 0, authorLines1.LinesTouched.ChurnOwn)
+	require.Equal(t, 0, authorLines1.LinesTouched.ChurnOther)
+	require.Equal(t, 0, authorLines1.LinesTouched.ChurnReceived)
+	require.Equal(t, 0, authorLines1.LinesTouched.RefactorOther)
+	require.Equal(t, 0, authorLines1.LinesTouched.RefactorOwn)
+	require.Equal(t, 0, authorLines1.LinesTouched.RefactorReceived)
+	require.Equal(t, 1, len(authorLines1.filesTouchedMap))
+	author1FilesMap, ok := authorLines1.filesTouchedMap["file1"]
+	require.True(t, ok)
+	require.Equal(t, "file1", author1FilesMap.Name)
+	require.Equal(t, 1, author1FilesMap.Lines)
 
-	// assert commit2 analysis
+	// require commit2 analysis
 	// a2
 	changes2 := <-analyseFileOutputChan
-	assert.Equal(t, "file1", changes2.FilePath)
-	assert.Equal(t, 1, changes2.TotalLines.New)
-	assert.Equal(t, 1, changes2.TotalLines.Changes)
-	assert.Equal(t, 1, changes2.TotalLines.ChurnOther)
-	assert.Equal(t, 0, changes2.TotalLines.ChurnOwn)
+	require.Equal(t, "file1", changes2.FilePath)
+	require.Equal(t, 1, changes2.TotalLines.New)
+	require.Equal(t, 1, changes2.TotalLines.Changes)
+	require.Equal(t, 1, changes2.TotalLines.ChurnOther)
+	require.Equal(t, 0, changes2.TotalLines.ChurnOwn)
 	authorLines2, ok := changes2.authorLinesMap["author2###<author2@mail.com>"]
-	assert.True(t, ok)
-	assert.Equal(t, 1, authorLines2.Lines.Changes)
-	assert.Equal(t, 1, authorLines2.Lines.ChurnOther)
+	require.True(t, ok)
+	require.Equal(t, 1, authorLines2.LinesTouched.Changes)
+	require.Equal(t, 1, authorLines2.LinesTouched.ChurnOther)
+	require.Equal(t, 1, len(authorLines2.filesTouchedMap))
+	author2FilesMap, ok := authorLines2.filesTouchedMap["file1"]
+	require.True(t, ok)
+	require.Equal(t, 2, author2FilesMap.Lines)
 
-	// assert commit3 analysis
+	// require commit3 analysis
 	// a1
 	changes3 := <-analyseFileOutputChan
-	assert.Equal(t, "file1", changes3.FilePath)
-	assert.Equal(t, 1, changes3.TotalLines.New)
-	assert.Equal(t, 1, changes3.TotalLines.Changes)
-	assert.Equal(t, 1, changes3.TotalLines.ChurnOther)
-	assert.Equal(t, 0, changes3.TotalLines.ChurnOwn)
+	require.Equal(t, "file1", changes3.FilePath)
+	require.Equal(t, 1, changes3.TotalLines.New)
+	require.Equal(t, 1, changes3.TotalLines.Changes)
+	require.Equal(t, 1, changes3.TotalLines.ChurnOther)
+	require.Equal(t, 0, changes3.TotalLines.ChurnOwn)
+	authorLines1, ok = changes3.authorLinesMap["author1###<author1@mail.com>"]
+	require.True(t, ok)
+	author1FilesMap, ok = authorLines1.filesTouchedMap["file1"]
+	require.True(t, ok)
+	require.Equal(t, 2, author1FilesMap.Lines)
 
-	// assert commit4 analysis
+	// require commit4 analysis
 	// a1
 	changes4 := <-analyseFileOutputChan
-	assert.Equal(t, "file1", changes4.FilePath)
-	assert.Equal(t, 0, changes4.TotalLines.New)
-	assert.Equal(t, 1, changes4.TotalLines.Changes)
-	assert.Equal(t, 1, changes4.TotalLines.ChurnOwn)
-	assert.Equal(t, 0, changes4.TotalLines.ChurnOther)
+	require.Equal(t, "file1", changes4.FilePath)
+	require.Equal(t, 0, changes4.TotalLines.New)
+	require.Equal(t, 1, changes4.TotalLines.Changes)
+	require.Equal(t, 1, changes4.TotalLines.ChurnOwn)
+	require.Equal(t, 0, changes4.TotalLines.ChurnOther)
 	authorLines4, ok := changes4.authorLinesMap["author1###<author1@mail.com>"]
-	assert.True(t, ok)
-	assert.Equal(t, 1, authorLines4.Lines.ChurnOwn)
+	require.True(t, ok)
+	require.Equal(t, 1, authorLines4.LinesTouched.ChurnOwn)
+	require.Equal(t, 1, authorLines4.LinesTouched.Changes)
+	require.Equal(t, 0, authorLines4.LinesTouched.ChurnOther)
+	require.Equal(t, 1, len(authorLines4.filesTouchedMap))
+	author1FilesMap, ok = authorLines4.filesTouchedMap["file1"]
+	require.True(t, ok)
+	require.Equal(t, 1, author1FilesMap.Lines)
 }

@@ -5,7 +5,7 @@ import (
 
 	"github.com/flaviostutz/gitwho/utils"
 	"github.com/sirupsen/logrus"
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func init() {
@@ -13,9 +13,9 @@ func init() {
 }
 
 func TestAnalyseCodeOwnershipAllFiles(t *testing.T) {
-	// assert.InDeltaf(t, float64(0), v, 0.01, "")
+	// require.InDeltaf(t, float64(0), v, 0.01, "")
 	repoDir, err := utils.ResolveTestOwnershipRepo()
-	assert.Nil(t, err)
+	require.Nil(t, err)
 	results, err := AnalyseCodeOwnership(OwnershipOptions{
 		BaseOptions: utils.BaseOptions{
 			RepoDir: repoDir,
@@ -23,18 +23,18 @@ func TestAnalyseCodeOwnershipAllFiles(t *testing.T) {
 		},
 		When: "now",
 	}, nil)
-	assert.Nil(t, err)
+	require.Nil(t, err)
 	if err != nil {
 		return
 	}
-	assert.Equal(t, 7, results.TotalLines)
-	assert.Equal(t, 3, len(results.AuthorsLines))
+	require.Equal(t, 7, results.TotalLines)
+	require.Equal(t, 3, len(results.AuthorsLines))
 }
 
 func TestAnalyseCodeOwnershipRegexFiles(t *testing.T) {
-	// assert.InDeltaf(t, float64(0), v, 0.01, "")
+	// require.InDeltaf(t, float64(0), v, 0.01, "")
 	repo, err := utils.ResolveTestOwnershipRepo()
-	assert.Nil(t, err)
+	require.Nil(t, err)
 	results, err := AnalyseCodeOwnership(OwnershipOptions{
 		BaseOptions: utils.BaseOptions{
 			RepoDir:    repo,
@@ -43,10 +43,10 @@ func TestAnalyseCodeOwnershipRegexFiles(t *testing.T) {
 		},
 		When: "now",
 	}, nil)
-	assert.Nil(t, err)
+	require.Nil(t, err)
 	if err != nil {
 		return
 	}
-	assert.Equal(t, 5, results.TotalLines)
-	assert.Equal(t, 1, len(results.AuthorsLines))
+	require.Equal(t, 5, results.TotalLines)
+	require.Equal(t, 1, len(results.AuthorsLines))
 }
