@@ -1,0 +1,17 @@
+name: master-build
+
+on:
+  push:
+    branches: ['main']
+
+jobs:
+  build:
+    name: Build main
+    uses: flaviostutz/gh-makefile/.github/workflows/make-ci.yml@main
+    with:
+      working-directory: ./
+      tooling: golang
+      tooling-version: 1.20
+      target-build: true
+      target-lint: false
+      target-unit-tests: true

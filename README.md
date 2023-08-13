@@ -1,5 +1,11 @@
 # gitwho
 
+TODO
+  - github pipelines
+  - npm packaging
+  - cache with sqlite
+  - timeline generation
+
 Enables you to check the overal classification of the changes on the codebase, or to take a look at individual devs to understand better their behaviour and their evolution over time.
 
 This utility gives you stats like:

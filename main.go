@@ -29,7 +29,6 @@ func main() {
 	logrus.SetLevel(logrus.DebugLevel)
 
 	format := "full"
-	showMail := false
 	profileFile := ""
 	verbose := false
 
@@ -41,8 +40,7 @@ func main() {
 	changesFlag.StringVar(&changesOpts.Since, "since", "30 days ago", "Filter changes made from this date")
 	changesFlag.StringVar(&changesOpts.Until, "until", "now", "Filter changes made util this date")
 	changesFlag.StringVar(&profileFile, "profile-file", "", "Profile file to dump golang runtime data to")
-	changesFlag.StringVar(&format, "format", "full", "Output format. 'full' (all authors with details) or 'top' (top authors by change type)")
-	changesFlag.BoolVar(&showMail, "show-mail", false, "Show author mail in output")
+	changesFlag.StringVar(&format, "format", "full", "Output format. 'full' (all authors with details) or 'short' (top authors by change type)")
 	changesFlag.BoolVar(&verbose, "verbose", true, "Show verbose logs during processing")
 
 	ownershipFlag := flag.NewFlagSet("ownership", flag.ExitOnError)
@@ -51,7 +49,6 @@ func main() {
 	ownershipFlag.StringVar(&ownershipOpts.When, "when", "now", "Date time to analyse")
 	ownershipFlag.StringVar(&ownershipOpts.FilesRegex, "files", ".*", "Regex for selecting which file paths to include in analysis")
 	ownershipFlag.StringVar(&profileFile, "profile-file", "", "Profile file to dump golang runtime data to")
-	ownershipFlag.BoolVar(&showMail, "show-mail", false, "Show author mail in output")
 	ownershipFlag.BoolVar(&verbose, "verbose", true, "Show verbose logs during processing")
 
 	if len(os.Args) < 2 {
@@ -59,8 +56,8 @@ func main() {
 		os.Exit(1)
 	}
 
-	if format != "full" && format != "top" {
-		fmt.Println("'--format' should be 'full or 'top''")
+	if format != "full" && format != "short" {
+		fmt.Println("'--format' should be 'full or 'short''")
 	}
 
 	if profileFile != "" {
@@ -96,11 +93,11 @@ func main() {
 			fmt.Println("Failed to perform changes analysis. err=", err)
 			os.Exit(2)
 		}
-		if format == "top" {
-			output := changes.FormatTopTextResults(changesResults, changesOpts, showMail)
+		if format == "short" {
+			output := changes.FormatTopTextResults(changesResults, changesOpts)
 			fmt.Println(output)
 		} else {
-			output := changes.FormatFullTextResults(changesResults, changesOpts, showMail)
+			output := changes.FormatFullTextResults(changesResults, changesOpts)
 			fmt.Println(output)
 		}
 
@@ -129,7 +126,7 @@ func main() {
 			fmt.Println("Failed to perform ownership analysis. err=", err)
 			os.Exit(2)
 		}
-		output := ownership.FormatTextResults(ownershipResults, ownershipOpts, showMail)
+		output := ownership.FormatTextResults(ownershipResults, ownershipOpts)
 		fmt.Println(output)
 
 	default:

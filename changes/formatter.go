@@ -5,7 +5,7 @@ import (
 	"sort"
 )
 
-func FormatFullTextResults(changes ChangesResult, opts ChangesOptions, showMail bool) string {
+func FormatFullTextResults(changes ChangesResult, opts ChangesOptions) string {
 	if changes.TotalCommits == 0 {
 		return "No changes found"
 	}
@@ -18,10 +18,7 @@ func FormatFullTextResults(changes ChangesResult, opts ChangesOptions, showMail 
 	text += formatLinesTouched(changes.TotalLines, LinesTouched{})
 
 	for _, authorLines := range changes.AuthorsLines {
-		mailStr := ""
-		if showMail {
-			mailStr = fmt.Sprintf(" %s", authorLines.AuthorMail)
-		}
+		mailStr := fmt.Sprintf(" %s", authorLines.AuthorMail)
 		text += fmt.Sprintf("\nAuthor: %s%s\n", authorLines.AuthorName, mailStr)
 		text += formatLinesTouched(authorLines.LinesTouched, changes.TotalLines)
 		text += fmt.Sprintf("     * Churn done by others to own lines (help received): %d%s\n", authorLines.LinesTouched.ChurnReceived, calcPercStr(authorLines.LinesTouched.ChurnReceived, changes.TotalLines.ChurnReceived))
@@ -30,7 +27,7 @@ func FormatFullTextResults(changes ChangesResult, opts ChangesOptions, showMail 
 	return text
 }
 
-func FormatTopTextResults(changes ChangesResult, opts ChangesOptions, showMail bool) string {
+func FormatTopTextResults(changes ChangesResult, opts ChangesOptions) string {
 	if changes.TotalCommits == 0 {
 		return "No changes found"
 	}
@@ -44,10 +41,7 @@ func FormatTopTextResults(changes ChangesResult, opts ChangesOptions, showMail b
 	text := "Top Coders (new+refactor-churn)\n"
 	for i := 0; i < len(changes.AuthorsLines) && i < 2; i++ {
 		al := changes.AuthorsLines[i]
-		mailStr := ""
-		if showMail {
-			mailStr = fmt.Sprintf(" %s", al.AuthorMail)
-		}
+		mailStr := fmt.Sprintf(" %s", al.AuthorMail)
 		text += fmt.Sprintf("  %s%s: %d%s\n", al.AuthorName, mailStr, calcTopCoderScore(al.LinesTouched), calcPercStr(calcTopCoderScore(al.LinesTouched), calcTopCoderScore(changes.TotalLines)))
 	}
 
