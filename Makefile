@@ -1,4 +1,5 @@
 build:
+	go get
 	go build -o dist/gitwho main.go
 
 unit-tests:
