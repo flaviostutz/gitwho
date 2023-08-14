@@ -26,7 +26,7 @@ build:
 
 publish-npm: build
 	if [ "${NPM_ACCESS_TOKEN}" == "" ]; then
-		echo "NPM_ACCESS_TOKEN" is a required env
+		echo "NPM_ACCESS_TOKEN is a required env"
 		exit 1
 	fi
 
