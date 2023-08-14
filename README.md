@@ -6,7 +6,7 @@ TODO
   - cache with sqlite
   - timeline generation
 
-Enables you to check the overal classification of the changes on the codebase, or to take a look at individual devs to understand better their behaviour and their evolution over time.
+Shows statistics about changed lines and line ownership per authors in a git repo. Take a look at the team or individual devs to understand better their behaviour and their evolution over time.
 
 This utility gives you stats like:
   - Changed lines per author over time classified in new, churn, helper or refactor (see concepts below)

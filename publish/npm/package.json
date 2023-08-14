@@ -1,0 +1,13 @@
+{
+    "name": "gitwho",
+    "description": "Shows statistics about changed lines and line ownership per authors in a git repo",
+    "version": "0.1.0",
+    "bin": "dist/main.js",
+    "main": "dist/main.js",
+    "files": [
+      "dist/main.js"
+    ],    
+    "dependencies": {},
+    "devDependencies": {}
+  }
+  

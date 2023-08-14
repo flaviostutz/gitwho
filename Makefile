@@ -1,36 +1,11 @@
 build:
-	rm -rf dist
-	mkdir dist
-
-	@echo "Compile for darwin-amd64"
-	GOOS=darwin GOARCH=amd64 CGO_ENABLED=0 go build -a -o dist/gitwho-darwin-amd64 ./cli
-	chmod +x dist/gitwho-darwin-amd64
-	@echo "Saved to dist/gitwho-darwin-amd64"
-
-	@echo "Compile for darwin-arm64 (M1,2)"
-	GOOS=darwin GOARCH=arm64 CGO_ENABLED=0 go build -a -o dist/gitwho-darwin-arm64 ./cli
-	chmod +x dist/gitwho-darwin-amd64
-	@echo "Saved to dist/gitwho-darwin-amd64"
-
-	@echo "Compile for linux-amd64"
-	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -a -o dist/gitwho-linux-amd64 ./cli
-	chmod +x dist/gitwho-linux-amd64
-	@echo "Saved to dist/gitwho-linux-amd64"
-
-	@echo "Compile for linux-arm (works on Raspberry)"
-	GOOS=linux GOARCH=arm GOARM=5 CGO_ENABLED=0 go build -a -o dist/gitwho-linux-raspberry ./cli
-	chmod +x dist/gitwho-linux-amd64
-	@echo "Saved to dist/gitwho-linux-amd64"
-
-	@echo "Compile for windows-amd64"
-	GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -a -o dist/gitwho-windows-amd64.exe ./cli
-	@echo "Saved to dist/gitwho-windows-amd64"
+	cd publish && make build
 
 unit-tests:
-	cd cli && go test
-	cd utils && go test
-	cd ownership && go test
-	cd changes && go test
+	go test ./cli
+	go test ./utils
+	go test ./ownership
+	go test ./changes
 
 test: unit-tests
 
