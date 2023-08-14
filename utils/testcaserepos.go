@@ -28,16 +28,6 @@ func ResolveTestOwnershipRepo() (string, error) {
 	repoDir := testCasesDir + "/ownership"
 	// fmt.Printf("repoDir=%s\n", repoDir)
 
-	_, err = ExecShellf(repoDir, "git config user.email \"you@example.com\"")
-	if err != nil {
-		return "", err
-	}
-
-	_, err = ExecShellf(repoDir, "git config user.name \"Your Name\"")
-	if err != nil {
-		return "", err
-	}
-
 	// remove repo if exists
 	_, err = ExecShellf("", "rm -rf %s", repoDir)
 	if err != nil {
@@ -49,6 +39,16 @@ func ResolveTestOwnershipRepo() (string, error) {
 
 	fmt.Println("Creating test repo")
 	_, err = ExecShellf(testCasesDir, "git init ownership --initial-branch main")
+	if err != nil {
+		return "", err
+	}
+
+	_, err = ExecShellf(repoDir, "git config user.email \"you@example.com\"")
+	if err != nil {
+		return "", err
+	}
+
+	_, err = ExecShellf(repoDir, "git config user.name \"Your Name\"")
 	if err != nil {
 		return "", err
 	}
