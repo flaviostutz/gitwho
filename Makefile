@@ -11,7 +11,7 @@ unit-tests:
 test: unit-tests
 
 deploy:
-	cd publish && publish-npm
+	cd publish && make publish-npm
 
 run-changes:
 	# go run ./ changes --repo /Users/flaviostutz/Documents/development/flaviostutz/conductor --branch main --files .md --since "5 years ago" --until "3 years ago" --format top
