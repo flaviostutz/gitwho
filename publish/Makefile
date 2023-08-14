@@ -24,8 +24,8 @@ build:
 	GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -a -o npm/dist/gitwho-windows-amd64.exe ../
 
 publish-npm:
-	git config --global user.email "flaviostutz@gmail.com"
-	git config --global user.name "Flávio Stutz"
+	git config user.email "flaviostutz@gmail.com"
+	git config user.name "Flávio Stutz"
 	npm version from-git --no-git-tag-version
 	echo "//registry.npmjs.org/:_authToken=${NPM_ACCESS_TOKEN}" > .npmrc
 	yarn publish

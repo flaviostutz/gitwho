@@ -1,7 +1,6 @@
 build:
 	go version
 	go mod download
-	cd publish && make build
 
 unit-tests:
 	go test ./
@@ -10,6 +9,12 @@ unit-tests:
 	go test ./changes
 
 test: unit-tests
+
+package:
+	cd publish && make build
+
+deploy:
+	cd publish && publish-npm
 
 run-changes:
 	# go run ./ changes --repo /Users/flaviostutz/Documents/development/flaviostutz/conductor --branch main --files .md --since "5 years ago" --until "3 years ago" --format top
