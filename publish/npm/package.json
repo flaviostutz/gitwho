@@ -7,6 +7,16 @@
     "files": [
       "dist/main.js"
     ],    
+    "repository": {
+      "type": "git",
+      "url": "git+https://github.com/flaviostutz/gitwho.git"
+    },
+    "author": "flaviostutz",
+    "license": "MIT",
+    "bugs": {
+      "url": "https://github.com/flaviostutz/gitwho/issues"
+    },
+    "homepage": "https://github.com/flaviostutz/gitwho#readme",  
     "dependencies": {},
     "devDependencies": {}
   }
