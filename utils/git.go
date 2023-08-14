@@ -231,3 +231,12 @@ func ExecGetCommitAtDate(repoDir string, branch string, when string) (string, er
 	}
 	return result, nil
 }
+
+func ExecCheckPrereqs() error {
+	_, err := ExecShellf("", "/usr/bin/git version")
+	if err != nil {
+		return err
+	}
+	// TODO check git version
+	return nil
+}

@@ -112,7 +112,7 @@ func writeAddFile(repoDir string, filePath string, contents string) error {
 }
 
 func createCommit(repoDir string, comment string, author string) (string, error) {
-	cmdResult, err := ExecShellf(repoDir, "git commit -m \"%s\" --author=\"%s <%s@mail.com>\"", comment, author, author)
+	cmdResult, err := ExecShellf(repoDir, "/usr/bin/git commit -m \"%s\" --author=\"%s <%s@mail.com>\"", comment, author, author)
 	if err != nil {
 		return "", err
 	}

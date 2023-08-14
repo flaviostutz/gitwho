@@ -28,6 +28,8 @@ func main() {
 
 	logrus.SetLevel(logrus.DebugLevel)
 
+	utils.ExecCheckPrereqs()
+
 	format := "full"
 	profileFile := ""
 	verbose := false
