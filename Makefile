@@ -10,9 +10,6 @@ unit-tests:
 
 test: unit-tests
 
-package:
-	cd publish && make build
-
 deploy:
 	cd publish && publish-npm
 
