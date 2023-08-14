@@ -25,9 +25,9 @@ build:
 	GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -a -o dist/gitwho-windows-amd64.exe
 
 publish-npm: build
-	if [ "${NPM_ACCESS_TOKEN}" == "" ]; then
-		echo "NPM_ACCESS_TOKEN is a required env"
-		exit 1
+	@if [ "${NPM_ACCESS_TOKEN}" == "" ]; then \
+		echo "ENV NPM_ACCESS_TOKEN is required"; \
+		exit 1; \
 	fi
 
 	rm -rf publish/npm/dist
