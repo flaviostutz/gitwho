@@ -28,7 +28,7 @@ func ResolveTestOwnershipRepo() (string, error) {
 	repoDir := testCasesDir + "/ownership"
 	// fmt.Printf("repoDir=%s\n", repoDir)
 
-	_, err = ExecShellf(repoDir, "git config user.email \"you@example.com\"\n  git config user.name \"Your Name\"")
+	_, err = ExecShellf(repoDir, "git config user.email \"you@example.com\" && git config user.name \"Your Name\"")
 	if err != nil {
 		return "", err
 	}
