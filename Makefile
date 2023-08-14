@@ -1,4 +1,5 @@
 build:
+	go mod download
 	cd publish && make build
 
 unit-tests:
