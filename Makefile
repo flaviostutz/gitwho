@@ -1,4 +1,5 @@
 build:
+	go version
 	go mod download
 	cd publish && make build
 
