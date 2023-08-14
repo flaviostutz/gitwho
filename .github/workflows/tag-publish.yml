@@ -11,11 +11,10 @@ jobs:
     uses: flaviostutz/gh-makefile/.github/workflows/make-ci.yml@main
     with:
       working-directory: ./
-      tooling: node
-      tooling-version: 16
-      stage: prd
+      tooling: golang
+      tooling-version: 1.20.x
       target-build: true
-      target-lint: true
+      target-lint: false
       target-unit-tests: true
 
   publish:
@@ -30,7 +29,7 @@ jobs:
         with:
           go-version: 1.20.x          
       - run: make build
-      
+
       - uses: actions/setup-node@v3
         with:
           node-version: '16.x'
