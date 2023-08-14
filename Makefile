@@ -37,7 +37,7 @@ publish-npm: build
 	git config user.email "flaviostutz@gmail.com"
 	git config user.name "Flávio Stutz"
 	cd publish/npm && npm version from-git --no-git-tag-version
-	echo "//registry.npmjs.org/:_authToken=${NPM_ACCESS_TOKEN}" > .npmrc
+	echo "//registry.npmjs.org/:_authToken=${NPM_ACCESS_TOKEN}" > publish/npm/.npmrc
 	cd publish/npm && yarn publish
 
 unit-tests:
