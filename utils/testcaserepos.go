@@ -26,7 +26,12 @@ func ResolveTestOwnershipRepo() (string, error) {
 
 	testCasesDir := curDir + "/.testcaserepos"
 	repoDir := testCasesDir + "/ownership"
-	fmt.Printf("repoDir=%s\n", repoDir)
+	// fmt.Printf("repoDir=%s\n", repoDir)
+
+	_, err = ExecShellf(repoDir, "git config user.email \"you@example.com\"\n  git config user.name \"Your Name\"")
+	if err != nil {
+		return "", err
+	}
 
 	// remove repo if exists
 	_, err = ExecShellf("", "rm -rf %s", repoDir)
