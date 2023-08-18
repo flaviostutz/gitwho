@@ -1,7 +1,7 @@
 {
     "name": "gitwho",
     "description": "Shows statistics about changed lines and line ownership per authors in a git repo",
-    "version": "0.0.7",
+    "version": "0.0.1",
     "repository": {
         "type": "git",
         "url": "git+https://github.com/flaviostutz/gitwho.git"
@@ -13,10 +13,10 @@
     },
     "homepage": "https://github.com/flaviostutz/gitwho#readme",
     "optionalDependencies": {
-        "@gitwho/darwin-amd64": "0.0.7",
-        "@gitwho/darwin-arm64": "0.0.7",
-        "@gitwho/linux-amd64": "0.0.7",
-        "@gitwho/linux-arm64": "0.0.7",
-        "@gitwho/windows-amd64": "0.0.7"
+        "@gitwho/darwin-amd64": "VERSION",
+        "@gitwho/darwin-arm64": "VERSION",
+        "@gitwho/linux-amd64": "VERSION",
+        "@gitwho/linux-arm64": "VERSION",
+        "@gitwho/windows-amd64": "VERSION"
     }
 }
