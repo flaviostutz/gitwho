@@ -49,8 +49,8 @@ publish-npm-all:
 	cd ../..; \
 	\
 	PACKAGE_DIR="npm/gitwho" VERSION=$$NEW_VERSION make publish-npm-dir; \
-	PACKAGE_DIR="npm/@gitwho/darwin-amd64" VERSION=$$NEW_VERSION make publish-npm-dir
-	# @PACKAGE_DIR="npm/@gitwho/darwin-arm64" VERSION=$${NEW_VERSION} make publish-npm-dir
+	PACKAGE_DIR="npm/@gitwho/darwin-amd64" VERSION=$$NEW_VERSION make publish-npm-dir; \
+	PACKAGE_DIR="npm/@gitwho/darwin-arm64" VERSION=$${NEW_VERSION} make publish-npm-dir
 	# @PACKAGE_DIR="npm/@gitwho/linux-amd64" VERSION=$${NEW_VERSION} make publish-npm-dir
 	# @PACKAGE_DIR="npm/@gitwho/linux-arm64" VERSION=$${NEW_VERSION} make publish-npm-dir
 	# @PACKAGE_DIR="npm/@gitwho/windows-amd64" VERSION=$${NEW_VERSION} make publish-npm-dir
