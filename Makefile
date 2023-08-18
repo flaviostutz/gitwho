@@ -34,9 +34,9 @@ publish-npm-all:
 
 	@PACKAGE_DIR="npm/@gitwho/darwin-amd64" make publish-npm-dir
 	@PACKAGE_DIR="npm/@gitwho/darwin-arm64" make publish-npm-dir
-	@PACKAGE_DIR="npm/@gitwho/linux-amd64" make publish-npm-dir
-	@PACKAGE_DIR="npm/@gitwho/linux-arm64" make publish-npm-dir
-	@PACKAGE_DIR="npm/@gitwho/windows-amd64" make publish-npm-dir
+	# @PACKAGE_DIR="npm/@gitwho/linux-amd64" make publish-npm-dir
+	# @PACKAGE_DIR="npm/@gitwho/linux-arm64" make publish-npm-dir
+	# @PACKAGE_DIR="npm/@gitwho/windows-amd64" make publish-npm-dir
 	@PACKAGE_DIR="npm/gitwho" make publish-npm-dir
 
 build-npm-all:
