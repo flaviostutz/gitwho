@@ -30,10 +30,10 @@ publish-npm-all:
 		exit 1; \
 	fi
 
-	# @PACKAGE_DIR="npm/@gitwho/darwin-amd64" make publish-npm-dir
-	# @PACKAGE_DIR="npm/@gitwho/darwin-arm64" make publish-npm-dir
-	# @PACKAGE_DIR="npm/@gitwho/linux-amd64" make publish-npm-dir
-	# @PACKAGE_DIR="npm/@gitwho/linux-arm64" make publish-npm-dir
+	@PACKAGE_DIR="npm/@gitwho/darwin-amd64" make publish-npm-dir
+	@PACKAGE_DIR="npm/@gitwho/darwin-arm64" make publish-npm-dir
+	@PACKAGE_DIR="npm/@gitwho/linux-amd64" make publish-npm-dir
+	@PACKAGE_DIR="npm/@gitwho/linux-arm64" make publish-npm-dir
 	@PACKAGE_DIR="npm/@gitwho/windows-amd64" make publish-npm-dir
 	@PACKAGE_DIR="npm/gitwho" make publish-npm-dir
 
@@ -72,7 +72,7 @@ build-arch-os:
 	chmod +x dist/${OS}-${ARCH}/gitwho
 
 	@if [ "${OUT_DIR}" != "" ]; then \
-		cp dist/${OS}-${ARCH}/gitwho ${OUT_DIR}/gitwho; \
+		cp "dist/${OS}-${ARCH}/gitwho" "${OUT_DIR}/gitwho"; \
 	fi
 
 
@@ -94,7 +94,7 @@ publish-npm-dir:
     fi
 	@git config user.email "flaviostutz@gmail.com"
 	@git config user.name "Flávio Stutz"
-	# cd ${PACKAGE_DIR} && npm version from-git --no-git-tag-version
+	cd ${PACKAGE_DIR} && npm version from-git --no-git-tag-version
 	@echo "//registry.npmjs.org/:_authToken=${NPM_ACCESS_TOKEN}" > ${PACKAGE_DIR}/.npmrc
 	cd ${PACKAGE_DIR} && yarn publish
 
