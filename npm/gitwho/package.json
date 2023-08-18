@@ -1,7 +1,7 @@
 {
     "name": "gitwho",
     "description": "Shows statistics about changed lines and line ownership per authors in a git repo",
-    "version": "0.0.1",
+    "version": "VERSION",
     "repository": {
         "type": "git",
         "url": "git+https://github.com/flaviostutz/gitwho.git"
