@@ -1,44 +1,4 @@
-build:
-	rm -rf dist
-	mkdir -p dist
-
-	go version
-	go mod download
-
-	@echo "Compiling for darwin-amd64"...
-	GOOS=darwin GOARCH=amd64 CGO_ENABLED=0 go build -a -o dist/gitwho-darwin-amd64
-	chmod +x dist/gitwho-darwin-amd64
-
-	@echo "Compiling for darwin-arm64 (M1,2)..."
-	GOOS=darwin GOARCH=arm64 CGO_ENABLED=0 go build -a -o dist/gitwho-darwin-arm64
-	chmod +x dist/gitwho-darwin-amd64
-
-	@echo "Compiling for linux-amd64..."
-	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -a -o dist/gitwho-linux-amd64
-	chmod +x dist/gitwho-linux-amd64
-
-	@echo "Compiling for linux-arm (Raspberry Pi)..."
-	GOOS=linux GOARCH=arm GOARM=5 CGO_ENABLED=0 go build -a -o dist/gitwho-linux-raspberry
-	chmod +x dist/gitwho-linux-amd64
-
-	@echo "Compiling for windows-amd64..."
-	GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -a -o dist/gitwho-windows-amd64.exe
-
-publish-npm: build
-	@if [ "${NPM_ACCESS_TOKEN}" == "" ]; then \
-		echo "ENV NPM_ACCESS_TOKEN is required"; \
-		exit 1; \
-	fi
-
-	rm -rf publish/npm/dist
-	cp -r dist publish/npm/dist
-	cp publish/npm/main.js publish/npm/dist/
-
-	git config user.email "flaviostutz@gmail.com"
-	git config user.name "Flávio Stutz"
-	cd publish/npm && npm version from-git --no-git-tag-version
-	echo "//registry.npmjs.org/:_authToken=${NPM_ACCESS_TOKEN}" > publish/npm/.npmrc
-	cd publish/npm && yarn publish
+build: build-npm-all
 
 unit-tests:
 	go test ./
@@ -48,12 +8,12 @@ unit-tests:
 
 test: unit-tests
 
-deploy: publish-npm
+deploy: publish-npm-all
 
 run-changes:
 	# go run ./ changes --repo /Users/flaviostutz/Documents/development/flaviostutz/conductor --branch main --files .md --since "5 years ago" --until "3 years ago" --format top
 	# go run ./ changes --repo /Users/flaviostutz/Documents/development/flaviostutz/conductor --branch main --files contribs/src/test/resources/log4j.properties --since "4 years ago" --until "3 years ago"
-	go run ./ changes --repo /Users/flaviostutz/Documents/development/nn/mortgage-loan --branch master --files ".ts$$" --since "3 year ago" --until "2 year ago" --format full --show-mail true
+	go run ./ changes --repo /Users/flaviostutz/Documents/development/nn/mortgage-loan --branch master --files ".ts$$" --since "9 months ago" --until "now" --format short
 
 run-ownership:
 # gocv, orb, conductor
@@ -62,6 +22,82 @@ run-ownership:
 	# go run ./ ownership --repo /Users/flaviostutz/Documents/development/nn/it4it-pipelines --branch no-build-stage --files .*
 	go run ./ ownership --repo /Users/flaviostutz/Documents/development/nn/mortgage-loan --branch master --files ".ts" --when "now"
 	# go run ./ ownership --repo /Users/flaviostutz/Documents/development/flaviostutz/gitwho --branch main --files "." --when "now"
+
+
+publish-npm-all:
+	@if [ "${NPM_ACCESS_TOKEN}" == "" ]; then \
+		echo "ENV NPM_ACCESS_TOKEN is required"; \
+		exit 1; \
+	fi
+
+	# @PACKAGE_DIR="npm/@gitwho/darwin-amd64" make publish-npm-dir
+	# @PACKAGE_DIR="npm/@gitwho/darwin-arm64" make publish-npm-dir
+	# @PACKAGE_DIR="npm/@gitwho/linux-amd64" make publish-npm-dir
+	# @PACKAGE_DIR="npm/@gitwho/linux-arm64" make publish-npm-dir
+	@PACKAGE_DIR="npm/@gitwho/windows-amd64" make publish-npm-dir
+	@PACKAGE_DIR="npm/gitwho" make publish-npm-dir
+
+build-npm-all:
+	@echo "Building binaries for all platforms..."
+	@OS=darwin ARCH=amd64 OUT_DIR="npm/@gitwho/darwin-amd64/dist" make build-arch-os
+	@OS=darwin ARCH=arm64 OUT_DIR="npm/@gitwho/darwin-arm64/dist" make build-arch-os
+	@OS=linux ARCH=amd64 OUT_DIR="npm/@gitwho/linux-amd64/dist" make build-arch-os
+	@OS=linux ARCH=arm64 OUT_DIR="npm/@gitwho/linux-arm64/dist" make build-arch-os
+	@OS=windows ARCH=amd64 OUT_DIR="npm/@gitwho/windows-amd64/dist" make build-arch-os
+	@mkdir -p npm/gitwho/dist
+	cp npm/gitwho/gitwho npm/gitwho/dist/gitwho
+	@echo "Build finished"
+
+build-arch-os:
+	@if [ "${ARCH}" == "" ]; then \
+		echo "ENV ARCH is required"; \
+		exit 1; \
+	fi
+	@if [ "${OS}" == "" ]; then \
+		echo "ENV OS is required"; \
+		exit 1; \
+	fi
+	
+	@echo ""
+	@echo "Compiling gitwho for ${OS}-${ARCH}"...
+
+	rm -rf dist/${OS}-${ARCH}
+	mkdir -p dist/${OS}-${ARCH}
+	mkdir -p ${OUT_DIR}
+
+	@go version
+	go mod download
+
+	GOOS=${OS} GOARCH=${ARCH} CGO_ENABLED=0 go build -a -o dist/${OS}-${ARCH}/gitwho
+	chmod +x dist/${OS}-${ARCH}/gitwho
+
+	@if [ "${OUT_DIR}" != "" ]; then \
+		cp dist/${OS}-${ARCH}/gitwho ${OUT_DIR}/gitwho; \
+	fi
+
+
+publish-npm-dir:
+	@if [ "${NPM_ACCESS_TOKEN}" == "" ]; then \
+		echo "ENV NPM_ACCESS_TOKEN is required"; \
+		exit 1; \
+	fi
+	@if [ "${PACKAGE_DIR}" == "" ]; then \
+		echo "ENV PACKAGE_DIR is required"; \
+		exit 1; \
+	fi
+
+	@echo ""
+	@echo "Publishing npm package ${PACKAGE_DIR}..."
+	@if [ ! -f "${PACKAGE_DIR}/dist/gitwho" ]; then \
+		echo "File '${PACKAGE_DIR}/dist/gitwho' not found. Forgot to run build?"; \
+        exit 2; \
+    fi
+	@git config user.email "flaviostutz@gmail.com"
+	@git config user.name "Flávio Stutz"
+	# cd ${PACKAGE_DIR} && npm version from-git --no-git-tag-version
+	@echo "//registry.npmjs.org/:_authToken=${NPM_ACCESS_TOKEN}" > ${PACKAGE_DIR}/.npmrc
+	cd ${PACKAGE_DIR} && yarn publish
+
 
 open-profile:
 	go tool pprof -http=:8080 profile.pprof

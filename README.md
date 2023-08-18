@@ -1,10 +1,15 @@
 # gitwho
 
 TODO
-  - github pipelines
-  - npm packaging
-  - cache with sqlite
+  - github pipelines OK
+  - npm packaging 
   - timeline generation
+  - cache with sqlite
+  - add refactor received
+  - deleted files... what to do with lines?
+  - received help/help given (top helper for each author)
+  - similarity analysis, who created the line first time?
+  - README
 
 Shows statistics about changed lines and line ownership per authors in a git repo. Take a look at the team or individual devs to understand better their behaviour and their evolution over time.
 

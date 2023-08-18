@@ -1,12 +1,16 @@
 {
     "name": "gitwho",
     "description": "Shows statistics about changed lines and line ownership per authors in a git repo",
-    "version": "0.0.7",
-    "bin": "dist/main.js",
-    "main": "dist/main.js",
+    "version": "0.0.1",
     "files": [
-        "dist/main.js"
+        "install.js"
     ],
+    "bin": {
+        "gitwho": "dist/gitwho"
+    },
+    "scripts": {
+        "postinstall": "node install.js"
+    },
     "repository": {
         "type": "git",
         "url": "git+https://github.com/flaviostutz/gitwho.git"

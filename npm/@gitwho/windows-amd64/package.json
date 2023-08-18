@@ -1,0 +1,33 @@
+{
+    "name": "@gitwho/windows-amd64",
+    "description": "Gitwho package for linux-amd64",
+    "version": "0.0.1",
+    "bin": "dist/gitwho",
+    "files": [
+        "dist/gitwho"
+    ],
+    "os": [
+        "linux"
+    ],
+    "cpu": [
+        "arm64"
+    ],
+    "preferUnplugged": true,
+    "engines": {
+        "node": ">=12"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/flaviostutz/gitwho.git"
+    },
+    "author": "flaviostutz",
+    "license": "MIT",
+    "bugs": {
+        "url": "https://github.com/flaviostutz/gitwho/issues"
+    },
+    "homepage": "https://github.com/flaviostutz/gitwho#readme",
+    "publishConfig": {
+        "access": "public",
+        "registry": "https://registry.npmjs.org"
+    }
+}
