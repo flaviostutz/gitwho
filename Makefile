@@ -89,13 +89,14 @@ publish-npm-dir:
 	fi
 
 	@echo ""
-	@echo "Publishing npm package ${PACKAGE_DIR}..."
+	@echo "Preparing npm package ${PACKAGE_DIR}..."
 	@if [ ! -f "${PACKAGE_DIR}/dist/gitwho" ]; then \
 		echo "File '${PACKAGE_DIR}/dist/gitwho' not found. Forgot to run build?"; \
         exit 2; \
     fi
 	@git config user.email "flaviostutz@gmail.com"
 	@git config user.name "Flávio Stutz"
+	@echo "Setting version in package.json..."
 	cd ${PACKAGE_DIR} && npm version from-git --no-git-tag-version
 
 	# set same version dependency to optional packages, if exists
@@ -103,6 +104,7 @@ publish-npm-dir:
 	echo "Using version ${NEW_VERSION}"
 	sed -i 's/VERSION/${NEW_VERSION}/g' ${PACKAGE_DIR}/package.json
 
+	echo "Publishing package to npmjs.org..."
 	@echo "//registry.npmjs.org/:_authToken=${NPM_ACCESS_TOKEN}" > ${PACKAGE_DIR}/.npmrc
 	cd ${PACKAGE_DIR} && yarn publish
 
