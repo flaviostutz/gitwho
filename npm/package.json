@@ -1,0 +1,11 @@
+
+{
+    "name": "dev-workspace",
+    "workspaces": [
+      "@gitwho/darwin-arm64",
+      "gitwho"
+    ],
+    "scripts": {
+      "test": "gitwho"
+    }
+  }

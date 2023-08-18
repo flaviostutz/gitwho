@@ -2,3 +2,4 @@ dist
 profile.pprof
 .testcaserepos
 .npmrc
+node_modules

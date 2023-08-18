@@ -2,15 +2,17 @@
     "name": "@gitwho/windows-amd64",
     "description": "Gitwho package for linux-amd64",
     "version": "0.0.1",
-    "bin": "dist/gitwho",
+    "bin": {
+        "gitwho": "dist/gitwho"
+    },
     "files": [
         "dist/gitwho"
     ],
     "os": [
-        "linux"
+        "win32"
     ],
     "cpu": [
-        "arm64"
+        "x64"
     ],
     "preferUnplugged": true,
     "engines": {

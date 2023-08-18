@@ -2,7 +2,9 @@
     "name": "@gitwho/darwin-amd64",
     "description": "Gitwho package for darwin-amd64",
     "version": "0.0.1",
-    "bin": "dist/gitwho",
+    "bin": {
+        "gitwho": "dist/gitwho"
+    },
     "files": [
         "dist/gitwho"
     ],
@@ -10,7 +12,7 @@
         "darwin"
     ],
     "cpu": [
-        "amd64"
+        "x64"
     ],
     "preferUnplugged": true,
     "engines": {

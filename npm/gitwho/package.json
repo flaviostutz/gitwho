@@ -2,15 +2,6 @@
     "name": "gitwho",
     "description": "Shows statistics about changed lines and line ownership per authors in a git repo",
     "version": "0.0.1",
-    "files": [
-        "install.js"
-    ],
-    "bin": {
-        "gitwho": "dist/gitwho"
-    },
-    "scripts": {
-        "postinstall": "node install.js"
-    },
     "repository": {
         "type": "git",
         "url": "git+https://github.com/flaviostutz/gitwho.git"
@@ -21,6 +12,11 @@
         "url": "https://github.com/flaviostutz/gitwho/issues"
     },
     "homepage": "https://github.com/flaviostutz/gitwho#readme",
-    "dependencies": {},
-    "devDependencies": {}
+    "optionalDependencies": {
+        "@gitwho/darwin-amd64": "VERSION",
+        "@gitwho/darwin-arm64": "0.0.1",
+        "@gitwho/linux-amd64": "VERSION",
+        "@gitwho/linux-arm64": "VERSION",
+        "@gitwho/windows-amd64": "VERSION"
+    }
 }

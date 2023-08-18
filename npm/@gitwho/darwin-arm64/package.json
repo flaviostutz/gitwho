@@ -2,7 +2,9 @@
     "name": "@gitwho/darwin-arm64",
     "description": "Gitwho package for darwin-arm64",
     "version": "0.0.1",
-    "bin": "dist/gitwho",
+    "bin": {
+        "gitwho": "dist/gitwho"
+    },
     "files": [
         "dist/gitwho"
     ],

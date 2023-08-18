@@ -2,7 +2,9 @@
     "name": "@gitwho/linux-amd64",
     "description": "Gitwho package for linux-amd64",
     "version": "0.0.1",
-    "bin": "dist/gitwho",
+    "bin": {
+        "gitwho": "dist/gitwho"
+    },
     "files": [
         "dist/gitwho"
     ],
@@ -10,7 +12,7 @@
         "linux"
     ],
     "cpu": [
-        "amd64"
+        "x64"
     ],
     "preferUnplugged": true,
     "engines": {

@@ -46,8 +46,8 @@ build-npm-all:
 	@OS=linux ARCH=amd64 OUT_DIR="npm/@gitwho/linux-amd64/dist" make build-arch-os
 	@OS=linux ARCH=arm64 OUT_DIR="npm/@gitwho/linux-arm64/dist" make build-arch-os
 	@OS=windows ARCH=amd64 OUT_DIR="npm/@gitwho/windows-amd64/dist" make build-arch-os
-	@mkdir -p npm/gitwho/dist
-	cp npm/gitwho/gitwho npm/gitwho/dist/gitwho
+	# @mkdir -p npm/gitwho/dist
+	# cp npm/gitwho/gitwho npm/gitwho/dist/gitwho
 	@echo "Build finished"
 
 build-arch-os:
@@ -97,6 +97,12 @@ publish-npm-dir:
 	@git config user.email "flaviostutz@gmail.com"
 	@git config user.name "Flávio Stutz"
 	cd ${PACKAGE_DIR} && npm version from-git --no-git-tag-version
+
+	# set same version dependency to optional packages, if exists
+	export NEW_VERSION=$(cat ${PACKAGE_DIR}/package.json | grep version | head -1 | awk -F: '{ print $2 }' | sed 's/[",]//g')
+	echo "Using version ${NEW_VERSION}"
+	sed -i 's/VERSION/${NEW_VERSION}/g' ${PACKAGE_DIR}/package.json
+
 	@echo "//registry.npmjs.org/:_authToken=${NPM_ACCESS_TOKEN}" > ${PACKAGE_DIR}/.npmrc
 	cd ${PACKAGE_DIR} && yarn publish
 
