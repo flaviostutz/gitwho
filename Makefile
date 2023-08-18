@@ -1,3 +1,5 @@
+SHELL := /bin/bash
+
 build: build-npm-all
 
 unit-tests:
@@ -63,7 +65,6 @@ build-arch-os:
 
 	rm -rf dist/${OS}-${ARCH}
 	mkdir -p dist/${OS}-${ARCH}
-	mkdir -p ${OUT_DIR}
 
 	@go version
 	go mod download
@@ -72,6 +73,7 @@ build-arch-os:
 	chmod +x dist/${OS}-${ARCH}/gitwho
 
 	@if [ "${OUT_DIR}" != "" ]; then \
+		mkdir -p ${OUT_DIR}; \
 		cp "dist/${OS}-${ARCH}/gitwho" "${OUT_DIR}/gitwho"; \
 	fi
 
