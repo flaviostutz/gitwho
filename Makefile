@@ -32,12 +32,28 @@ publish-npm-all:
 		exit 1; \
 	fi
 
-	@PACKAGE_DIR="npm/@gitwho/darwin-amd64" make publish-npm-dir
-	@PACKAGE_DIR="npm/@gitwho/darwin-arm64" make publish-npm-dir
-	# @PACKAGE_DIR="npm/@gitwho/linux-amd64" make publish-npm-dir
-	# @PACKAGE_DIR="npm/@gitwho/linux-arm64" make publish-npm-dir
-	# @PACKAGE_DIR="npm/@gitwho/windows-amd64" make publish-npm-dir
-	@PACKAGE_DIR="npm/gitwho" make publish-npm-dir
+	# it isn't possible to use "npm version" to set version in packages that are not compatible with 
+	# the operating system running the command (it didn't work on gh actions).
+	# so we can run it only on the gitwho package, and use this version to change
+	# all other packages version then
+
+	@echo "Getting version tag and applying to gitwho/package.json..."
+	@git config user.email "flaviostutz@gmail.com"; \
+	git config user.name "Flávio Stutz"; \
+	echo "Setting version in package.json from git tag..."; \
+	cd npm/gitwho; \
+	npm version from-git --no-git-tag-version; \
+	NEW_VERSION=$$(cat package.json | grep version | head -1 | awk -F: '{ print $$2 }' | sed 's/[", ]//g'); \
+	echo "Using version $${NEW_VERSION}"; \
+	sed -i '' "s/VERSION/$${NEW_VERSION}/g" package.json; \
+	cd ../..; \
+	\
+	PACKAGE_DIR="npm/gitwho" VERSION=$$NEW_VERSION make publish-npm-dir; \
+	PACKAGE_DIR="npm/@gitwho/darwin-amd64" VERSION=$$NEW_VERSION make publish-npm-dir
+	# @PACKAGE_DIR="npm/@gitwho/darwin-arm64" VERSION=$${NEW_VERSION} make publish-npm-dir
+	# @PACKAGE_DIR="npm/@gitwho/linux-amd64" VERSION=$${NEW_VERSION} make publish-npm-dir
+	# @PACKAGE_DIR="npm/@gitwho/linux-arm64" VERSION=$${NEW_VERSION} make publish-npm-dir
+	# @PACKAGE_DIR="npm/@gitwho/windows-amd64" VERSION=$${NEW_VERSION} make publish-npm-dir
 
 build-npm-all:
 	@echo "Building binaries for all platforms..."
@@ -46,8 +62,8 @@ build-npm-all:
 	@OS=linux ARCH=amd64 OUT_DIR="npm/@gitwho/linux-amd64/dist" make build-arch-os
 	@OS=linux ARCH=arm64 OUT_DIR="npm/@gitwho/linux-arm64/dist" make build-arch-os
 	@OS=windows ARCH=amd64 OUT_DIR="npm/@gitwho/windows-amd64/dist" make build-arch-os
-	# @mkdir -p npm/gitwho/dist
-	# cp npm/gitwho/gitwho npm/gitwho/dist/gitwho
+	@mkdir -p npm/gitwho/dist
+	@cp npm/gitwho/gitwho npm/gitwho/dist/gitwho
 	@echo "Build finished"
 
 build-arch-os:
@@ -76,6 +92,7 @@ build-arch-os:
 		mkdir -p ${OUT_DIR}; \
 		cp "dist/${OS}-${ARCH}/gitwho" "${OUT_DIR}/gitwho"; \
 	fi
+	@echo "Done compiling"
 
 
 publish-npm-dir:
@@ -87,6 +104,10 @@ publish-npm-dir:
 		echo "ENV PACKAGE_DIR is required"; \
 		exit 1; \
 	fi
+	@if [ "${VERSION}" == "" ]; then \
+		echo "ENV VERSION is required"; \
+		exit 1; \
+	fi
 
 	@echo ""
 	@echo "Preparing npm package ${PACKAGE_DIR}..."
@@ -94,19 +115,13 @@ publish-npm-dir:
 		echo "File '${PACKAGE_DIR}/dist/gitwho' not found. Forgot to run build?"; \
         exit 2; \
     fi
-	@git config user.email "flaviostutz@gmail.com"
-	@git config user.name "Flávio Stutz"
-	@echo "Setting version in package.json..."
-	cd ${PACKAGE_DIR} && npm version from-git --no-git-tag-version
 
-	# set same version dependency to optional packages, if exists
-	export NEW_VERSION=$(cat ${PACKAGE_DIR}/package.json | grep version | head -1 | awk -F: '{ print $2 }' | sed 's/[",]//g')
-	echo "Using version ${NEW_VERSION}"
-	sed -i 's/VERSION/${NEW_VERSION}/g' ${PACKAGE_DIR}/package.json
+	sed -i '' "s/VERSION/${VERSION}/g" ${PACKAGE_DIR}/package.json
 
-	echo "Publishing package to npmjs.org..."
+	@echo "Publishing package to npmjs.org..."
 	@echo "//registry.npmjs.org/:_authToken=${NPM_ACCESS_TOKEN}" > ${PACKAGE_DIR}/.npmrc
-	cd ${PACKAGE_DIR} && yarn publish
+	# cd ${PACKAGE_DIR} && yarn publish
+	@echo "Done publishing"
 
 
 open-profile:

@@ -1,7 +1,7 @@
 {
     "name": "@gitwho/linux-arm64",
     "description": "Gitwho package for linux-arm64",
-    "version": "0.0.1",
+    "version": "VERSION",
     "bin": {
         "gitwho": "dist/gitwho"
     },

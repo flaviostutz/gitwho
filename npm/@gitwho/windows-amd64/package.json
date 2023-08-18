@@ -1,7 +1,7 @@
 {
     "name": "@gitwho/windows-amd64",
     "description": "Gitwho package for linux-amd64",
-    "version": "0.0.1",
+    "version": "VERSION",
     "bin": {
         "gitwho": "dist/gitwho"
     },
