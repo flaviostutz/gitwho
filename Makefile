@@ -32,20 +32,20 @@ publish-npm-all:
 		exit 1; \
 	fi
 
-	@PACKAGE_DIR="npm/gitwho" make publish-npm-dir
-	@PACKAGE_DIR="npm/@gitwho/darwin-amd64" make publish-npm-dir
-	@PACKAGE_DIR="npm/@gitwho/darwin-arm64" make publish-npm-dir
-	@PACKAGE_DIR="npm/@gitwho/linux-amd64" make publish-npm-dir
-	@PACKAGE_DIR="npm/@gitwho/linux-arm64" make publish-npm-dir
-	@PACKAGE_DIR="npm/@gitwho/windows-amd64" make publish-npm-dir
+	PACKAGE_DIR="npm/gitwho" make publish-npm-dir
+	PACKAGE_DIR="npm/@gitwho/darwin-amd64" make publish-npm-dir
+	PACKAGE_DIR="npm/@gitwho/darwin-arm64" make publish-npm-dir
+	PACKAGE_DIR="npm/@gitwho/linux-amd64" make publish-npm-dir
+	PACKAGE_DIR="npm/@gitwho/linux-arm64" make publish-npm-dir
+	PACKAGE_DIR="npm/@gitwho/windows-amd64" make publish-npm-dir
 
 build-npm-all:
 	@echo "Building binaries for all platforms..."
-	@OS=darwin ARCH=amd64 OUT_DIR="npm/@gitwho/darwin-amd64/dist" make build-arch-os
-	@OS=darwin ARCH=arm64 OUT_DIR="npm/@gitwho/darwin-arm64/dist" make build-arch-os
-	@OS=linux ARCH=amd64 OUT_DIR="npm/@gitwho/linux-amd64/dist" make build-arch-os
-	@OS=linux ARCH=arm64 OUT_DIR="npm/@gitwho/linux-arm64/dist" make build-arch-os
-	@OS=windows ARCH=amd64 OUT_DIR="npm/@gitwho/windows-amd64/dist" make build-arch-os
+	OS=darwin ARCH=amd64 OUT_DIR="npm/@gitwho/darwin-amd64/dist" make build-arch-os
+	OS=darwin ARCH=arm64 OUT_DIR="npm/@gitwho/darwin-arm64/dist" make build-arch-os
+	OS=linux ARCH=amd64 OUT_DIR="npm/@gitwho/linux-amd64/dist" make build-arch-os
+	OS=linux ARCH=arm64 OUT_DIR="npm/@gitwho/linux-arm64/dist" make build-arch-os
+	OS=windows ARCH=amd64 OUT_DIR="npm/@gitwho/windows-amd64/dist" make build-arch-os
 	@mkdir -p npm/gitwho/dist
 	@cp npm/gitwho/gitwho npm/gitwho/dist/gitwho
 	@echo "Build finished"
@@ -96,7 +96,7 @@ publish-npm-dir:
         exit 2; \
     fi
 
-	@VERSION=$$(npx -y monotag@1.5.1 latest); \
+	VERSION=$$(npx -y monotag@1.5.1 latest); \
 	sed -i '' "s/VERSION/$$VERSION/g" ${PACKAGE_DIR}/package.json
 
 	@echo "Publishing package to npmjs.org..."
