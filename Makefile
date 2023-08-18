@@ -32,12 +32,12 @@ publish-npm-all:
 		exit 1; \
 	fi
 
-	PACKAGE_DIR="npm/gitwho" make publish-npm-dir
-	PACKAGE_DIR="npm/@gitwho/darwin-amd64" make publish-npm-dir
-	PACKAGE_DIR="npm/@gitwho/darwin-arm64" make publish-npm-dir
-	# @PACKAGE_DIR="npm/@gitwho/linux-amd64" make publish-npm-dir
-	# @PACKAGE_DIR="npm/@gitwho/linux-arm64" make publish-npm-dir
-	# @PACKAGE_DIR="npm/@gitwho/windows-amd64" make publish-npm-dir
+	@PACKAGE_DIR="npm/gitwho" make publish-npm-dir
+	@PACKAGE_DIR="npm/@gitwho/darwin-amd64" make publish-npm-dir
+	@PACKAGE_DIR="npm/@gitwho/darwin-arm64" make publish-npm-dir
+	@PACKAGE_DIR="npm/@gitwho/linux-amd64" make publish-npm-dir
+	@PACKAGE_DIR="npm/@gitwho/linux-arm64" make publish-npm-dir
+	@PACKAGE_DIR="npm/@gitwho/windows-amd64" make publish-npm-dir
 
 build-npm-all:
 	@echo "Building binaries for all platforms..."
@@ -101,7 +101,7 @@ publish-npm-dir:
 
 	@echo "Publishing package to npmjs.org..."
 	@echo "//registry.npmjs.org/:_authToken=${NPM_ACCESS_TOKEN}" > ${PACKAGE_DIR}/.npmrc
-	# cd ${PACKAGE_DIR} && yarn publish
+	cd ${PACKAGE_DIR} && yarn publish
 	@echo "Done publishing"
 
 
