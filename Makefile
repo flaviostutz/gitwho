@@ -97,7 +97,7 @@ publish-npm-dir:
     fi
 
 	VERSION=$$(npx -y monotag@1.5.1 latest); \
-	sed -i '' "s/VERSION/$$VERSION/g" ${PACKAGE_DIR}/package.json
+	sed -i -e "s/VERSION/$$VERSION/g" ${PACKAGE_DIR}/package.json
 
 	@echo "Publishing package to npmjs.org..."
 	@echo "//registry.npmjs.org/:_authToken=${NPM_ACCESS_TOKEN}" > ${PACKAGE_DIR}/.npmrc

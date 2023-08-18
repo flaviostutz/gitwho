@@ -3,3 +3,4 @@ profile.pprof
 .testcaserepos
 .npmrc
 node_modules
+package.json-e
