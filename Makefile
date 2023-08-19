@@ -33,20 +33,20 @@ publish-npm-all:
 	fi
 
 	PACKAGE_DIR="npm/gitwho" make publish-npm-dir
-	echo "Sleeping for 30s to avoid npm publish rate limiting..."
-	sleep 30
+	echo "Sleeping for 60s to avoid npm publish rate limiting..."
+	sleep 60
 	PACKAGE_DIR="npm/@gitwho/darwin-amd64" make publish-npm-dir
-	echo "Sleeping for 30s to avoid npm publish rate limiting..."
-	sleep 30
+	echo "Sleeping for 60s to avoid npm publish rate limiting..."
+	sleep 60
 	PACKAGE_DIR="npm/@gitwho/darwin-arm64" make publish-npm-dir
-	echo "Sleeping for 30s to avoid npm publish rate limiting..."
-	sleep 30
+	echo "Sleeping for 60s to avoid npm publish rate limiting..."
+	sleep 60
 	PACKAGE_DIR="npm/@gitwho/linux-amd64" make publish-npm-dir
-	echo "Sleeping for 30s to avoid npm publish rate limiting..."
-	sleep 30
+	echo "Sleeping for 60s to avoid npm publish rate limiting..."
+	sleep 60
 	PACKAGE_DIR="npm/@gitwho/linux-arm64" make publish-npm-dir
-	echo "Sleeping for 30s to avoid npm publish rate limiting..."
-	sleep 30
+	echo "Sleeping for 60s to avoid npm publish rate limiting..."
+	sleep 60
 	PACKAGE_DIR="npm/@gitwho/windows-amd64" make publish-npm-dir
 
 build-npm-all:
