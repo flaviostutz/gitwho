@@ -1,19 +1,5 @@
 # gitwho
 
-TODO
-  - github pipelines OK
-  - npm basic packaging OK
-  - add "file-not" attribute for negating patterns OK
-  - multi workers for commit map in changes
-  - npx gitwho automatic binary per arch
-  - timeline generation
-  - cache with sqlite
-  - add refactor received
-  - deleted files... what to do with lines?
-  - received help/help given (top helper for each author)
-  - similarity analysis, who created the line first time?
-  - README
-
 Shows statistics about changed lines and line ownership per authors in a git repo. Take a look at the team or individual devs to understand better their behaviour and their evolution over time.
 
 This utility gives you stats like:
@@ -28,8 +14,11 @@ This utility gives you stats like:
 ```sh
 cd myrepo
 
-# show stats for the last 90 days
-gitwho --days 90
+# show changes stats for the last 30 days
+npx gitwho changes
+
+# show ownership stats for today
+npx gitwho ownership
 
 ```
 
@@ -67,62 +56,4 @@ See more info in this excelent article: https://www.hatica.io/blog/code-churn-ra
 ## Analysis details
 
 - Blank lines are excluded from all analysis
-
-## Development notes
-
-// get number of lines last created per author in total with blame
-git ls-tree --name-only -z -r HEAD|egrep -z -Z -E '\.(cc|h|cpp|hpp|c|txt|ts|js)$' \
-  |xargs -0 -n1 git blame --line-porcelain|grep "^author "|sort|uniq -c|sort -nr
-
-
-// go-git checked out dir
-https://github.com/go-git/go-git/blob/master/_examples/open/main.go
-
-https://github.com/sergi/go-diff
-
-// list commit ids, date, author
-git log --pretty=format:"%H %cI %an"
-
-// show commit logs
-git log --reverse --numstat
-
-
-
-Remove from analysis known auto-generated files? (yarn.lock go.sum etc)
-
-
-https://softwareengineering.stackexchange.com/questions/429319/legacy-refactor-and-churn
-https://github.com/andymeneely/git-churn
-
-
-
-In a specific moment, per author:
-  - number of lines owned
-
-Between two moments, per author:
-
-  - number of lines with new code
-     - line doesn’t exist in the previous version
-
-  - number of lines with refactored code
-     - the previous version of the line is more than 21 days old and was changed
-
-  - number of lines with helping code
-     - the previous version of the line is less than 21 days old from another author and was changed or deleted by the author
-
-  - number of lines with churn code
-     - the previous version of the line is less than 21 days old from the same author and it was changed or deleted
-
-
-// show all commits that touched a certain file
-git log --all package.json
-
-// show blame at revision point
-git blame 3a974275d -- package.json
-
-// show blame at revision parent point
-git blame 3a974275d^ -- package.json
-
-// show dir tree at a revision point
-git ls-tree 3a974275d
 
