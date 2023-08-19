@@ -137,7 +137,7 @@ func AnalyseCodeOwnership(opts OwnershipOptions, progressChan chan<- utils.Progr
 		}
 
 		for _, fileName := range files {
-			if strings.Trim(fileName, " ") == "" || !fre.MatchString(fileName) || freNot.MatchString(fileName) {
+			if strings.Trim(fileName, " ") == "" || !fre.MatchString(fileName) || (opts.FilesNotRegex != "" && freNot.MatchString(fileName)) {
 				// logrus.Debugf("Ignoring file %s", file.Name)
 				continue
 			}

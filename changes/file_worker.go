@@ -11,13 +11,13 @@ import (
 )
 
 // this will be run by multiple goroutines
-func analyseFileChangesWorker(analyseFileInputChan <-chan analyseFileRequest, analyseFileOutputChan chan<- ChangesFileResult, analyseFileErrChan chan<- error, wg *sync.WaitGroup) {
+func fileAnalysisWorker(fileWorkerInputChan <-chan fileWorkerRequest, analyseFileOutputChan chan<- ChangesFileResult, analyseFileErrChan chan<- error, wg *sync.WaitGroup) {
 	if wg != nil {
 		defer wg.Done()
 	}
 
 	skippedFiles := 0
-	for req := range analyseFileInputChan {
+	for req := range fileWorkerInputChan {
 
 		// fmt.Printf(">>>>%s %s\n", req.commitId, req.filePath)
 

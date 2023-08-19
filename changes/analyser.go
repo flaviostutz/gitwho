@@ -79,10 +79,14 @@ type ChangesResult struct {
 	skippedFiles int
 }
 
-type analyseFileRequest struct {
+type fileWorkerRequest struct {
 	repoDir  string
 	commitId string
 	filePath string
+}
+type commitWorkerRequest struct {
+	repoDir  string
+	commitId string
 }
 
 func AnalyseChanges(opts ChangesOptions, progressChan chan<- utils.ProgressInfo) (ChangesResult, error) {
@@ -111,17 +115,20 @@ func AnalyseChanges(opts ChangesOptions, progressChan chan<- utils.ProgressInfo)
 		return result, errors.New("files-not filter regex is invalid. err=" + err.Error())
 	}
 
+	nrWorkers := runtime.NumCPU() - 1
+	// nrWorkers := 1
+
 	// MAP REDUCE - analyse files in parallel goroutines
 	// we need to start workers in the reverse order so that all the chain
 	// is prepared when submitting tasks to avoid deadlocks
-	nrWorkers := runtime.NumCPU() - 1
-	// nrWorkers := 1
 	logrus.Debugf("Preparing a pool of workers to process file analysis in parallel")
-	analyseFileInputChan := make(chan analyseFileRequest, 5000)
-	analyseFileOutputChan := make(chan ChangesFileResult, 5000)
-	analyseFileErrChan := make(chan error, nrWorkers)
+	fileWorkersInputChan := make(chan fileWorkerRequest, 5000)
+	fileWorkersOutputChan := make(chan ChangesFileResult, 5000)
+	fileWorkersErrChan := make(chan error, nrWorkers)
 
-	// REDUCE - summarise counters (STEP 3/3)
+	commitWorkersInputChan := make(chan commitWorkerRequest, 5000)
+
+	// REDUCE - summarise counters (STEP 4/4)
 	var summaryWorkerWaitGroup sync.WaitGroup
 	summaryWorkerWaitGroup.Add(1)
 	go func() {
@@ -130,7 +137,7 @@ func AnalyseChanges(opts ChangesOptions, progressChan chan<- utils.ProgressInfo)
 		commitsWithFiles := make(map[string]bool, 0)
 
 		logrus.Debugf("Counting total lines changed per author")
-		for fileResult := range analyseFileOutputChan {
+		for fileResult := range fileWorkersOutputChan {
 			commitsWithFiles[fileResult.CommitId] = true
 			_, ok := fileCounterMap[fileResult.FilePath]
 			if !ok {
@@ -185,63 +192,81 @@ func AnalyseChanges(opts ChangesOptions, progressChan chan<- utils.ProgressInfo)
 
 	}()
 
-	// MAP - start analyser workers (STEP 2/3)
-	var analysisWorkersWaitGroup sync.WaitGroup
+	// MAP - file analysis workers (STEP 3/4)
+	var fileWorkersWaitGroup sync.WaitGroup
 	for i := 0; i < nrWorkers; i++ {
-		analysisWorkersWaitGroup.Add(1)
-		go analyseFileChangesWorker(analyseFileInputChan, analyseFileOutputChan, analyseFileErrChan, &analysisWorkersWaitGroup)
+		fileWorkersWaitGroup.Add(1)
+		go fileAnalysisWorker(fileWorkersInputChan, fileWorkersOutputChan, fileWorkersErrChan, &fileWorkersWaitGroup)
 	}
 	logrus.Debugf("Launched %d workers for analysis", nrWorkers)
 
-	// MAP - submit tasks (STEP 1/3)
-	// for each commit between 'from' and 'to' date, discover changed files and submit then for analysis
-	go func() {
+	// MAP - commits workers (STEP 2/4)
+	// for each commit discover changed files and submit then for analysis
+	totalFiles := 0
+	progressInfo.TotalTasksKnown = false
 
-		totalFiles := 0
-		progressInfo.TotalTasksKnown = false
+	var commitWorkersWaitGroup sync.WaitGroup
+	for i := 0; i < nrWorkers; i++ {
+		commitWorkersWaitGroup.Add(1)
 
-		commits, err := utils.ExecCommitsInRange(opts.RepoDir, opts.Branch, opts.Since, opts.Until)
-		if err != nil {
-			logrus.Errorf("Error getting commits. err=%s", err)
-			panic(5)
-		}
-
-		for _, commitId := range commits {
-			// fmt.Printf(">>>>%s\n", commitId)
-			files, err := utils.ExecDiffTree(opts.RepoDir, commitId)
-			if err != nil {
-				logrus.Errorf("Error getting files changed in commit. err=%s", err)
-				panic(5)
-			}
-
-			for _, fileName := range files {
-				if strings.Trim(fileName, " ") == "" || !fre.MatchString(fileName) || freNot.MatchString(fileName) {
-					// logrus.Debugf("Ignoring file %s", file.Name)
-					continue
+		go func() {
+			defer commitWorkersWaitGroup.Done()
+			for req := range commitWorkersInputChan {
+				// logrus.Debugf("Analysing commit %s", req.commitId)
+				files, err := utils.ExecDiffTree(req.repoDir, req.commitId)
+				if err != nil {
+					logrus.Errorf("Error getting files changed in commit. err=%s", err)
+					panic(5)
 				}
-				totalFiles += 1
-				progressInfo.TotalTasks += 1
-				analyseFileInputChan <- analyseFileRequest{repoDir: opts.RepoDir, filePath: fileName, commitId: commitId}
+
+				for _, fileName := range files {
+					if strings.Trim(fileName, " ") == "" || !fre.MatchString(fileName) || (opts.FilesNotRegex != "" && freNot.MatchString(fileName)) {
+						// logrus.Debugf("Ignoring file %s", fileName)
+						continue
+					}
+					totalFiles += 1
+					progressInfo.TotalTasks += 1
+					fileWorkersInputChan <- fileWorkerRequest{repoDir: opts.RepoDir, filePath: fileName, commitId: req.commitId}
+				}
 			}
+		}()
+	}
+
+	// MAP - submit commits for analysis (STEP 1/4)
+	// for each commit between 'from' and 'to' date, submit to be analysed
+	commits, err := utils.ExecCommitsInRange(opts.RepoDir, opts.Branch, opts.Since, opts.Until)
+	if err != nil {
+		logrus.Errorf("Error getting commits. err=%s", err)
+		panic(5)
+	}
+
+	logrus.Debug("Sending commits to workers")
+	for _, commitId := range commits {
+		commitWorkersInputChan <- commitWorkerRequest{
+			repoDir:  opts.RepoDir,
+			commitId: commitId,
 		}
+	}
+	close(commitWorkersInputChan)
+	logrus.Debug("Finished sending commits to workers")
 
-		// finished publishing request messages
-		logrus.Debugf("%d files scheduled for analysis", totalFiles)
-		logrus.Debug("Task submission worker finished")
-		close(analyseFileInputChan)
+	// COMMIT WORKERS FINISHED
+	commitWorkersWaitGroup.Wait()
+	logrus.Debug("Commit workers finished")
+	close(fileWorkersInputChan)
+	progressInfo.TotalTasksKnown = true
+	if progressChan != nil {
+		progressChan <- progressInfo
+	}
+	logrus.Debugf("%d files scheduled for analysis", totalFiles)
 
-		progressInfo.TotalTasksKnown = true
-		if progressChan != nil {
-			progressChan <- progressInfo
-		}
-	}()
+	// FILE WORKERS FINISHED
+	fileWorkersWaitGroup.Wait()
+	logrus.Debug("File workers finished")
+	close(fileWorkersOutputChan)
+	close(fileWorkersErrChan)
 
-	analysisWorkersWaitGroup.Wait()
-	logrus.Debug("Analysis workers finished")
-	close(analyseFileOutputChan)
-	close(analyseFileErrChan)
-
-	for workerErr := range analyseFileErrChan {
+	for workerErr := range fileWorkersErrChan {
 		logrus.Errorf("Error during analysis. err=%s", workerErr)
 		panic(2)
 	}

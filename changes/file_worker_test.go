@@ -17,7 +17,7 @@ func TestAnalyseWorkerFile1(t *testing.T) {
 		return
 	}
 
-	analyseFileInputChan := make(chan analyseFileRequest, 4)
+	analyseFileInputChan := make(chan fileWorkerRequest, 4)
 	analyseFileOutputChan := make(chan ChangesFileResult, 4)
 
 	commitIds, err := utils.ExecCommitsInRange(repoDir, "main", "1 month ago", "now")
@@ -26,14 +26,14 @@ func TestAnalyseWorkerFile1(t *testing.T) {
 	}
 
 	// submit commit1:file1 for analysis
-	analyseFileInputChan <- analyseFileRequest{repoDir: repoDir, commitId: commitIds[4], filePath: "file1"}
-	analyseFileInputChan <- analyseFileRequest{repoDir: repoDir, commitId: commitIds[3], filePath: "file1"}
-	analyseFileInputChan <- analyseFileRequest{repoDir: repoDir, commitId: commitIds[2], filePath: "file1"}
-	analyseFileInputChan <- analyseFileRequest{repoDir: repoDir, commitId: commitIds[1], filePath: "file1"}
+	analyseFileInputChan <- fileWorkerRequest{repoDir: repoDir, commitId: commitIds[4], filePath: "file1"}
+	analyseFileInputChan <- fileWorkerRequest{repoDir: repoDir, commitId: commitIds[3], filePath: "file1"}
+	analyseFileInputChan <- fileWorkerRequest{repoDir: repoDir, commitId: commitIds[2], filePath: "file1"}
+	analyseFileInputChan <- fileWorkerRequest{repoDir: repoDir, commitId: commitIds[1], filePath: "file1"}
 	close(analyseFileInputChan)
 
 	// execute analysis
-	analyseFileChangesWorker(analyseFileInputChan, analyseFileOutputChan, nil, nil)
+	fileAnalysisWorker(analyseFileInputChan, analyseFileOutputChan, nil, nil)
 
 	// require commit1 analysis
 	// a1
