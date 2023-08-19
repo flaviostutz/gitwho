@@ -43,6 +43,8 @@ type fileWorkerRequest struct {
 	commitId string
 }
 
+var duplicateLineTracker = utils.NewDuplicateLineTracker()
+
 func AnalyseCodeOwnership(opts OwnershipOptions, progressChan chan<- utils.ProgressInfo) (OwnershipResult, error) {
 	result := OwnershipResult{TotalLines: 0, authorLinesMap: make(map[string]AuthorLines, 0), AuthorsLines: make([]AuthorLines, 0)}
 
@@ -221,7 +223,7 @@ func fileWorker(fileWorkerInputChan <-chan fileWorkerRequest, fileWorkerOutputCh
 		}
 
 		ownershipResult.TotalFiles += 1
-		for _, lineAuthor := range blameResult {
+		for i, lineAuthor := range blameResult {
 			if strings.Trim(lineAuthor.LineContents, " ") == "" {
 				continue
 			}
@@ -236,6 +238,21 @@ func fileWorker(fileWorkerInputChan <-chan fileWorkerRequest, fileWorkerOutputCh
 			ownershipResult.LinesAgeDaysSum += lineAge
 			// fmt.Printf("]]]]%s\n", authorLines.OwnedLinesAgeSum)
 			ownershipResult.authorLinesMap[lineAuthor.AuthorName] = authorLines
+
+			// this is very sensitive as a lot of memory can be used by the tracker
+			duplicates := duplicateLineTracker.AddLine(lineAuthor.LineContents, utils.LineSource{
+				FilePath:   req.filePath,
+				LineNumber: i + 1,
+				AuthorName: lineAuthor.AuthorName,
+				AuthorMail: lineAuthor.AuthorMail,
+				CommitDate: lineAuthor.AuthorDate,
+			})
+			if len(duplicates) > 10 {
+				fmt.Printf("DUPLICATE LINE - %s: %s\n", req.filePath, lineAuthor.LineContents)
+				for _, d := range duplicates {
+					fmt.Printf("  %s:%d\n", d.FilePath, d.LineNumber)
+				}
+			}
 		}
 		ownershipResult.blameTime = time.Since(startTime)
 		ownershipResult.skippedFiles += skippedFiles
