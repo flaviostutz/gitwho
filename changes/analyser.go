@@ -103,7 +103,12 @@ func AnalyseChanges(opts ChangesOptions, progressChan chan<- utils.ProgressInfo)
 
 	fre, err := regexp.Compile(opts.FilesRegex)
 	if err != nil {
-		return result, errors.New("file filter regex is invalid. err=" + err.Error())
+		return result, errors.New("files filter regex is invalid. err=" + err.Error())
+	}
+
+	freNot, err := regexp.Compile(opts.FilesNotRegex)
+	if err != nil {
+		return result, errors.New("files-not filter regex is invalid. err=" + err.Error())
 	}
 
 	// MAP REDUCE - analyse files in parallel goroutines
@@ -210,7 +215,7 @@ func AnalyseChanges(opts ChangesOptions, progressChan chan<- utils.ProgressInfo)
 			}
 
 			for _, fileName := range files {
-				if strings.Trim(fileName, " ") == "" || !fre.MatchString(fileName) {
+				if strings.Trim(fileName, " ") == "" || !fre.MatchString(fileName) || freNot.MatchString(fileName) {
 					// logrus.Debugf("Ignoring file %s", file.Name)
 					continue
 				}

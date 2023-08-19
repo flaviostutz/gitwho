@@ -53,6 +53,11 @@ func AnalyseCodeOwnership(opts OwnershipOptions, progressChan chan<- utils.Progr
 		return result, errors.New("file filter regex is invalid. err=" + err.Error())
 	}
 
+	freNot, err := regexp.Compile(opts.FilesNotRegex)
+	if err != nil {
+		return result, errors.New("files-not filter regex is invalid. err=" + err.Error())
+	}
+
 	logrus.Debugf("Analysing branch %s at %s", opts.Branch, opts.When)
 
 	commitId, err := utils.ExecGetCommitAtDate(opts.RepoDir, opts.Branch, opts.When)
@@ -132,7 +137,7 @@ func AnalyseCodeOwnership(opts OwnershipOptions, progressChan chan<- utils.Progr
 		}
 
 		for _, fileName := range files {
-			if !fre.MatchString(fileName) {
+			if strings.Trim(fileName, " ") == "" || !fre.MatchString(fileName) || freNot.MatchString(fileName) {
 				// logrus.Debugf("Ignoring file %s", file.Name)
 				continue
 			}

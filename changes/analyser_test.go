@@ -133,3 +133,20 @@ func TestAnalyseChangesCheckTotals(t *testing.T) {
 	require.Equal(t, anew, rt.New)
 	require.Equal(t, alines, rt.New+rt.Changes)
 }
+
+func TestAnalyseChangesNotFiles(t *testing.T) {
+	repoDir, err := utils.ResolveTestOwnershipRepo()
+	require.Nil(t, err)
+	if err != nil {
+		return
+	}
+
+	logrus.SetLevel(logrus.DebugLevel)
+
+	result, err := AnalyseChanges(ChangesOptions{
+		BaseOptions: utils.BaseOptions{RepoDir: repoDir, Branch: "main", FilesRegex: ".", FilesNotRegex: "dir1"},
+	}, nil)
+
+	require.Nil(t, err)
+	require.Equal(t, 1, result.TotalFiles)
+}

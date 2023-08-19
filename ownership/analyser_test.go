@@ -50,3 +50,24 @@ func TestAnalyseCodeOwnershipRegexFiles(t *testing.T) {
 	require.Equal(t, 5, results.TotalLines)
 	require.Equal(t, 1, len(results.AuthorsLines))
 }
+
+func TestAnalyseCodeOwnershipRegexNotFiles(t *testing.T) {
+	// require.InDeltaf(t, float64(0), v, 0.01, "")
+	repo, err := utils.ResolveTestOwnershipRepo()
+	require.Nil(t, err)
+	results, err := AnalyseCodeOwnership(OwnershipOptions{
+		BaseOptions: utils.BaseOptions{
+			RepoDir:       repo,
+			Branch:        "main",
+			FilesRegex:    "/dir1.1/",
+			FilesNotRegex: "/dir1.1/",
+		},
+		When: "now",
+	}, nil)
+	require.Nil(t, err)
+	if err != nil {
+		return
+	}
+	require.Equal(t, 0, results.TotalLines)
+	require.Equal(t, 0, len(results.AuthorsLines))
+}

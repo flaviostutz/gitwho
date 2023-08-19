@@ -39,6 +39,7 @@ func main() {
 	changesFlag.StringVar(&changesOpts.RepoDir, "repo", ".", "Repository path to analyse")
 	changesFlag.StringVar(&changesOpts.Branch, "branch", "main", "Regex for filtering changes by branch name")
 	changesFlag.StringVar(&changesOpts.FilesRegex, "files", ".*", "Regex for filtering which files paths to analyse")
+	changesFlag.StringVar(&changesOpts.FilesNotRegex, "files-not", "", "Regex for filtering out files from analysis")
 	changesFlag.StringVar(&changesOpts.Since, "since", "30 days ago", "Filter changes made from this date")
 	changesFlag.StringVar(&changesOpts.Until, "until", "now", "Filter changes made util this date")
 	changesFlag.StringVar(&profileFile, "profile-file", "", "Profile file to dump golang runtime data to")
@@ -50,6 +51,7 @@ func main() {
 	ownershipFlag.StringVar(&ownershipOpts.Branch, "branch", "main", "Branch name to analyse")
 	ownershipFlag.StringVar(&ownershipOpts.When, "when", "now", "Date time to analyse")
 	ownershipFlag.StringVar(&ownershipOpts.FilesRegex, "files", ".*", "Regex for selecting which file paths to include in analysis")
+	ownershipFlag.StringVar(&changesOpts.FilesNotRegex, "files-not", "", "Regex for filtering out files from analysis")
 	ownershipFlag.StringVar(&profileFile, "profile-file", "", "Profile file to dump golang runtime data to")
 	ownershipFlag.BoolVar(&verbose, "verbose", true, "Show verbose logs during processing")
 

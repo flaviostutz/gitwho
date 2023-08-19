@@ -2,7 +2,10 @@
 
 TODO
   - github pipelines OK
-  - npm packaging 
+  - npm basic packaging OK
+  - add "file-not" attribute for negating patterns OK
+  - multi workers for commit map in changes
+  - npx gitwho automatic binary per arch
   - timeline generation
   - cache with sqlite
   - add refactor received
