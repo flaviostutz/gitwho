@@ -4,6 +4,7 @@ go 1.20
 
 require (
 	github.com/go-cmd/cmd v1.4.2
+	github.com/segmentio/fasthash v1.0.3
 	github.com/sergi/go-diff v1.3.1
 	github.com/sirupsen/logrus v1.9.3
 	github.com/stretchr/testify v1.8.4

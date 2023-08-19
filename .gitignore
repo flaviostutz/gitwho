@@ -4,3 +4,4 @@ profile.pprof
 .npmrc
 node_modules
 package.json-e
+coverage.out

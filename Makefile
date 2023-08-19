@@ -3,12 +3,24 @@ SHELL := /bin/bash
 build: build-npm-all
 
 unit-tests:
-	go test ./
-	go test ./utils
-	go test ./ownership
-	go test ./changes
+	go test -cover -coverprofile=coverage.out ./
+	go test -cover -coverprofile=./utils/coverage.out ./utils
+	go test -cover -coverprofile=./ownership/coverage.out ./ownership
+	go test -cover -coverprofile=./changes/coverage.out ./changes
+	make coverage
 
 test: unit-tests
+
+coverage:
+	go tool cover -func ./coverage.out
+	go tool cover -func ./utils/coverage.out
+	go tool cover -func ./ownership/coverage.out
+	go tool cover -func ./changes/coverage.out 
+	# go tool cover -html=./coverage.out
+	# go tool cover -html=./utils/coverage.out
+
+benchmark:
+	go test -bench . -benchmem -count 20
 
 deploy: publish-npm-all
 
