@@ -15,10 +15,10 @@ This utility gives you stats like:
 cd myrepo
 
 # show changes stats for the last 30 days
-npx gitwho changes
+npx @gitwho/darwin-arm64@latest changes
 
 # show ownership stats for today
-npx gitwho ownership
+npx @gitwho/darwin-arm64@latest ownership
 
 ```
 
