@@ -2,6 +2,7 @@ package utils
 
 import (
 	"regexp"
+	"strings"
 	"sync"
 	"time"
 
@@ -25,8 +26,8 @@ type LineSource struct {
 }
 
 var (
-	cleanRegex      = regexp.MustCompile("\t|\\s|\n")
-	ignoreLineRegex = regexp.MustCompile("^\\*|^\\/\\*|^import")
+	cleanRegex      = regexp.MustCompile("\t|\\s")
+	ignoreLineRegex = regexp.MustCompile("^\\*|^\\/\\*|^#|import|from|package")
 )
 
 func NewDuplicateLineTracker() *DuplicateLineTracker {
@@ -39,18 +40,21 @@ func NewDuplicateLineTracker() *DuplicateLineTracker {
 
 // Add a new line to tracker. If line is too short, it's is ignored and nil is returned
 // This is thread safe, but can slow down parallelism in current implementation
+// If string has string "\\n" (not \n), it will be split into distinct lines during ignore analysis
 func (d *DuplicateLineTracker) AddLine(contents string, source LineSource) []LineSource {
 	cline := cleanRegex.ReplaceAllString(contents, "")
 
-	if len(cline) < 30 || ignoreLineRegex.MatchString(cline) {
-		return nil
+	lines := strings.Split(cline, "\\n")
+	for _, line := range lines {
+		if len(line) < 15 || ignoreLineRegex.MatchString(line) {
+			return nil
+		}
 	}
 
 	lineHash := fnv1a.HashString64(cline)
 
-	// this can make processing very slow because of thread syncronization
+	// this can slower processing because of thread syncronization
 	// but is required for map access/change
-	// TODO use an append-only strategy in a separate thread
 	d.mutex.Lock()
 	lsources, ok := d.lines[lineHash]
 	if !ok {

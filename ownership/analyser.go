@@ -240,17 +240,21 @@ func fileWorker(fileWorkerInputChan <-chan fileWorkerRequest, fileWorkerOutputCh
 			ownershipResult.authorLinesMap[lineAuthor.AuthorName] = authorLines
 
 			// this is very sensitive as a lot of memory can be used by the tracker
-			duplicates := duplicateLineTracker.AddLine(lineAuthor.LineContents, utils.LineSource{
-				FilePath:   req.filePath,
-				LineNumber: i + 1,
-				AuthorName: lineAuthor.AuthorName,
-				AuthorMail: lineAuthor.AuthorMail,
-				CommitDate: lineAuthor.AuthorDate,
-			})
-			if len(duplicates) > 10 {
-				fmt.Printf("DUPLICATE LINE - %s: %s\n", req.filePath, lineAuthor.LineContents)
-				for _, d := range duplicates {
-					fmt.Printf("  %s:%d\n", d.FilePath, d.LineNumber)
+			if i > 0 && i < len(blameResult) {
+				// group lines to give context for duplication detection
+				lineGroup := fmt.Sprintf("%s\\n%s", blameResult[i-1].LineContents, blameResult[i].LineContents)
+				duplicates := duplicateLineTracker.AddLine(lineGroup, utils.LineSource{
+					FilePath:   req.filePath,
+					LineNumber: i + 1,
+					AuthorName: lineAuthor.AuthorName,
+					AuthorMail: lineAuthor.AuthorMail,
+					CommitDate: lineAuthor.AuthorDate,
+				})
+				if len(duplicates) > 10 {
+					fmt.Printf("DUPLICATE LINE - %s: %s\n", req.filePath, lineAuthor.LineContents)
+					for _, d := range duplicates {
+						fmt.Printf("  %s:%d\n", d.FilePath, d.LineNumber)
+					}
 				}
 			}
 		}

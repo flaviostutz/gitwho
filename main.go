@@ -51,7 +51,7 @@ func main() {
 	ownershipFlag.StringVar(&ownershipOpts.Branch, "branch", "main", "Branch name to analyse")
 	ownershipFlag.StringVar(&ownershipOpts.When, "when", "now", "Date time to analyse")
 	ownershipFlag.StringVar(&ownershipOpts.FilesRegex, "files", ".*", "Regex for selecting which file paths to include in analysis")
-	ownershipFlag.StringVar(&changesOpts.FilesNotRegex, "files-not", "", "Regex for filtering out files from analysis")
+	ownershipFlag.StringVar(&ownershipOpts.FilesNotRegex, "files-not", "", "Regex for filtering out files from analysis")
 	ownershipFlag.StringVar(&profileFile, "profile-file", "", "Profile file to dump golang runtime data to")
 	ownershipFlag.BoolVar(&verbose, "verbose", true, "Show verbose logs during processing")
 

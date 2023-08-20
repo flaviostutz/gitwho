@@ -34,7 +34,7 @@ run-ownership:
 	# go run ./ ownership --repo /Users/flaviostutz/Documents/development/flaviostutz/conductor --branch main --files .md
 	# go run ./ ownership --repo /Users/flaviostutz/Documents/development/flaviostutz/moby --branch master --files .*
 	# go run ./ ownership --repo /Users/flaviostutz/Documents/development/nn/it4it-pipelines --branch no-build-stage --files .*
-	go run ./ ownership --repo /Users/flaviostutz/Documents/development/nn/mortgage-loan --branch master --files ".ts" --when "now"
+	go run ./ ownership --repo /Users/flaviostutz/Documents/development/nn/mortgage-loan --branch master --files ".ts" --files-not "" --when "now"
 	# go run ./ ownership --repo /Users/flaviostutz/Documents/development/flaviostutz/gitwho --branch main --files "." --when "now"
 
 
