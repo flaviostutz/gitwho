@@ -22,19 +22,26 @@ type OwnershipOptions struct {
 type AuthorLines struct {
 	AuthorName           string
 	AuthorMail           string
-	OwnedLines           int
+	OwnedLinesTotal      int
 	OwnedLinesAgeDaysSum float64
+	// OwnedLinesDuplicate total lines owned that were found duplicated in repo
+	OwnedLinesDuplicate int
+	// OwnedLinesDuplicateOriginal total lines owned that were found duplicated in repo but were originally created by the author
+	OwnedLinesDuplicateOriginal int
+	// OwnedLinesDuplicateOriginalOthers total lines owned that were found duplicated by someone else (your code was duplicated by others)
+	OwnedLinesDuplicateOriginalOthers int
 }
 type OwnershipResult struct {
-	TotalFiles      int
-	TotalLines      int
-	LinesAgeDaysSum float64
-	authorLinesMap  map[string]AuthorLines // temporary map used during processing
-	AuthorsLines    []AuthorLines
-	CommitId        string
-	FilePath        string
-	blameTime       time.Duration
-	skippedFiles    int
+	TotalFiles           int
+	TotalLines           int
+	TotalLinesDuplicated int
+	LinesAgeDaysSum      float64
+	authorLinesMap       map[string]AuthorLines // temporary map used during processing
+	AuthorsLines         []AuthorLines
+	CommitId             string
+	FilePath             string
+	blameTime            time.Duration
+	skippedFiles         int
 }
 
 type fileWorkerRequest struct {
@@ -88,14 +95,18 @@ func AnalyseCodeOwnership(opts OwnershipOptions, progressChan chan<- utils.Progr
 		for fileResult := range fileWorkerOutputChan {
 			result.TotalFiles += fileResult.TotalFiles
 			result.TotalLines += fileResult.TotalLines
+			result.TotalLinesDuplicated += fileResult.TotalLinesDuplicated
 			result.LinesAgeDaysSum += fileResult.LinesAgeDaysSum
 			for author := range fileResult.authorLinesMap {
 				fileAuthorLines := fileResult.authorLinesMap[author]
 				resultAuthorLines := result.authorLinesMap[author]
 				resultAuthorLines.AuthorName = fileAuthorLines.AuthorName
 				resultAuthorLines.AuthorMail = fileAuthorLines.AuthorMail
-				resultAuthorLines.OwnedLines += fileAuthorLines.OwnedLines
+				resultAuthorLines.OwnedLinesTotal += fileAuthorLines.OwnedLinesTotal
 				resultAuthorLines.OwnedLinesAgeDaysSum += fileAuthorLines.OwnedLinesAgeDaysSum
+				resultAuthorLines.OwnedLinesDuplicate += fileAuthorLines.OwnedLinesDuplicate
+				resultAuthorLines.OwnedLinesDuplicateOriginal += fileAuthorLines.OwnedLinesDuplicateOriginal
+				resultAuthorLines.OwnedLinesDuplicateOriginalOthers += fileAuthorLines.OwnedLinesDuplicateOriginalOthers
 				result.authorLinesMap[author] = resultAuthorLines
 			}
 			progressInfo.CompletedTasks += 1 + fileResult.skippedFiles
@@ -114,7 +125,7 @@ func AnalyseCodeOwnership(opts OwnershipOptions, progressChan chan<- utils.Progr
 		}
 
 		sort.Slice(authorsLines, func(i, j int) bool {
-			return authorsLines[i].OwnedLines > authorsLines[j].OwnedLines
+			return authorsLines[i].OwnedLinesTotal > authorsLines[j].OwnedLinesTotal
 		})
 		result.AuthorsLines = authorsLines
 	}()
@@ -231,32 +242,51 @@ func fileWorker(fileWorkerInputChan <-chan fileWorkerRequest, fileWorkerOutputCh
 			authorLines := ownershipResult.authorLinesMap[lineAuthor.AuthorName]
 			authorLines.AuthorName = lineAuthor.AuthorName
 			authorLines.AuthorMail = lineAuthor.AuthorMail
-			authorLines.OwnedLines += 1
+			authorLines.OwnedLinesTotal += 1
 			// fmt.Printf(">>>>%s %s %f %s\n", commitInfo.Date, lineAuthor.AuthorDate, commitInfo.Date.Sub(lineAuthor.AuthorDate).Hours(), commitInfo.Date.Sub(lineAuthor.AuthorDate))
 			lineAge := (commitInfo.Date.Sub(lineAuthor.AuthorDate).Hours()) / float64(24)
 			authorLines.OwnedLinesAgeDaysSum += lineAge
 			ownershipResult.LinesAgeDaysSum += lineAge
 			// fmt.Printf("]]]]%s\n", authorLines.OwnedLinesAgeSum)
-			ownershipResult.authorLinesMap[lineAuthor.AuthorName] = authorLines
 
+			// Duplication analysis
 			// this is very sensitive as a lot of memory can be used by the tracker
 			if i > 0 && i < len(blameResult) {
 				// group lines to give context for duplication detection
 				lineGroup := fmt.Sprintf("%s\\n%s", blameResult[i-1].LineContents, blameResult[i].LineContents)
-				duplicates := duplicateLineTracker.AddLine(lineGroup, utils.LineSource{
+				duplicates, isDuplicate := duplicateLineTracker.AddLine(lineGroup, utils.LineSource{
 					FilePath:   req.filePath,
 					LineNumber: i + 1,
 					AuthorName: lineAuthor.AuthorName,
 					AuthorMail: lineAuthor.AuthorMail,
 					CommitDate: lineAuthor.AuthorDate,
 				})
-				if len(duplicates) > 10 {
-					fmt.Printf("DUPLICATE LINE - %s: %s\n", req.filePath, lineAuthor.LineContents)
-					for _, d := range duplicates {
-						fmt.Printf("  %s:%d\n", d.FilePath, d.LineNumber)
+				if isDuplicate {
+					ownershipResult.TotalLinesDuplicated += 1
+					authorLines.OwnedLinesDuplicate += 1
+					sort.Slice(duplicates, func(i, j int) bool {
+						return duplicates[i].CommitDate.Compare(duplicates[j].CommitDate) == -1
+					})
+					// first commiter of the duplicated line was the author
+					if duplicates[0].AuthorName == lineAuthor.AuthorName {
+						authorLines.OwnedLinesDuplicateOriginal += 1
+						// someone else is copying your line
+					} else {
+						originalAuthorLines := ownershipResult.authorLinesMap[duplicates[0].AuthorName]
+						originalAuthorLines.AuthorMail = duplicates[0].AuthorMail
+						originalAuthorLines.AuthorName = duplicates[0].AuthorName
+						originalAuthorLines.OwnedLinesDuplicateOriginalOthers += 1
+						ownershipResult.authorLinesMap[duplicates[0].AuthorName] = originalAuthorLines
 					}
 				}
+				// if len(duplicates) > 10 {
+				// 	fmt.Printf("DUPLICATE LINE - %s: %s\n", req.filePath, lineAuthor.LineContents)
+				// 	for _, d := range duplicates {
+				// 		fmt.Printf("  %s:%d\n", d.FilePath, d.LineNumber)
+				// 	}
+				// }
 			}
+			ownershipResult.authorLinesMap[lineAuthor.AuthorName] = authorLines
 		}
 		ownershipResult.blameTime = time.Since(startTime)
 		ownershipResult.skippedFiles += skippedFiles

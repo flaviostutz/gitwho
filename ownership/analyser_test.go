@@ -1,6 +1,7 @@
 package ownership
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/flaviostutz/gitwho/utils"
@@ -28,7 +29,44 @@ func TestAnalyseCodeOwnershipAllFiles(t *testing.T) {
 		return
 	}
 	require.Equal(t, 7, results.TotalLines)
+	require.Equal(t, 2, results.TotalFiles)
+	require.Equal(t, 0, results.TotalLinesDuplicated)
 	require.Equal(t, 3, len(results.AuthorsLines))
+
+	sumLines := 0
+	for _, al := range results.AuthorsLines {
+		sumLines += al.OwnedLinesTotal
+	}
+	require.Equal(t, results.TotalLines, sumLines)
+}
+
+func TestAnalyseCodeOwnershipCheckSums(t *testing.T) {
+	repoDir, err := utils.ResolveTestOwnershipDuplicatesRepo()
+	require.Nil(t, err)
+	results, err := AnalyseCodeOwnership(OwnershipOptions{
+		BaseOptions: utils.BaseOptions{
+			RepoDir: repoDir,
+			Branch:  "main",
+		},
+		When: "now",
+	}, nil)
+	require.Nil(t, err)
+	if err != nil {
+		return
+	}
+
+	sumLines := 0
+	sumDup := 0
+	sumDupOrigOthers := 0
+	for _, al := range results.AuthorsLines {
+		sumLines += al.OwnedLinesTotal
+		sumDup += al.OwnedLinesDuplicate
+		sumDupOrigOthers += al.OwnedLinesDuplicateOriginalOthers
+	}
+	fmt.Printf("%d\n", results.TotalLinesDuplicated)
+	require.Equal(t, results.TotalLines, sumLines)
+	require.Equal(t, results.TotalLinesDuplicated, sumDup)
+	require.Equal(t, results.TotalLinesDuplicated, sumDupOrigOthers)
 }
 
 func TestAnalyseCodeOwnershipRegexFiles(t *testing.T) {
