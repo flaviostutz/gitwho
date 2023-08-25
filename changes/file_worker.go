@@ -106,8 +106,7 @@ func fileAnalysisWorker(fileWorkerInputChan <-chan fileWorkerRequest, analyseFil
 		// diffs := diffMatcher.DiffMain(filePrevContents, fileCurContents, false)
 		diffs, err := utils.ExecDiffFileRevisions(req.repoDir, req.filePath, prevCommitId, req.commitId)
 		if err != nil {
-			analyseFileErrChan <- errors.New(fmt.Sprintf("Couldn't diff file revisions. file=%s; srcCommit=%s; dstCommit=%s; err=%s", req.filePath, prevCommitId, req.commitId, err))
-			break
+			logrus.Debugf("Couldn't diff file revisions. Ignoring file. file=%s; srcCommit=%s; dstCommit=%s; err=%s", req.filePath, prevCommitId, req.commitId, err)
 		}
 
 		// for each line, classify change type
