@@ -36,11 +36,11 @@ func FormatTextResults(ownershipResult OwnershipResult, opts OwnershipOptions, f
 		return text
 	}
 
-	text += "Duplicate lines:\n"
+	text += "\nDuplicate lines:\n"
 	for _, lineGroup := range ownershipResult.DuplicateLineGroups {
-		text += fmt.Sprintf("%s:%d-%d\n", lineGroup.FilePath, lineGroup.LineNumber, lineGroup.LineNumber+lineGroup.LineCount)
+		text += fmt.Sprintf("  %s:%d-%d\n", lineGroup.FilePath, lineGroup.LineNumber, lineGroup.LineNumber+lineGroup.LineCount)
 		for _, relatedGroup := range lineGroup.RelatedLinesGroup {
-			text += fmt.Sprintf("  -%s:%d-%d\n", relatedGroup.FilePath, relatedGroup.LineNumber, relatedGroup.LineNumber+relatedGroup.LineCount)
+			text += fmt.Sprintf("    %s:%d-%d\n", relatedGroup.FilePath, relatedGroup.LineNumber, relatedGroup.LineNumber+relatedGroup.LineCount)
 		}
 	}
 

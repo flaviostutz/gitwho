@@ -181,10 +181,13 @@ func AnalyseCodeOwnership(opts OwnershipOptions, progressChan chan<- utils.Progr
 	// group all duplicate lines
 	dlg := duplicateLineTracker.GroupLines()
 	sort.Slice(dlg, func(i, j int) bool {
-		return dlg[i].LineCount > dlg[j].LineCount &&
-			dlg[i].FilePath > dlg[j].FilePath &&
-			dlg[i].LineNumber > dlg[j].LineNumber
-
+		if dlg[i].LineCount != dlg[j].LineCount {
+			return dlg[i].LineCount > dlg[j].LineCount
+		}
+		if dlg[i].FilePath != dlg[j].FilePath {
+			return dlg[i].FilePath < dlg[j].FilePath
+		}
+		return dlg[i].LineNumber > dlg[j].LineNumber
 	})
 	result.DuplicateLineGroups = dlg
 
@@ -269,14 +272,14 @@ func fileWorker(fileWorkerInputChan <-chan fileWorkerRequest,
 
 			// Duplication analysis
 			// this is very sensitive as a lot of memory can be used by the tracker
-			if i > 0 && i < len(blameResult) {
+			if i < len(blameResult)-1 {
 				// group lines 2 by 2 to give context for duplication detection
-				lineGroup := fmt.Sprintf("%s\\n%s", blameResult[i-1].LineContents, blameResult[i].LineContents)
+				lineGroup := fmt.Sprintf("%s\\n%s", blameResult[i].LineContents, blameResult[i+1].LineContents)
 				duplicates, isDuplicate := duplicateLineTracker.AddLine(lineGroup,
 					utils.LineSource{
 						Lines: utils.Lines{
 							FilePath:   req.filePath,
-							LineNumber: i,
+							LineNumber: i + 1,
 							LineCount:  1,
 						},
 						AuthorName: lineAuthor.AuthorName,

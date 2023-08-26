@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/segmentio/fasthash/fnv1a"
+	"golang.org/x/exp/slices"
 )
 
 // Attention: this utility will handle a lot of memory and a lot of calls
@@ -89,6 +90,10 @@ func (d *DuplicateLineTracker) GroupLines() []LineGroup {
 	allLineRefs := make([]uint64, 0)
 	for key := range d.lines {
 		lineSources := d.lines[key]
+		// this is a line with only one copy (not a duplicate). ignore it
+		if len(lineSources) == 1 {
+			continue
+		}
 		for _, lineSource := range lineSources {
 			allLineSources = append(allLineSources, lineSource)
 			allLineRefs = append(allLineRefs, key)
@@ -110,8 +115,15 @@ func (d *DuplicateLineTracker) GroupLines() []LineGroup {
 		// gather all line sources related to this group
 		lineSourcesForGroup := make([]LineSource, 0)
 		for _, lineRef := range lineGroup.lineHashes {
-			lineSourcesForGroup = append(lineSourcesForGroup, d.lines[lineRef]...)
+			lineSourcesRef := d.lines[lineRef]
+			for _, lsr := range lineSourcesRef {
+				if !contains(lineSourcesForGroup, lsr) {
+					lineSourcesForGroup = append(lineSourcesForGroup, lsr)
+				}
+			}
 		}
+
+		// why some groups doesnt have sources? why group has one line diff from sources?
 
 		// group line sources into groups
 		candidateRelatedLineGroups := findLineGroups(lineSourcesForGroup)
@@ -123,8 +135,8 @@ func (d *DuplicateLineTracker) GroupLines() []LineGroup {
 				_, ok := foundRelatedLinesGroup[relatedGroupKey]
 				if !ok {
 					lineGroup.RelatedLinesGroup = append(lineGroup.RelatedLinesGroup, rlg)
+					foundRelatedLinesGroup[relatedGroupKey] = true
 				}
-				foundRelatedLinesGroup[relatedGroupKey] = true
 			}
 		}
 		_, ok := foundRelatedLinesGroup[lineGroupKey]
@@ -137,6 +149,17 @@ func (d *DuplicateLineTracker) GroupLines() []LineGroup {
 	return result
 }
 
+func contains(linesSource []LineSource, lineSource LineSource) bool {
+	for _, a := range linesSource {
+		if a.FilePath == lineSource.FilePath &&
+			a.LineNumber == lineSource.LineNumber &&
+			a.LineCount == lineSource.LineCount {
+			return true
+		}
+	}
+	return false
+}
+
 func groupKey(lg LineGroup) string {
 	return fmt.Sprintf("%s#%d#%d", lg.FilePath, lg.LineCount, lg.LineNumber)
 }
@@ -145,8 +168,10 @@ func findLineGroups(lineSources []LineSource) []LineGroup {
 	// this allLineSources list is ordered by fileName and line number
 	// this is the basis for this algorithm to work
 	sort.Slice(lineSources, func(i, j int) bool {
-		return lineSources[i].FilePath < lineSources[j].FilePath &&
-			lineSources[i].LineNumber < lineSources[j].LineNumber
+		if lineSources[i].FilePath != lineSources[j].FilePath {
+			return lineSources[i].FilePath < lineSources[j].FilePath
+		}
+		return lineSources[i].LineNumber < lineSources[j].LineNumber
 	})
 
 	lineGroups := make([]LineGroup, 0)
@@ -156,6 +181,7 @@ func findLineGroups(lineSources []LineSource) []LineGroup {
 			currentDup.FilePath = lineSource.FilePath
 			currentDup.LineNumber = lineSource.LineNumber
 			currentDup.LineCount = lineSource.LineCount
+			currentDup.lineHashes = append(currentDup.lineHashes, uint64(lineSource.lineHash))
 		}
 
 		overlap, lineNumber, lineCount := mergeOverlap(currentDup.Lines, lineSource.Lines)
@@ -163,7 +189,9 @@ func findLineGroups(lineSources []LineSource) []LineGroup {
 		if overlap {
 			currentDup.LineNumber = lineNumber
 			currentDup.LineCount = lineCount
-			currentDup.lineHashes = append(currentDup.lineHashes, uint64(lineSource.lineHash))
+			if !slices.Contains(currentDup.lineHashes, uint64(lineSource.lineHash)) {
+				currentDup.lineHashes = append(currentDup.lineHashes, uint64(lineSource.lineHash))
+			}
 			continue
 		}
 
@@ -173,6 +201,7 @@ func findLineGroups(lineSources []LineSource) []LineGroup {
 		currentDup.FilePath = lineSource.FilePath
 		currentDup.LineNumber = lineSource.LineNumber
 		currentDup.LineCount = lineSource.LineCount
+		currentDup.lineHashes = append(currentDup.lineHashes, uint64(lineSource.lineHash))
 	}
 	if currentDup.LineNumber != 0 {
 		lineGroups = append(lineGroups, currentDup)
@@ -185,9 +214,9 @@ func mergeOverlap(lines1 Lines, lines2 Lines) (bool, int, int) {
 		return false, -1, -1
 	}
 	from1 := lines1.LineNumber
-	to1 := lines1.LineNumber + lines1.LineCount
+	to1 := lines1.LineNumber + lines1.LineCount - 1
 	from2 := lines2.LineNumber
-	to2 := lines2.LineNumber + lines2.LineCount
+	to2 := lines2.LineNumber + lines2.LineCount - 1
 
 	minFrom := from1
 	if from2 < from1 {
@@ -208,5 +237,5 @@ func mergeOverlap(lines1 Lines, lines2 Lines) (bool, int, int) {
 		}
 	}
 
-	return true, minFrom, maxTo - minFrom
+	return true, minFrom, maxTo - minFrom + 1
 }
