@@ -31,6 +31,7 @@ type LineSource struct {
 type LineGroup struct {
 	Lines
 	RelatedLinesGroup []LineGroup
+	RelatedLinesCount int
 	lineHashes        []uint64
 }
 
@@ -84,7 +85,7 @@ func (d *DuplicateLineTracker) AddLine(contents string, source LineSource) ([]Li
 	return lsources, isDuplicate
 }
 
-func (d *DuplicateLineTracker) GroupLines() []LineGroup {
+func (d *DuplicateLineTracker) GroupDuplicatedLines() []LineGroup {
 	// lines map[uint64][]LineSource
 	allLineSources := make([]LineSource, 0)
 	allLineRefs := make([]uint64, 0)
@@ -123,8 +124,6 @@ func (d *DuplicateLineTracker) GroupLines() []LineGroup {
 			}
 		}
 
-		// why some groups doesnt have sources? why group has one line diff from sources?
-
 		// group line sources into groups
 		candidateRelatedLineGroups := findLineGroups(lineSourcesForGroup)
 
@@ -134,6 +133,7 @@ func (d *DuplicateLineTracker) GroupLines() []LineGroup {
 			if lineGroupKey != relatedGroupKey {
 				_, ok := foundRelatedLinesGroup[relatedGroupKey]
 				if !ok {
+					lineGroup.RelatedLinesCount += rlg.LineCount
 					lineGroup.RelatedLinesGroup = append(lineGroup.RelatedLinesGroup, rlg)
 					foundRelatedLinesGroup[relatedGroupKey] = true
 				}
@@ -145,6 +145,19 @@ func (d *DuplicateLineTracker) GroupLines() []LineGroup {
 			foundRelatedLinesGroup[lineGroupKey] = true
 		}
 	}
+
+	// return from the most duplicated lines group to the least
+	sort.Slice(result, func(i, j int) bool {
+		countI := result[i].LineCount + result[i].RelatedLinesCount
+		countJ := result[j].LineCount + result[j].RelatedLinesCount
+		if countI != countJ {
+			return countI > countJ
+		}
+		if result[i].FilePath != result[j].FilePath {
+			return result[i].FilePath < result[j].FilePath
+		}
+		return result[i].LineNumber > result[j].LineNumber
+	})
 
 	return result
 }

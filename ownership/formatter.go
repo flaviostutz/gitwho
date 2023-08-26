@@ -5,7 +5,7 @@ import (
 	"strconv"
 )
 
-func FormatTextResults(ownershipResult OwnershipResult, opts OwnershipOptions, full bool) string {
+func FormatTextResults(ownershipResult OwnershipResult, full bool) string {
 	text := fmt.Sprintf("Total authors: %d\n", len(ownershipResult.AuthorsLines))
 	text += fmt.Sprintf("Total files: %d\n", ownershipResult.TotalFiles)
 	if full {

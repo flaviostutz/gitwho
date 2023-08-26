@@ -5,7 +5,7 @@ import (
 	"sort"
 )
 
-func FormatFullTextResults(changes ChangesResult, opts ChangesOptions) string {
+func FormatFullTextResults(changes ChangesResult) string {
 	if changes.TotalCommits == 0 {
 		return "No changes found"
 	}
@@ -29,7 +29,7 @@ func FormatFullTextResults(changes ChangesResult, opts ChangesOptions) string {
 	return text
 }
 
-func FormatTopTextResults(changes ChangesResult, opts ChangesOptions) string {
+func FormatTopTextResults(changes ChangesResult) string {
 	if changes.TotalCommits == 0 {
 		return "No changes found"
 	}

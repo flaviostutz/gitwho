@@ -54,7 +54,7 @@ func TestDuplicateLineGroups(t *testing.T) {
 	dt.AddLine("abc01234567890123456789", LineSource{Lines: Lines{FilePath: "3", LineNumber: 30, LineCount: 1}, AuthorName: "c"})
 	dt.AddLine("abc01234567890123456789", LineSource{Lines: Lines{FilePath: "1", LineNumber: 10, LineCount: 1}, AuthorName: "a"})
 
-	lineGroups := dt.GroupLines()
+	lineGroups := dt.GroupDuplicatedLines()
 	require.Len(t, lineGroups, 1)
 	require.Len(t, lineGroups[0].RelatedLinesGroup, 2)
 
@@ -73,13 +73,13 @@ func TestDuplicateLineGroups2(t *testing.T) {
 	dt.AddLine("abc01234567890123456789", LineSource{Lines: Lines{FilePath: "2", LineNumber: 20, LineCount: 1}, AuthorName: "b"})
 	dt.AddLine("abc01234567890123456789", LineSource{Lines: Lines{FilePath: "3", LineNumber: 30, LineCount: 1}, AuthorName: "c"})
 
-	lineGroups := dt.GroupLines()
+	lineGroups := dt.GroupDuplicatedLines()
 	require.Len(t, lineGroups, 1)
 	require.Len(t, lineGroups[0].RelatedLinesGroup, 2)
 
 	require.Equal(t, "1", lineGroups[0].FilePath)
 	require.Equal(t, 10, lineGroups[0].LineNumber)
-	require.Equal(t, 2, lineGroups[0].LineCount)
+	require.Equal(t, 1, lineGroups[0].LineCount)
 	require.Equal(t, "2", lineGroups[0].RelatedLinesGroup[0].FilePath)
 	require.Equal(t, "3", lineGroups[0].RelatedLinesGroup[1].FilePath)
 }
@@ -95,7 +95,7 @@ func TestDuplicateLineGroups3(t *testing.T) {
 	dt.AddLine("abc01234567890123456789", LineSource{Lines: Lines{FilePath: "4", LineNumber: 50, LineCount: 1}, AuthorName: "d"})
 	dt.AddLine("xyz01234567890123456789", LineSource{Lines: Lines{FilePath: "4", LineNumber: 51, LineCount: 1}, AuthorName: "d"})
 
-	lineGroups := dt.GroupLines()
+	lineGroups := dt.GroupDuplicatedLines()
 	require.Len(t, lineGroups, 1)
 	require.Len(t, lineGroups[0].RelatedLinesGroup, 4)
 
@@ -174,7 +174,7 @@ func TestDuplicateLineGroups4(t *testing.T) {
 	dt.AddLine("aaa01234567890123456789", LineSource{Lines: Lines{FilePath: "3", LineNumber: 110, LineCount: 1}, AuthorName: "a"})
 	dt.AddLine("bbb01234567890123456789", LineSource{Lines: Lines{FilePath: "3", LineNumber: 111, LineCount: 1}, AuthorName: "a"})
 
-	lineGroups := dt.GroupLines()
+	lineGroups := dt.GroupDuplicatedLines()
 	require.Len(t, lineGroups, 1)
 	require.Len(t, lineGroups[0].RelatedLinesGroup, 2)
 
@@ -199,7 +199,7 @@ func TestDuplicateLineGroupsOutOfOrder4(t *testing.T) {
 	dt.AddLine("bbb01234567890123456789", LineSource{Lines: Lines{FilePath: "2", LineNumber: 211, LineCount: 1}, AuthorName: "a"})
 	dt.AddLine("aaa01234567890123456789", LineSource{Lines: Lines{FilePath: "2", LineNumber: 210, LineCount: 1}, AuthorName: "a"})
 
-	lineGroups := dt.GroupLines()
+	lineGroups := dt.GroupDuplicatedLines()
 	require.Len(t, lineGroups, 1)
 	require.Len(t, lineGroups[0].RelatedLinesGroup, 2)
 

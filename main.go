@@ -99,10 +99,10 @@ func main() {
 			os.Exit(2)
 		}
 		if format == "short" {
-			output := changes.FormatTopTextResults(changesResults, changesOpts)
+			output := changes.FormatTopTextResults(changesResults)
 			fmt.Println(output)
 		} else {
-			output := changes.FormatFullTextResults(changesResults, changesOpts)
+			output := changes.FormatFullTextResults(changesResults)
 			fmt.Println(output)
 		}
 
@@ -131,7 +131,7 @@ func main() {
 			fmt.Println("Failed to perform ownership analysis. err=", err)
 			os.Exit(2)
 		}
-		output := ownership.FormatTextResults(ownershipResults, ownershipOpts, format == "full")
+		output := ownership.FormatTextResults(ownershipResults, format == "full")
 		fmt.Println(output)
 
 	default:

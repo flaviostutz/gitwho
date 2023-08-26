@@ -179,17 +179,8 @@ func AnalyseCodeOwnership(opts OwnershipOptions, progressChan chan<- utils.Progr
 	close(fileWorkerErrChan)
 
 	// group all duplicate lines
-	dlg := duplicateLineTracker.GroupLines()
-	sort.Slice(dlg, func(i, j int) bool {
-		if dlg[i].LineCount != dlg[j].LineCount {
-			return dlg[i].LineCount > dlg[j].LineCount
-		}
-		if dlg[i].FilePath != dlg[j].FilePath {
-			return dlg[i].FilePath < dlg[j].FilePath
-		}
-		return dlg[i].LineNumber > dlg[j].LineNumber
-	})
-	result.DuplicateLineGroups = dlg
+	logrus.Debug("Grouping duplicated lines...")
+	result.DuplicateLineGroups = duplicateLineTracker.GroupDuplicatedLines()
 
 	for workerErr := range fileWorkerErrChan {
 		logrus.Errorf("Error during analysis. err=%s", workerErr)
@@ -264,11 +255,9 @@ func fileWorker(fileWorkerInputChan <-chan fileWorkerRequest,
 			authorLines.AuthorName = lineAuthor.AuthorName
 			authorLines.AuthorMail = lineAuthor.AuthorMail
 			authorLines.OwnedLinesTotal += 1
-			// fmt.Printf(">>>>%s %s %f %s\n", commitInfo.Date, lineAuthor.AuthorDate, commitInfo.Date.Sub(lineAuthor.AuthorDate).Hours(), commitInfo.Date.Sub(lineAuthor.AuthorDate))
 			lineAge := (commitInfo.Date.Sub(lineAuthor.AuthorDate).Hours()) / float64(24)
 			authorLines.OwnedLinesAgeDaysSum += lineAge
 			ownershipResult.LinesAgeDaysSum += lineAge
-			// fmt.Printf("]]]]%s\n", authorLines.OwnedLinesAgeSum)
 
 			// Duplication analysis
 			// this is very sensitive as a lot of memory can be used by the tracker
@@ -304,12 +293,6 @@ func fileWorker(fileWorkerInputChan <-chan fileWorkerRequest,
 						ownershipResult.authorLinesMap[duplicates[0].AuthorName] = originalAuthorLines
 					}
 				}
-				// if len(duplicates) > 10 {
-				// 	fmt.Printf("DUPLICATE LINE - %s: %s\n", req.filePath, lineAuthor.LineContents)
-				// 	for _, d := range duplicates {
-				// 		fmt.Printf("  %s:%d\n", d.FilePath, d.LineNumber)
-				// 	}
-				// }
 			}
 			ownershipResult.authorLinesMap[lineAuthor.AuthorName] = authorLines
 		}
