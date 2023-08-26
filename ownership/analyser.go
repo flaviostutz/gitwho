@@ -40,6 +40,7 @@ type OwnershipResult struct {
 	AuthorsLines         []AuthorLines
 	CommitId             string
 	FilePath             string
+	DuplicateLineGroups  []utils.LineGroup
 	blameTime            time.Duration
 	skippedFiles         int
 }
@@ -50,9 +51,8 @@ type fileWorkerRequest struct {
 	commitId string
 }
 
-var duplicateLineTracker = utils.NewDuplicateLineTracker()
-
 func AnalyseCodeOwnership(opts OwnershipOptions, progressChan chan<- utils.ProgressInfo) (OwnershipResult, error) {
+	var duplicateLineTracker = utils.NewDuplicateLineTracker()
 	result := OwnershipResult{TotalLines: 0, authorLinesMap: make(map[string]AuthorLines, 0), AuthorsLines: make([]AuthorLines, 0)}
 
 	progressInfo := utils.ProgressInfo{}
@@ -117,6 +117,9 @@ func AnalyseCodeOwnership(opts OwnershipOptions, progressChan chan<- utils.Progr
 			}
 		}
 
+		logrus.Debugf("Grouping duplicate lines")
+		// result.DuplicateLines = groupDuplicateLines(duplicateLineTracker)
+
 		logrus.Debugf("Sorting and preparing summary for each author")
 		authorsLines := make([]AuthorLines, 0)
 		for author := range result.authorLinesMap {
@@ -134,7 +137,7 @@ func AnalyseCodeOwnership(opts OwnershipOptions, progressChan chan<- utils.Progr
 	var fileWorkersWaitGroup sync.WaitGroup
 	for i := 0; i < nrWorkers; i++ {
 		fileWorkersWaitGroup.Add(1)
-		go fileWorker(fileWorkerInputChan, fileWorkerOutputChan, fileWorkerErrChan, &fileWorkersWaitGroup)
+		go fileWorker(fileWorkerInputChan, fileWorkerOutputChan, fileWorkerErrChan, &fileWorkersWaitGroup, duplicateLineTracker)
 	}
 	logrus.Debugf("Launched %d workers for analysis", nrWorkers)
 
@@ -175,6 +178,16 @@ func AnalyseCodeOwnership(opts OwnershipOptions, progressChan chan<- utils.Progr
 	close(fileWorkerOutputChan)
 	close(fileWorkerErrChan)
 
+	// group all duplicate lines
+	dlg := duplicateLineTracker.GroupLines()
+	sort.Slice(dlg, func(i, j int) bool {
+		return dlg[i].LineCount > dlg[j].LineCount &&
+			dlg[i].FilePath > dlg[j].FilePath &&
+			dlg[i].LineNumber > dlg[j].LineNumber
+
+	})
+	result.DuplicateLineGroups = dlg
+
 	for workerErr := range fileWorkerErrChan {
 		logrus.Errorf("Error during analysis. err=%s", workerErr)
 		panic(2)
@@ -189,7 +202,11 @@ func AnalyseCodeOwnership(opts OwnershipOptions, progressChan chan<- utils.Progr
 }
 
 // this will be run by multiple goroutines
-func fileWorker(fileWorkerInputChan <-chan fileWorkerRequest, fileWorkerOutputChan chan<- OwnershipResult, fileWorkerErrChan chan<- error, wg *sync.WaitGroup) {
+func fileWorker(fileWorkerInputChan <-chan fileWorkerRequest,
+	fileWorkerOutputChan chan<- OwnershipResult,
+	fileWorkerErrChan chan<- error,
+	wg *sync.WaitGroup,
+	duplicateLineTracker *utils.DuplicateLineTracker) {
 	defer wg.Done()
 	skippedFiles := 0
 	for req := range fileWorkerInputChan {
@@ -233,6 +250,7 @@ func fileWorker(fileWorkerInputChan <-chan fileWorkerRequest, fileWorkerOutputCh
 			break
 		}
 
+		// go over each line of the file
 		ownershipResult.TotalFiles += 1
 		for i, lineAuthor := range blameResult {
 			if strings.Trim(lineAuthor.LineContents, " ") == "" {
@@ -252,15 +270,19 @@ func fileWorker(fileWorkerInputChan <-chan fileWorkerRequest, fileWorkerOutputCh
 			// Duplication analysis
 			// this is very sensitive as a lot of memory can be used by the tracker
 			if i > 0 && i < len(blameResult) {
-				// group lines to give context for duplication detection
+				// group lines 2 by 2 to give context for duplication detection
 				lineGroup := fmt.Sprintf("%s\\n%s", blameResult[i-1].LineContents, blameResult[i].LineContents)
-				duplicates, isDuplicate := duplicateLineTracker.AddLine(lineGroup, utils.LineSource{
-					FilePath:   req.filePath,
-					LineNumber: i + 1,
-					AuthorName: lineAuthor.AuthorName,
-					AuthorMail: lineAuthor.AuthorMail,
-					CommitDate: lineAuthor.AuthorDate,
-				})
+				duplicates, isDuplicate := duplicateLineTracker.AddLine(lineGroup,
+					utils.LineSource{
+						Lines: utils.Lines{
+							FilePath:   req.filePath,
+							LineNumber: i,
+							LineCount:  1,
+						},
+						AuthorName: lineAuthor.AuthorName,
+						AuthorMail: lineAuthor.AuthorMail,
+						CommitDate: lineAuthor.AuthorDate,
+					})
 				if isDuplicate {
 					ownershipResult.TotalLinesDuplicated += 1
 					authorLines.OwnedLinesDuplicate += 1
@@ -288,6 +310,7 @@ func fileWorker(fileWorkerInputChan <-chan fileWorkerRequest, fileWorkerOutputCh
 			}
 			ownershipResult.authorLinesMap[lineAuthor.AuthorName] = authorLines
 		}
+
 		ownershipResult.blameTime = time.Since(startTime)
 		ownershipResult.skippedFiles += skippedFiles
 		skippedFiles = 0

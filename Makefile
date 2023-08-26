@@ -26,15 +26,15 @@ deploy: publish-npm-all
 
 run-changes:
 	# go run ./ changes --repo /Users/flaviostutz/Documents/development/flaviostutz/conductor --branch main --files .md --since "5 years ago" --until "3 years ago" --format top
-	# go run ./ changes --repo /Users/flaviostutz/Documents/development/flaviostutz/conductor --branch main --files contribs/src/test/resources/log4j.properties --since "4 years ago" --until "3 years ago"
-	go run ./ changes --repo /Users/flaviostutz/Documents/development/nn/mortgage-loan --branch master --files ".ts$$" --since "1 months ago" --until "now" --format short
+	go run ./ changes --repo /Users/flaviostutz/Documents/development/flaviostutz/moby --branch master --files ".*" --files-not "vendor" --since "30 days ago" --until "now" --format full
+	# go run ./ changes --repo /Users/flaviostutz/Documents/development/nn/mortgage-loan --branch master --files ".ts$$" --since "1 months ago" --until "now" --format short
 
 run-ownership:
 # gocv, orb, conductor
-	# go run ./ ownership --repo /Users/flaviostutz/Documents/development/flaviostutz/conductor --branch main --files .*
-	# go run ./ ownership --repo /Users/flaviostutz/Documents/development/flaviostutz/moby --branch master --files test
+	go run ./ ownership --repo /Users/flaviostutz/Documents/development/flaviostutz/conductor --branch main --files .md --format full
+	# go run ./ ownership --repo /Users/flaviostutz/Documents/development/flaviostutz/moby --branch master --files test --files-not "vendor" --format full
 	# go run ./ ownership --repo /Users/flaviostutz/Documents/development/flaviostutz/gitwho --branch main --files "." --when "now"
-	go run ./ ownership --repo /Users/flaviostutz/Documents/development/nn/mortgage-loan --branch master --files ".ts$$" --files-not "" --when "now" --format short
+	# go run ./ ownership --repo /Users/flaviostutz/Documents/development/nn/mortgage-loan --branch master --files ".ts$$" --files-not "" --when "now" --format short
 
 
 publish-npm-all:

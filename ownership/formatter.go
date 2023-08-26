@@ -31,6 +31,19 @@ func FormatTextResults(ownershipResult OwnershipResult, opts OwnershipOptions, f
 			strconv.FormatFloat(float64(100)*(float64(authorLines.OwnedLinesTotal)/float64(ownershipResult.TotalLines)), 'f', 1, 32),
 			additional)
 	}
+
+	if !full {
+		return text
+	}
+
+	text += "Duplicate lines:\n"
+	for _, lineGroup := range ownershipResult.DuplicateLineGroups {
+		text += fmt.Sprintf("%s:%d-%d\n", lineGroup.FilePath, lineGroup.LineNumber, lineGroup.LineNumber+lineGroup.LineCount)
+		for _, relatedGroup := range lineGroup.RelatedLinesGroup {
+			text += fmt.Sprintf("  -%s:%d-%d\n", relatedGroup.FilePath, relatedGroup.LineNumber, relatedGroup.LineNumber+relatedGroup.LineCount)
+		}
+	}
+
 	return text
 }
 
