@@ -57,7 +57,7 @@ func main() {
 	ownershipFlag.BoolVar(&verbose, "verbose", true, "Show verbose logs during processing")
 
 	if len(os.Args) < 2 {
-		fmt.Println("Expected 'gitwho changes' or 'gitwho ownership' command")
+		fmt.Println("Expected 'changes', 'ownership' or 'duplicates' command")
 		os.Exit(1)
 	}
 
@@ -82,7 +82,7 @@ func main() {
 
 		_, err := utils.ExecCommitsInRange(changesOpts.RepoDir, changesOpts.Branch, "", "")
 		if err != nil {
-			fmt.Printf("Branch not found\n")
+			fmt.Printf("Branch %s not found\n", changesOpts.Branch)
 			os.Exit(1)
 		}
 
@@ -115,7 +115,7 @@ func main() {
 
 		_, err := utils.ExecCommitsInRange(ownershipOpts.RepoDir, ownershipOpts.Branch, "", "")
 		if err != nil {
-			fmt.Printf("Branch not found\n")
+			fmt.Printf("Branch %s not found\n", ownershipOpts.Branch)
 			os.Exit(1)
 		}
 
@@ -131,7 +131,31 @@ func main() {
 			fmt.Println("Failed to perform ownership analysis. err=", err)
 			os.Exit(2)
 		}
-		output := ownership.FormatTextResults(ownershipResults, format == "full")
+		output := ownership.FormatOwnershipResults(ownershipResults, format == "full")
+		fmt.Println(output)
+
+	case "duplicates":
+		ownershipFlag.Parse(os.Args[2:])
+
+		_, err := utils.ExecCommitsInRange(ownershipOpts.RepoDir, ownershipOpts.Branch, "", "")
+		if err != nil {
+			fmt.Printf("Branch %s not found\n", ownershipOpts.Branch)
+			os.Exit(1)
+		}
+
+		progressChan := make(chan utils.ProgressInfo, 1)
+		if verbose {
+			go utils.ShowProgress(progressChan)
+		}
+
+		logrus.Debugf("Starting analysis of code ownership")
+		ownershipResults, err := ownership.AnalyseCodeOwnership(ownershipOpts, progressChan)
+		close(progressChan)
+		if err != nil {
+			fmt.Println("Failed to perform ownership analysis. err=", err)
+			os.Exit(2)
+		}
+		output := ownership.FormatDuplicatesResults(ownershipResults, format == "full")
 		fmt.Println(output)
 
 	default:

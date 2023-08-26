@@ -139,6 +139,19 @@ func (d *DuplicateLineTracker) GroupDuplicatedLines() []LineGroup {
 				}
 			}
 		}
+
+		// order related line groups by relevance
+		rlg := lineGroup.RelatedLinesGroup
+		sort.Slice(rlg, func(i, j int) bool {
+			if rlg[i].LineCount != rlg[j].LineCount {
+				return rlg[i].LineCount > rlg[j].LineCount
+			}
+			if rlg[i].FilePath != rlg[j].FilePath {
+				return rlg[i].FilePath < rlg[j].FilePath
+			}
+			return rlg[i].LineNumber > rlg[j].LineNumber
+		})
+
 		_, ok := foundRelatedLinesGroup[lineGroupKey]
 		if !ok {
 			result = append(result, lineGroup)

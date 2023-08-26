@@ -102,10 +102,10 @@ func TestDuplicateLineGroups3(t *testing.T) {
 	require.Equal(t, "1", lineGroups[0].FilePath)
 	require.Equal(t, 10, lineGroups[0].LineNumber)
 	require.Equal(t, 2, lineGroups[0].LineCount)
-	require.Equal(t, "2", lineGroups[0].RelatedLinesGroup[0].FilePath)
-	require.Equal(t, "3", lineGroups[0].RelatedLinesGroup[1].FilePath)
+	require.Equal(t, "4", lineGroups[0].RelatedLinesGroup[0].FilePath)
+	require.Equal(t, "2", lineGroups[0].RelatedLinesGroup[1].FilePath)
 	require.Equal(t, "3", lineGroups[0].RelatedLinesGroup[2].FilePath)
-	require.Equal(t, "4", lineGroups[0].RelatedLinesGroup[3].FilePath)
+	require.Equal(t, "3", lineGroups[0].RelatedLinesGroup[3].FilePath)
 }
 
 func TestFindLineGroups1(t *testing.T) {
