@@ -293,13 +293,13 @@ func fileWorker(fileWorkerInputChan <-chan fileWorkerRequest,
 					})
 					// first commiter of the duplicated line was the author
 					if duplicates[0].AuthorName == lineAuthor.AuthorName {
-						authorLines.OwnedLinesDuplicateOriginal += 1
+						authorLines.OwnedLinesDuplicateOriginal += req.minDuplicateLines
 						// someone else is copying your line
 					} else {
 						originalAuthorLines := ownershipResult.authorLinesMap[duplicates[0].AuthorName]
 						originalAuthorLines.AuthorMail = duplicates[0].AuthorMail
 						originalAuthorLines.AuthorName = duplicates[0].AuthorName
-						originalAuthorLines.OwnedLinesDuplicateOriginalOthers += 1
+						originalAuthorLines.OwnedLinesDuplicateOriginalOthers += req.minDuplicateLines
 						ownershipResult.authorLinesMap[duplicates[0].AuthorName] = originalAuthorLines
 					}
 				}

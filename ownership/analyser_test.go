@@ -59,16 +59,18 @@ func TestAnalyseCodeOwnershipCheckSums(t *testing.T) {
 
 	sumLines := 0
 	sumDup := 0
+	sumDupOrig := 0
 	sumDupOrigOthers := 0
 	for _, al := range results.AuthorsLines {
 		sumLines += al.OwnedLinesTotal
 		sumDup += al.OwnedLinesDuplicate
+		sumDupOrig += al.OwnedLinesDuplicateOriginal
 		sumDupOrigOthers += al.OwnedLinesDuplicateOriginalOthers
 	}
 	fmt.Printf("%d\n", results.TotalLinesDuplicated)
 	require.Equal(t, results.TotalLines, sumLines)
 	require.Equal(t, results.TotalLinesDuplicated, sumDup)
-	require.Equal(t, results.TotalLinesDuplicated, sumDupOrigOthers)
+	require.Equal(t, results.TotalLinesDuplicated, sumDupOrig+sumDupOrigOthers)
 }
 
 func TestAnalyseCodeDuplicates(t *testing.T) {
