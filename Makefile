@@ -25,7 +25,7 @@ benchmark:
 deploy: publish-npm-all
 
 run-changes:
-	# go run ./ changes --repo /Users/flaviostutz/Documents/development/flaviostutz/conductor --branch main --files .md --since "5 years ago" --until "3 years ago" --format top
+	# go run ./ changes --repo /Users/flaviostutz/Documents/development/flaviostutz/conductor --branch main --files .md --since "5 years ago" --until "3 years ago" --format full
 	go run ./ changes --repo /Users/flaviostutz/Documents/development/flaviostutz/moby --branch master --files ".*" --files-not "vendor" --since "30 days ago" --until "now" --format full
 	# go run ./ changes --repo /Users/flaviostutz/Documents/development/nn/mortgage-loan --branch master --files ".ts$$" --since "1 months ago" --until "now" --format short
 
