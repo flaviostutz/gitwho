@@ -15,7 +15,8 @@ func TestFormatOwnershipShort(t *testing.T) {
 			RepoDir: repoDir,
 			Branch:  "main",
 		},
-		When: "now",
+		MinDuplicateLines: 2,
+		When:              "now",
 	}, nil)
 	require.Nil(t, err)
 
@@ -31,7 +32,8 @@ func TestFormatOwnershipFull(t *testing.T) {
 			RepoDir: repoDir,
 			Branch:  "main",
 		},
-		When: "now",
+		MinDuplicateLines: 2,
+		When:              "now",
 	}, nil)
 	require.Nil(t, err)
 
@@ -47,7 +49,8 @@ func TestFormatDuplicatesFull(t *testing.T) {
 			RepoDir: repoDir,
 			Branch:  "main",
 		},
-		When: "now",
+		MinDuplicateLines: 2,
+		When:              "now",
 	}, nil)
 	require.Nil(t, err)
 

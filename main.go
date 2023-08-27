@@ -52,6 +52,7 @@ func main() {
 	ownershipFlag.StringVar(&ownershipOpts.When, "when", "now", "Date time to analyse")
 	ownershipFlag.StringVar(&ownershipOpts.FilesRegex, "files", ".*", "Regex for selecting which file paths to include in analysis")
 	ownershipFlag.StringVar(&ownershipOpts.FilesNotRegex, "files-not", "", "Regex for filtering out files from analysis")
+	ownershipFlag.IntVar(&ownershipOpts.MinDuplicateLines, "min-dup-lines", 4, "Min number of similar lines in a row to be considered a duplicate")
 	ownershipFlag.StringVar(&profileFile, "profile-file", "", "Profile file to dump golang runtime data to")
 	ownershipFlag.StringVar(&format, "format", "full", "Output format. 'full' (duplicated lines and line age details) or 'short' (lines per author)")
 	ownershipFlag.BoolVar(&verbose, "verbose", true, "Show verbose logs during processing")

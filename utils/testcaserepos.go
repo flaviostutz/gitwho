@@ -140,8 +140,8 @@ func ResolveTestOwnershipDuplicatesRepo() (string, error) {
 	// there are complex unit tests that depends exactly on how it is
 
 	// commit 1
-	err = writeAddFile(repoDir, "file1", `a
-b`)
+	err = writeAddFile(repoDir, "file1", `aaaaaaaaaaaaaaaaaaaa
+bbbbbbbbbbbbbbbbbbbb`)
 	if err != nil {
 		return "", err
 	}
@@ -152,21 +152,21 @@ b`)
 	time.Sleep(1100 * time.Millisecond)
 
 	// commit 2
-	writeAddFile(repoDir, "file2", `a
-b`)
+	writeAddFile(repoDir, "file2", `aaaaaaaaaaaaaaaaaaaa
+bbbbbbbbbbbbbbbbbbbb`)
 	createCommit(repoDir, "commit 2", "author2")
 
 	// commit 3
-	writeAddFile(repoDir, "file3", `x
-b
-c`)
+	writeAddFile(repoDir, "file3", `xxxxxxxxxxxxxxxxxxxx
+bbbbbbbbbbbbbbbbbbbb
+cccccccccccccccccccc`)
 	createCommit(repoDir, "commit 3", "author1")
 	time.Sleep(1100 * time.Millisecond)
 
 	// commit 4
-	writeAddFile(repoDir, "file4", `a
-c
-b`)
+	writeAddFile(repoDir, "file4", `aaaaaaaaaaaaaaaaaaaa
+cccccccccccccccccccc
+bbbbbbbbbbbbbbbbbbbb`)
 	time.Sleep(1100 * time.Millisecond)
 	testRepoLastCommitHash, _ = createCommit(repoDir, "commit 4", "author1")
 

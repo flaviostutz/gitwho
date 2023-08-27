@@ -22,7 +22,8 @@ func TestAnalyseCodeOwnershipAllFiles(t *testing.T) {
 			RepoDir: repoDir,
 			Branch:  "main",
 		},
-		When: "now",
+		MinDuplicateLines: 2,
+		When:              "now",
 	}, nil)
 	require.Nil(t, err)
 	if err != nil {
@@ -48,7 +49,8 @@ func TestAnalyseCodeOwnershipCheckSums(t *testing.T) {
 			RepoDir: repoDir,
 			Branch:  "main",
 		},
-		When: "now",
+		MinDuplicateLines: 2,
+		When:              "now",
 	}, nil)
 	require.Nil(t, err)
 	if err != nil {
@@ -69,6 +71,33 @@ func TestAnalyseCodeOwnershipCheckSums(t *testing.T) {
 	require.Equal(t, results.TotalLinesDuplicated, sumDupOrigOthers)
 }
 
+func TestAnalyseCodeDuplicates(t *testing.T) {
+	repoDir, err := utils.ResolveTestOwnershipDuplicatesRepo()
+	require.Nil(t, err)
+
+	results, err := AnalyseCodeOwnership(OwnershipOptions{
+		BaseOptions: utils.BaseOptions{
+			RepoDir: repoDir,
+			Branch:  "main",
+		},
+		MinDuplicateLines: 2,
+		When:              "now",
+	}, nil)
+	require.Nil(t, err)
+	if err != nil {
+		return
+	}
+
+	require.Equal(t, 2, results.TotalLinesDuplicated)
+	require.Len(t, results.DuplicateLineGroups, 1)
+	require.Len(t, results.DuplicateLineGroups[0].RelatedLinesGroup, 1)
+	require.Equal(t, 2, results.DuplicateLineGroups[0].RelatedLinesCount)
+	require.Equal(t, "file1", results.DuplicateLineGroups[0].FilePath)
+	require.Equal(t, 2, results.DuplicateLineGroups[0].LineCount)
+	require.Equal(t, "file2", results.DuplicateLineGroups[0].RelatedLinesGroup[0].FilePath)
+	require.Equal(t, 2, results.DuplicateLineGroups[0].RelatedLinesGroup[0].LineCount)
+}
+
 func TestAnalyseCodeOwnershipRegexFiles(t *testing.T) {
 	// require.InDeltaf(t, float64(0), v, 0.01, "")
 	repo, err := utils.ResolveTestOwnershipRepo()
@@ -79,7 +108,8 @@ func TestAnalyseCodeOwnershipRegexFiles(t *testing.T) {
 			Branch:     "main",
 			FilesRegex: "/dir1.1/",
 		},
-		When: "now",
+		MinDuplicateLines: 2,
+		When:              "now",
 	}, nil)
 	require.Nil(t, err)
 	if err != nil {
@@ -100,7 +130,8 @@ func TestAnalyseCodeOwnershipRegexNotFiles(t *testing.T) {
 			FilesRegex:    "/dir1.1/",
 			FilesNotRegex: "/dir1.1/",
 		},
-		When: "now",
+		MinDuplicateLines: 2,
+		When:              "now",
 	}, nil)
 	require.Nil(t, err)
 	if err != nil {

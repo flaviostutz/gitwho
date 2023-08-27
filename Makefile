@@ -16,7 +16,7 @@ coverage:
 	go tool cover -func ./utils/coverage.out
 	go tool cover -func ./ownership/coverage.out
 	go tool cover -func ./changes/coverage.out 
-	# go tool cover -html=./coverage.out
+	# open cover report on browser
 	# go tool cover -html=./utils/coverage.out
 
 benchmark:
@@ -39,9 +39,9 @@ run-ownership:
 run-duplicates:
 # gocv, orb, conductor
 	# go run ./ duplicates --repo /Users/flaviostutz/Documents/development/flaviostutz/conductor --branch main --files .md --format full
-	# go run ./ duplicates --repo /Users/flaviostutz/Documents/development/flaviostutz/moby --branch master --files test --files-not "vendor" --format full
+	go run ./ duplicates --repo /Users/flaviostutz/Documents/development/flaviostutz/moby --branch master --files test --files-not "vendor" --format full --min-dup-lines 6
 	# go run ./ duplicates --repo /Users/flaviostutz/Documents/development/flaviostutz/gitwho --branch main --files "." --when "now"
-	go run ./ duplicates --repo /Users/flaviostutz/Documents/development/nn/mortgage-loan --branch master --files ".md$$" --files-not "" --when "now" --format short
+	# go run ./ duplicates --repo /Users/flaviostutz/Documents/development/nn/mortgage-loan --branch master --files ".ts$$" --files-not "" --when "now" --format full --min-dup-lines 6
 
 
 publish-npm-all:

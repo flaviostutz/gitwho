@@ -36,18 +36,19 @@ func FormatOwnershipResults(ownershipResult OwnershipResult, full bool) string {
 }
 
 func FormatDuplicatesResults(ownershipResult OwnershipResult, full bool) string {
-	text := fmt.Sprintf("Duplicated lines: %d (%d%%)\n", ownershipResult.TotalLinesDuplicated, int(100*float64(ownershipResult.TotalLinesDuplicated)/float64(ownershipResult.TotalLines)))
+	text := fmt.Sprintf("Total lines: %d\n", ownershipResult.TotalLines)
+	text += fmt.Sprintf("Duplicated lines: %d (%d%%)\n", ownershipResult.TotalLinesDuplicated, int(100*float64(ownershipResult.TotalLinesDuplicated)/float64(ownershipResult.TotalLines)))
 	counter := 0
 	for _, lineGroup := range ownershipResult.DuplicateLineGroups {
 		text += fmt.Sprintf("%s:%d - %d\n", lineGroup.FilePath, lineGroup.LineNumber, lineGroup.LineNumber+lineGroup.LineCount)
 		for _, relatedGroup := range lineGroup.RelatedLinesGroup {
 			text += fmt.Sprintf("  %s:%d - %d\n", relatedGroup.FilePath, relatedGroup.LineNumber, relatedGroup.LineNumber+relatedGroup.LineCount)
-		}
-		if !full {
-			counter++
-			if counter > 5 {
-				text += "...\n"
-				break
+			if !full {
+				counter++
+				if counter > 20 {
+					text += "...(use --format \"full\" for more results)\n"
+					return text
+				}
 			}
 		}
 	}

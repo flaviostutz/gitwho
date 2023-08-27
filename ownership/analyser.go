@@ -16,7 +16,8 @@ import (
 
 type OwnershipOptions struct {
 	utils.BaseOptions
-	When string
+	MinDuplicateLines int
+	When              string
 }
 
 type AuthorLines struct {
@@ -46,9 +47,10 @@ type OwnershipResult struct {
 }
 
 type fileWorkerRequest struct {
-	repoDir  string
-	filePath string
-	commitId string
+	repoDir           string
+	filePath          string
+	commitId          string
+	minDuplicateLines int
 }
 
 func AnalyseCodeOwnership(opts OwnershipOptions, progressChan chan<- utils.ProgressInfo) (OwnershipResult, error) {
@@ -56,6 +58,10 @@ func AnalyseCodeOwnership(opts OwnershipOptions, progressChan chan<- utils.Progr
 	result := OwnershipResult{TotalLines: 0, authorLinesMap: make(map[string]AuthorLines, 0), AuthorsLines: make([]AuthorLines, 0)}
 
 	progressInfo := utils.ProgressInfo{}
+
+	if opts.MinDuplicateLines == 0 {
+		return OwnershipResult{}, fmt.Errorf("MinDuplicateLines must be > 0")
+	}
 
 	fre, err := regexp.Compile(opts.FilesRegex)
 	if err != nil {
@@ -159,7 +165,7 @@ func AnalyseCodeOwnership(opts OwnershipOptions, progressChan chan<- utils.Progr
 			}
 			totalFiles += 1
 			progressInfo.TotalTasks += 1
-			fileWorkerInputChan <- fileWorkerRequest{repoDir: opts.RepoDir, filePath: fileName, commitId: commitId}
+			fileWorkerInputChan <- fileWorkerRequest{repoDir: opts.RepoDir, filePath: fileName, commitId: commitId, minDuplicateLines: opts.MinDuplicateLines}
 		}
 
 		// finished publishing request messages
@@ -261,23 +267,27 @@ func fileWorker(fileWorkerInputChan <-chan fileWorkerRequest,
 
 			// Duplication analysis
 			// this is very sensitive as a lot of memory can be used by the tracker
-			if i < len(blameResult)-1 {
+			if i <= len(blameResult)-req.minDuplicateLines {
 				// group lines 2 by 2 to give context for duplication detection
-				lineGroup := fmt.Sprintf("%s\\n%s", blameResult[i].LineContents, blameResult[i+1].LineContents)
+				lineGroup := ""
+				for a := 0; a < req.minDuplicateLines; a++ {
+					lineGroup += fmt.Sprintf("%s\\n", blameResult[i+a].LineContents)
+				}
+				lineGroup = strings.Trim(lineGroup, "\\n")
 				duplicates, isDuplicate := duplicateLineTracker.AddLine(lineGroup,
 					utils.LineSource{
 						Lines: utils.Lines{
 							FilePath:   req.filePath,
 							LineNumber: i + 1,
-							LineCount:  1,
+							LineCount:  req.minDuplicateLines,
 						},
 						AuthorName: lineAuthor.AuthorName,
 						AuthorMail: lineAuthor.AuthorMail,
 						CommitDate: lineAuthor.AuthorDate,
 					})
 				if isDuplicate {
-					ownershipResult.TotalLinesDuplicated += 1
-					authorLines.OwnedLinesDuplicate += 1
+					ownershipResult.TotalLinesDuplicated += req.minDuplicateLines
+					authorLines.OwnedLinesDuplicate += req.minDuplicateLines
 					sort.Slice(duplicates, func(i, j int) bool {
 						return duplicates[i].CommitDate.Compare(duplicates[j].CommitDate) == -1
 					})
