@@ -12,10 +12,10 @@ func FormatFullTextResults(changes ChangesResult) string {
 
 	text := fmt.Sprintf("Total authors active: %d\n", len(changes.AuthorsLines))
 	text += fmt.Sprintf("Total files touched: %d\n", changes.TotalFiles)
-	if changes.TotalLines.Changes > 0 {
-		text += fmt.Sprintf("Average line age when changed: %d days\n", (int(changes.TotalLines.AgeDaysSum / float64(changes.TotalLines.Changes))))
+	if changes.TotalLinesTouched.Changes > 0 {
+		text += fmt.Sprintf("Average line age when changed: %d days\n", (int(changes.TotalLinesTouched.AgeDaysSum / float64(changes.TotalLinesTouched.Changes))))
 	}
-	text += formatLinesTouched(changes.TotalLines, LinesTouched{})
+	text += formatLinesTouched(changes.TotalLinesTouched, LinesTouched{})
 
 	for _, authorLines := range changes.AuthorsLines {
 		if authorLines.LinesTouched.New+authorLines.LinesTouched.Changes == 0 {
@@ -23,7 +23,7 @@ func FormatFullTextResults(changes ChangesResult) string {
 		}
 		mailStr := fmt.Sprintf(" %s", authorLines.AuthorMail)
 		text += fmt.Sprintf("\nAuthor: %s%s\n", authorLines.AuthorName, mailStr)
-		text += formatLinesTouched(authorLines.LinesTouched, changes.TotalLines)
+		text += formatLinesTouched(authorLines.LinesTouched, changes.TotalLinesTouched)
 		text += formatTopTouchedFiles(authorLines.FilesTouched)
 	}
 	return text
@@ -44,7 +44,7 @@ func FormatTopTextResults(changes ChangesResult) string {
 	for i := 0; i < len(changes.AuthorsLines) && i < 3; i++ {
 		al := changes.AuthorsLines[i]
 		mailStr := fmt.Sprintf(" %s", al.AuthorMail)
-		text += fmt.Sprintf("  %s%s: %d%s\n", al.AuthorName, mailStr, calcTopCoderScore(al.LinesTouched), calcPercStr(calcTopCoderScore(al.LinesTouched), calcTopCoderScore(changes.TotalLines)))
+		text += fmt.Sprintf("  %s%s: %d%s\n", al.AuthorName, mailStr, calcTopCoderScore(al.LinesTouched), calcPercStr(calcTopCoderScore(al.LinesTouched), calcTopCoderScore(changes.TotalLinesTouched)))
 	}
 
 	// top new liners
@@ -56,7 +56,7 @@ func FormatTopTextResults(changes ChangesResult) string {
 	text += "\nTop New Liners\n"
 	for i := 0; i < len(changes.AuthorsLines) && i < 3; i++ {
 		al := changes.AuthorsLines[i]
-		text += fmt.Sprintf("  %s: %d%s\n", al.AuthorName, al.LinesTouched.New, calcPercStr(al.LinesTouched.New, changes.TotalLines.New))
+		text += fmt.Sprintf("  %s: %d%s\n", al.AuthorName, al.LinesTouched.New, calcPercStr(al.LinesTouched.New, changes.TotalLinesTouched.New))
 	}
 
 	// top refactorers
@@ -68,7 +68,7 @@ func FormatTopTextResults(changes ChangesResult) string {
 	text += "\nTop Refactorers\n"
 	for i := 0; i < len(changes.AuthorsLines) && i < 3; i++ {
 		al := changes.AuthorsLines[i]
-		text += fmt.Sprintf("  %s: %d%s\n", al.AuthorName, al.LinesTouched.RefactorOther+al.LinesTouched.RefactorOwn, calcPercStr(al.LinesTouched.RefactorOther+al.LinesTouched.RefactorOwn, changes.TotalLines.RefactorOther+changes.TotalLines.RefactorOwn))
+		text += fmt.Sprintf("  %s: %d%s\n", al.AuthorName, al.LinesTouched.RefactorOther+al.LinesTouched.RefactorOwn, calcPercStr(al.LinesTouched.RefactorOther+al.LinesTouched.RefactorOwn, changes.TotalLinesTouched.RefactorOther+changes.TotalLinesTouched.RefactorOwn))
 	}
 
 	// top helpers
@@ -80,7 +80,7 @@ func FormatTopTextResults(changes ChangesResult) string {
 	text += "\nTop Helpers\n"
 	for i := 0; i < len(changes.AuthorsLines) && i < 3; i++ {
 		al := changes.AuthorsLines[i]
-		text += fmt.Sprintf("  %s: %d%s\n", al.AuthorName, al.LinesTouched.ChurnOther, calcPercStr(al.LinesTouched.ChurnOther, changes.TotalLines.ChurnOther))
+		text += fmt.Sprintf("  %s: %d%s\n", al.AuthorName, al.LinesTouched.ChurnOther, calcPercStr(al.LinesTouched.ChurnOther, changes.TotalLinesTouched.ChurnOther))
 	}
 
 	// top churners
@@ -92,7 +92,7 @@ func FormatTopTextResults(changes ChangesResult) string {
 	text += "\nTop Churners\n"
 	for i := 0; i < len(changes.AuthorsLines) && i < 3; i++ {
 		al := changes.AuthorsLines[i]
-		text += fmt.Sprintf("  %s: %d%s\n", al.AuthorName, al.LinesTouched.ChurnOwn+al.LinesTouched.ChurnReceived, calcPercStr(al.LinesTouched.ChurnOwn+al.LinesTouched.ChurnReceived, changes.TotalLines.ChurnOwn+changes.TotalLines.ChurnReceived))
+		text += fmt.Sprintf("  %s: %d%s\n", al.AuthorName, al.LinesTouched.ChurnOwn+al.LinesTouched.ChurnReceived, calcPercStr(al.LinesTouched.ChurnOwn+al.LinesTouched.ChurnReceived, changes.TotalLinesTouched.ChurnOwn+changes.TotalLinesTouched.ChurnReceived))
 	}
 
 	return text

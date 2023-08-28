@@ -2,6 +2,7 @@ package utils
 
 import (
 	"fmt"
+	"os"
 	"strings"
 	"time"
 )
@@ -39,7 +40,7 @@ func ShowProgress(progressChan <-chan ProgressInfo) {
 				fileName = fileName[:40]
 			}
 		}
-		// fmt.Printf("%d%% (%d/%d%s) %s - %dms\n", int(perc), pc.CompletedTasks, pc.TotalTasks, pending, pc.Message, int(avg))
-		fmt.Printf("%d%% (%d/%d%s) %dms %s \r \a", int(perc), pc.CompletedTasks, pc.TotalTasks, pending, int(avg), fileName)
+		// print to stderr so this won't be seen by tools parsing the results on stdout
+		os.Stderr.WriteString(fmt.Sprintf("%d%% (%d/%d%s) %dms %s \r \a", int(perc), pc.CompletedTasks, pc.TotalTasks, pending, int(avg), fileName))
 	}
 }

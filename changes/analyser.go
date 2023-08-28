@@ -67,7 +67,7 @@ type ChangesFileResult struct {
 
 type ChangesResult struct {
 	/* Lines change stats */
-	TotalLines LinesTouched
+	TotalLinesTouched LinesTouched
 	/* Total files changed in the different commits. If the same file is changed in two commits, for example, it will count as one. */
 	TotalFiles int
 	/* Number of commits analysed */
@@ -91,9 +91,9 @@ type commitWorkerRequest struct {
 
 func AnalyseChanges(opts ChangesOptions, progressChan chan<- utils.ProgressInfo) (ChangesResult, error) {
 	result := ChangesResult{
-		TotalLines:     LinesTouched{},
-		authorLinesMap: make(map[string]AuthorLines, 0),
-		AuthorsLines:   make([]AuthorLines, 0)}
+		TotalLinesTouched: LinesTouched{},
+		authorLinesMap:    make(map[string]AuthorLines, 0),
+		AuthorsLines:      make([]AuthorLines, 0)}
 
 	progressInfo := utils.ProgressInfo{}
 
@@ -144,7 +144,7 @@ func AnalyseChanges(opts ChangesOptions, progressChan chan<- utils.ProgressInfo)
 				fileCounterMap[fileResult.FilePath] = true
 				result.TotalFiles++
 			}
-			result.TotalLines = sumLinesChanges(result.TotalLines, fileResult.TotalLines)
+			result.TotalLinesTouched = sumLinesChanges(result.TotalLinesTouched, fileResult.TotalLinesTouched)
 			for author := range fileResult.authorLinesMap {
 				fileAuthorLines := fileResult.authorLinesMap[author]
 				authorLines := result.authorLinesMap[author]

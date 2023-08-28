@@ -26,9 +26,9 @@ func fileAnalysisWorker(fileWorkerInputChan <-chan fileWorkerRequest, analyseFil
 			CommitId: req.commitId,
 			FilePath: req.filePath,
 			ChangesResult: ChangesResult{
-				TotalLines:     LinesTouched{},
-				authorLinesMap: make(map[string]AuthorLines, 0),
-				AuthorsLines:   []AuthorLines{},
+				TotalLinesTouched: LinesTouched{},
+				authorLinesMap:    make(map[string]AuthorLines, 0),
+				AuthorsLines:      []AuthorLines{},
 			},
 		}
 
@@ -264,5 +264,5 @@ func addAuthorLines(changesFileResult *ChangesFileResult, authorName string, aut
 	changesFileResult.authorLinesMap[authorKey] = authorLine
 
 	// add to overall totals
-	changesFileResult.TotalLines = sumLinesChanges(changesFileResult.TotalLines, linesChanges)
+	changesFileResult.TotalLinesTouched = sumLinesChanges(changesFileResult.TotalLinesTouched, linesChanges)
 }

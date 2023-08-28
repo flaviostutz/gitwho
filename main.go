@@ -26,7 +26,7 @@ type ProgressData struct {
 
 func main() {
 
-	logrus.SetLevel(logrus.DebugLevel)
+	logrus.SetLevel(logrus.WarnLevel)
 
 	utils.ExecCheckPrereqs()
 
@@ -43,8 +43,8 @@ func main() {
 	changesFlag.StringVar(&changesOpts.Since, "since", "30 days ago", "Filter changes made from this date")
 	changesFlag.StringVar(&changesOpts.Until, "until", "now", "Filter changes made util this date")
 	changesFlag.StringVar(&profileFile, "profile-file", "", "Profile file to dump golang runtime data to")
-	changesFlag.StringVar(&format, "format", "full", "Output format. 'full' (all authors with details) or 'short' (top authors by change type)")
-	changesFlag.BoolVar(&verbose, "verbose", true, "Show verbose logs during processing")
+	changesFlag.StringVar(&format, "format", "full", "Output format. 'full' or 'short' (only top authors by change type)")
+	changesFlag.BoolVar(&verbose, "verbose", false, "Show verbose logs during processing")
 
 	ownershipFlag := flag.NewFlagSet("ownership", flag.ExitOnError)
 	ownershipFlag.StringVar(&ownershipOpts.RepoDir, "repo", ".", "Repository path to analyse")
@@ -54,11 +54,11 @@ func main() {
 	ownershipFlag.StringVar(&ownershipOpts.FilesNotRegex, "files-not", "", "Regex for filtering out files from analysis")
 	ownershipFlag.IntVar(&ownershipOpts.MinDuplicateLines, "min-dup-lines", 4, "Min number of similar lines in a row to be considered a duplicate")
 	ownershipFlag.StringVar(&profileFile, "profile-file", "", "Profile file to dump golang runtime data to")
-	ownershipFlag.StringVar(&format, "format", "full", "Output format. 'full' (duplicated lines and line age details) or 'short' (lines per author)")
-	ownershipFlag.BoolVar(&verbose, "verbose", true, "Show verbose logs during processing")
+	ownershipFlag.StringVar(&format, "format", "full", "Output format. 'full' (more details) or 'short' (lines per author)")
+	ownershipFlag.BoolVar(&verbose, "verbose", false, "Show verbose logs during processing")
 
 	if len(os.Args) < 2 {
-		fmt.Println("Expected 'changes', 'ownership' or 'duplicates' command")
+		fmt.Println("Expected 'gitwho changes', 'gitwho ownership' or 'gitwho duplicates' command")
 		os.Exit(1)
 	}
 
@@ -87,11 +87,12 @@ func main() {
 			os.Exit(1)
 		}
 
-		logrus.Debugf("Starting analysis of code changes")
 		progressChan := make(chan utils.ProgressInfo, 1)
 		if verbose {
+			logrus.SetLevel(logrus.DebugLevel)
 			go utils.ShowProgress(progressChan)
 		}
+		logrus.Debugf("Starting analysis of code changes")
 
 		changesResults, err := changes.AnalyseChanges(changesOpts, progressChan)
 		close(progressChan)
@@ -122,6 +123,7 @@ func main() {
 
 		progressChan := make(chan utils.ProgressInfo, 1)
 		if verbose {
+			logrus.SetLevel(logrus.DebugLevel)
 			go utils.ShowProgress(progressChan)
 		}
 
@@ -146,6 +148,7 @@ func main() {
 
 		progressChan := make(chan utils.ProgressInfo, 1)
 		if verbose {
+			logrus.SetLevel(logrus.DebugLevel)
 			go utils.ShowProgress(progressChan)
 		}
 
@@ -160,7 +163,7 @@ func main() {
 		fmt.Println(output)
 
 	default:
-		fmt.Println("Invalid command. Expected 'changes' or 'ownership'")
+		fmt.Println("Invalid command. Expected 'gitwho changes', 'gitwho ownership' or 'gitwho duplicates'")
 		os.Exit(1)
 	}
 }

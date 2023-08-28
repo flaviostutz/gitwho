@@ -26,8 +26,8 @@ func TestAnalyseChangesNewFile2(t *testing.T) {
 	require.Nil(t, err)
 	require.Equal(t, 1, result.TotalCommits)
 	require.Equal(t, 1, result.TotalFiles)
-	require.Equal(t, 5, result.TotalLines.New)
-	require.Equal(t, 0, result.TotalLines.Changes)
+	require.Equal(t, 5, result.TotalLinesTouched.New)
+	require.Equal(t, 0, result.TotalLinesTouched.Changes)
 
 	require.Equal(t, 1, len(result.AuthorsLines))
 	require.Equal(t, "author3", result.AuthorsLines[0].AuthorName)
@@ -55,8 +55,8 @@ func TestAnalyseChangesFile1(t *testing.T) {
 	require.Nil(t, err)
 	require.Equal(t, 4, result.TotalCommits)
 	require.Equal(t, 1, result.TotalFiles)
-	require.Equal(t, 3, result.TotalLines.New)
-	require.Equal(t, 3, result.TotalLines.Changes)
+	require.Equal(t, 3, result.TotalLinesTouched.New)
+	require.Equal(t, 3, result.TotalLinesTouched.Changes)
 
 	require.Equal(t, 2, len(result.AuthorsLines))
 
@@ -85,8 +85,8 @@ func TestAnalyseChangesAllFiles(t *testing.T) {
 	require.Nil(t, err)
 	require.Equal(t, 5, result.TotalCommits)
 	require.Equal(t, 2, result.TotalFiles)
-	require.Equal(t, 8, result.TotalLines.New)
-	require.Equal(t, 3, result.TotalLines.Changes)
+	require.Equal(t, 8, result.TotalLinesTouched.New)
+	require.Equal(t, 3, result.TotalLinesTouched.Changes)
 
 	require.Equal(t, 3, len(result.AuthorsLines))
 
@@ -117,7 +117,7 @@ func TestAnalyseChangesCheckTotals(t *testing.T) {
 		BaseOptions: utils.BaseOptions{RepoDir: repoDir, Branch: "main", FilesRegex: "."},
 	}, nil)
 
-	rt := result.TotalLines
+	rt := result.TotalLinesTouched
 	require.Equal(t, rt.New+rt.Changes, rt.New+rt.ChurnOther+rt.ChurnOwn+rt.RefactorOther+rt.RefactorOwn)
 	achanges := 0
 	anew := 0
