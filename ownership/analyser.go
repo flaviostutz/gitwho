@@ -12,12 +12,21 @@ import (
 
 	"github.com/flaviostutz/gitwho/utils"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/exp/slices"
 )
 
 type OwnershipOptions struct {
 	utils.BaseOptions
 	MinDuplicateLines int
-	When              string
+	CommitId          string
+}
+
+type OwnershipTimelineOptions struct {
+	utils.BaseOptions
+	MinDuplicateLines int
+	Since             string
+	Until             string
+	Period            string
 }
 
 type AuthorLines struct {
@@ -33,13 +42,13 @@ type AuthorLines struct {
 	OwnedLinesDuplicateOriginalOthers int
 }
 type OwnershipResult struct {
+	Commit               utils.CommitInfo
 	TotalFiles           int
 	TotalLines           int
 	TotalLinesDuplicated int
 	LinesAgeDaysSum      float64
 	authorLinesMap       map[string]AuthorLines // temporary map used during processing
 	AuthorsLines         []AuthorLines
-	CommitId             string
 	FilePath             string
 	DuplicateLineGroups  []utils.LineGroup
 	blameTime            time.Duration
@@ -53,9 +62,81 @@ type fileWorkerRequest struct {
 	minDuplicateLines int
 }
 
+func TimelineCodeOwnership(opts OwnershipTimelineOptions, progressChan chan<- utils.ProgressInfo) ([]OwnershipResult, error) {
+	if opts.Period == "" {
+		return nil, fmt.Errorf("opts.Period is required")
+	}
+
+	result := make([]OwnershipResult, 0)
+	when := opts.Until
+	analysisOpts := OwnershipOptions{
+		BaseOptions:       opts.BaseOptions,
+		MinDuplicateLines: opts.MinDuplicateLines,
+	}
+
+	prevCommitId := ""
+	processedCommits := make([]string, 0)
+
+	for {
+		commit, err := utils.ExecGetLastestCommit(opts.RepoDir, opts.Branch, opts.Since, when)
+		if err != nil {
+			return nil, err
+		}
+		// no more commits found in range since-until
+		if commit == nil {
+			break
+		}
+
+		// "period" used is not returning a different commit
+		// probably there is not data in the period, so try previous and skip this
+		if commit.CommitId == prevCommitId {
+			// append another subtraction to the date and try again (git supports multiple date subtractions)
+			when = fmt.Sprintf("%s - %s", when, opts.Period)
+			logrus.Debugf("Skipping period without commits. when=%s", when)
+			continue
+		}
+
+		if slices.Contains(processedCommits, commit.CommitId) {
+			logrus.Debugf("Commit %s already processed. Stopping analsis.", commit.CommitId)
+			break
+		}
+
+		analysisOpts.CommitId = commit.CommitId
+		onwershipResult, err := AnalyseCodeOwnership(analysisOpts, progressChan)
+		if err != nil {
+			return nil, err
+		}
+		result = append(result, onwershipResult)
+		processedCommits = append(processedCommits, analysisOpts.CommitId)
+
+		when = fmt.Sprintf("%s - %s", commit.Date.Format(time.DateOnly), opts.Period)
+		prevCommitId = commit.CommitId
+	}
+
+	sort.Slice(result, func(i, j int) bool {
+		return result[i].Commit.Date.Before(result[j].Commit.Date)
+	})
+
+	return result, nil
+}
+
 func AnalyseCodeOwnership(opts OwnershipOptions, progressChan chan<- utils.ProgressInfo) (OwnershipResult, error) {
+	if opts.CommitId == "" {
+		return OwnershipResult{}, fmt.Errorf("opts.CommitId is required")
+	}
+
+	commit, err := utils.ExecGitCommitInfo(opts.RepoDir, opts.CommitId)
+	if err != nil {
+		return OwnershipResult{}, err
+	}
+
 	var duplicateLineTracker = utils.NewDuplicateLineTracker()
-	result := OwnershipResult{TotalLines: 0, authorLinesMap: make(map[string]AuthorLines, 0), AuthorsLines: make([]AuthorLines, 0)}
+	result := OwnershipResult{
+		TotalLines:     0,
+		authorLinesMap: make(map[string]AuthorLines, 0),
+		AuthorsLines:   make([]AuthorLines, 0),
+		Commit:         commit,
+	}
 
 	progressInfo := utils.ProgressInfo{}
 
@@ -73,14 +154,7 @@ func AnalyseCodeOwnership(opts OwnershipOptions, progressChan chan<- utils.Progr
 		return result, errors.New("files-not filter regex is invalid. err=" + err.Error())
 	}
 
-	logrus.Debugf("Analysing branch %s at %s", opts.Branch, opts.When)
-
-	commitId, err := utils.ExecGetCommitAtDate(opts.RepoDir, opts.Branch, opts.When)
-	if err != nil {
-		return result, err
-	}
-	result.CommitId = commitId
-	logrus.Debugf("Using commitId %s", commitId)
+	logrus.Debugf("Analysing branch %s at %s", opts.Branch, opts.CommitId)
 
 	// MAP REDUCE - analyse files in parallel goroutines
 	// we need to start workers in the reverse order so that all the chain
@@ -152,7 +226,7 @@ func AnalyseCodeOwnership(opts OwnershipOptions, progressChan chan<- utils.Progr
 		logrus.Debugf("Scheduling files for analysis. filesRegex=%s", opts.FilesRegex)
 		totalFiles := 0
 		progressInfo.TotalTasksKnown = false
-		files, err := utils.ExecListTree(opts.RepoDir, commitId)
+		files, err := utils.ExecListTree(opts.RepoDir, opts.CommitId)
 		if err != nil {
 			logrus.Errorf("Error getting commit tree. err=%s", err)
 			panic(5)
@@ -165,7 +239,7 @@ func AnalyseCodeOwnership(opts OwnershipOptions, progressChan chan<- utils.Progr
 			}
 			totalFiles += 1
 			progressInfo.TotalTasks += 1
-			fileWorkerInputChan <- fileWorkerRequest{repoDir: opts.RepoDir, filePath: fileName, commitId: commitId, minDuplicateLines: opts.MinDuplicateLines}
+			fileWorkerInputChan <- fileWorkerRequest{repoDir: opts.RepoDir, filePath: fileName, commitId: opts.CommitId, minDuplicateLines: opts.MinDuplicateLines}
 		}
 
 		// finished publishing request messages

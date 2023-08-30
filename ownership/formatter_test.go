@@ -7,50 +7,62 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestFormatOwnershipShort(t *testing.T) {
+func TestFormatCodeOwnershipShort(t *testing.T) {
 	repoDir, err := utils.ResolveTestOwnershipRepo()
 	require.Nil(t, err)
+
+	commit, err := utils.ExecGetLastestCommit(repoDir, "main", "", "now")
+	require.Nil(t, err)
+
 	results, err := AnalyseCodeOwnership(OwnershipOptions{
 		BaseOptions: utils.BaseOptions{
 			RepoDir: repoDir,
 			Branch:  "main",
 		},
 		MinDuplicateLines: 2,
-		When:              "now",
+		CommitId:          commit.CommitId,
 	}, nil)
 	require.Nil(t, err)
 
-	out := FormatOwnershipResults(results, false)
+	out := FormatCodeOwnershipResults(results, false)
 	require.Contains(t, out, "Total authors: 3\nTotal files: 2\nTotal lines: 7")
 }
 
-func TestFormatOwnershipFull(t *testing.T) {
+func TestFormatCodeOwnershipFull(t *testing.T) {
 	repoDir, err := utils.ResolveTestOwnershipRepo()
 	require.Nil(t, err)
+
+	commit, err := utils.ExecGetLastestCommit(repoDir, "main", "", "now")
+	require.Nil(t, err)
+
 	results, err := AnalyseCodeOwnership(OwnershipOptions{
 		BaseOptions: utils.BaseOptions{
 			RepoDir: repoDir,
 			Branch:  "main",
 		},
 		MinDuplicateLines: 2,
-		When:              "now",
+		CommitId:          commit.CommitId,
 	}, nil)
 	require.Nil(t, err)
 
-	out := FormatOwnershipResults(results, true)
+	out := FormatCodeOwnershipResults(results, true)
 	require.Contains(t, out, "Total authors: 3\nTotal files: 2\nAvg line age: 0 days\nDuplicated lines: 0")
 }
 
 func TestFormatDuplicatesFull(t *testing.T) {
 	repoDir, err := utils.ResolveTestOwnershipRepo()
 	require.Nil(t, err)
+
+	commit, err := utils.ExecGetLastestCommit(repoDir, "main", "", "now")
+	require.Nil(t, err)
+
 	results, err := AnalyseCodeOwnership(OwnershipOptions{
 		BaseOptions: utils.BaseOptions{
 			RepoDir: repoDir,
 			Branch:  "main",
 		},
 		MinDuplicateLines: 2,
-		When:              "now",
+		CommitId:          commit.CommitId,
 	}, nil)
 	require.Nil(t, err)
 

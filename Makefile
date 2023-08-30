@@ -3,19 +3,19 @@ SHELL := /bin/bash
 build: build-npm-all
 
 unit-tests:
-	go test -cover -coverprofile=coverage.out ./
-	go test -cover -coverprofile=./utils/coverage.out ./utils
 	go test -cover -coverprofile=./ownership/coverage.out ./ownership
 	go test -cover -coverprofile=./changes/coverage.out ./changes
+	go test -cover -coverprofile=./utils/coverage.out ./utils
+	go test -cover -coverprofile=./cli/coverage.out ./cli
 	make coverage
 
 test: unit-tests
 
 coverage:
-	go tool cover -func ./coverage.out
-	go tool cover -func ./utils/coverage.out
 	go tool cover -func ./ownership/coverage.out
 	go tool cover -func ./changes/coverage.out 
+	go tool cover -func ./utils/coverage.out
+	go tool cover -func ./cli/coverage.out
 	# open cover report on browser
 	# go tool cover -html=./utils/coverage.out
 
@@ -42,7 +42,6 @@ run-duplicates:
 	go run ./ duplicates --repo /Users/flaviostutz/Documents/development/flaviostutz/moby --branch master --files test --files-not "vendor" --format full --min-dup-lines 6
 	# go run ./ duplicates --repo /Users/flaviostutz/Documents/development/flaviostutz/gitwho --branch main --files "." --when "now"
 	# go run ./ duplicates --repo /Users/flaviostutz/Documents/development/nn/mortgage-loan --branch master --files ".ts$$" --files-not "" --when "now" --format full --min-dup-lines 6
-
 
 publish-npm-all:
 	@if [ "${NPM_ACCESS_TOKEN}" == "" ]; then \

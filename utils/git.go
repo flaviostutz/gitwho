@@ -24,6 +24,7 @@ type CommitInfo struct {
 	AuthorName string
 	AuthorMail string
 	Date       time.Time
+	CommitId   string
 }
 
 func ExecGitBlame(repoPath string, filePath string, revision string) ([]BlameLine, error) {
@@ -161,13 +162,11 @@ func ExecGitCommitInfo(repoDir string, commitId string) (CommitInfo, error) {
 	result := strings.Trim(cmdResult, "\n")
 	parts := strings.Split(result, "---")
 	nparts := strings.Split(parts[0], "###")
-	// parts := strings.Split(result, " ")
-	// dstr := fmt.Sprintf("%sT%sZ%s", parts[0], parts[1], strings.Replace(parts[2], "+", "", 1))
 	ctime, err := time.Parse(time.RFC3339, parts[1])
 	if err != nil {
 		return CommitInfo{}, err
 	}
-	return CommitInfo{Date: ctime, AuthorName: nparts[0], AuthorMail: nparts[1]}, nil
+	return CommitInfo{Date: ctime, AuthorName: nparts[0], AuthorMail: nparts[1], CommitId: commitId}, nil
 }
 
 func ExecDiffTree(repoDir string, commitId1 string) ([]string, error) {
@@ -214,22 +213,38 @@ func ExecDiffFileRevisions(repoDir string, filePath string, srcCommitId string, 
 	if err != nil {
 		return nil, err
 	}
-	// fmt.Printf("CMDRESULT=\n%s\n", cmdResult)
 
 	return ParseNormalDiffOutput(cmdResult)
 }
 
-// FIXME check if this is used and delete it
-func ExecGetCommitAtDate(repoDir string, branch string, when string) (string, error) {
-	cmdResult, err := ExecShellf(repoDir, "/usr/bin/git rev-list -n 1 %s --until=\"%s\"", branch, when)
+func ExecGetLastestCommit(repoDir string, branch string, since string, until string) (*CommitInfo, error) {
+	sinceStr := ""
+	if since != "" {
+		sinceStr = fmt.Sprintf("--since=\"%s\"", since)
+	}
+	cmdResult, err := ExecShellf(repoDir, "/usr/bin/git rev-list -n 1 %s --until=\"%s\" --format=\"%%H---%%cI---%%cN---%%cE\" %s", sinceStr, until, branch)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
-	result := strings.Trim(cmdResult, "\n")
-	if result == "" {
-		return "", fmt.Errorf("Couldn't find any commit at '%s'", when)
+
+	result := strings.Split(cmdResult, "\n")
+	if len(result) != 3 {
+		return nil, nil
 	}
-	return result, nil
+
+	parts := strings.Split(result[1], "---")
+
+	date, err := time.Parse(time.RFC3339, parts[1])
+	if err != nil {
+		return nil, err
+	}
+
+	return &CommitInfo{
+		CommitId:   parts[0],
+		Date:       date,
+		AuthorName: parts[2],
+		AuthorMail: parts[3],
+	}, nil
 }
 
 func ExecCheckPrereqs() error {

@@ -6,7 +6,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestExecGetCommitAtDate(t *testing.T) {
+func TestExecGetLastestCommit(t *testing.T) {
 	repoDir, err := ResolveTestOwnershipRepo()
 	require.Nil(t, err)
 	if err != nil {
@@ -14,14 +14,16 @@ func TestExecGetCommitAtDate(t *testing.T) {
 	}
 
 	// should work for default master branch
-	cid, err := ExecGetCommitAtDate(repoDir, "main", "now")
+	cid, err := ExecGetLastestCommit(repoDir, "main", "", "now")
 	require.Nil(t, err)
-	require.NotEmpty(t, cid)
+	require.NotEmpty(t, cid.CommitId)
+	require.Equal(t, "Your Name", cid.AuthorName)
+	require.Equal(t, "you@example.com", cid.AuthorMail)
 
 	// should fail for invalid branches
-	cid, err = ExecGetCommitAtDate(repoDir, "invalid-branch", "now")
+	cid, err = ExecGetLastestCommit(repoDir, "invalid-branch", "", "now")
 	require.NotNil(t, err)
-	require.Empty(t, cid)
+	require.Nil(t, cid)
 }
 
 func TestExecListTree(t *testing.T) {
@@ -31,11 +33,11 @@ func TestExecListTree(t *testing.T) {
 		return
 	}
 
-	cid, err := ExecGetCommitAtDate(repoDir, "main", "now")
+	cid, err := ExecGetLastestCommit(repoDir, "main", "", "now")
 	require.Nil(t, err)
 	require.NotEmpty(t, cid)
 
-	files, err := ExecListTree(repoDir, cid)
+	files, err := ExecListTree(repoDir, cid.CommitId)
 	require.Nil(t, err)
 	require.NotEmpty(t, files)
 
@@ -70,11 +72,11 @@ func TestExecDiffTree(t *testing.T) {
 		return
 	}
 
-	cid, err := ExecGetCommitAtDate(repoDir, "main", "now")
+	cid, err := ExecGetLastestCommit(repoDir, "main", "", "now")
 	require.Nil(t, err)
 	require.NotEmpty(t, cid)
 
-	files, err := ExecDiffTree(repoDir, cid)
+	files, err := ExecDiffTree(repoDir, cid.CommitId)
 	require.Nil(t, err)
 	require.NotEmpty(t, files)
 
@@ -145,11 +147,11 @@ func TestExecDiffIsBinary(t *testing.T) {
 		return
 	}
 
-	cid, err := ExecGetCommitAtDate(repoDir, "main", "now")
+	cid, err := ExecGetLastestCommit(repoDir, "main", "", "now")
 	require.Nil(t, err)
 	require.NotEmpty(t, cid)
 
-	isBin, err := ExecDiffIsBinary(repoDir, cid, "file1")
+	isBin, err := ExecDiffIsBinary(repoDir, cid.CommitId, "file1")
 	require.Nil(t, err)
 	require.False(t, isBin)
 }
@@ -161,11 +163,11 @@ func TestExecPreviousCommitIdForFile(t *testing.T) {
 		return
 	}
 
-	cid, err := ExecGetCommitAtDate(repoDir, "main", "now")
+	cid, err := ExecGetLastestCommit(repoDir, "main", "", "now")
 	require.Nil(t, err)
 	require.NotEmpty(t, cid)
 
-	prevCid, err := ExecPreviousCommitIdForFile(repoDir, cid, "file1")
+	prevCid, err := ExecPreviousCommitIdForFile(repoDir, cid.CommitId, "file1")
 	require.Nil(t, err)
 	require.NotEmpty(t, prevCid)
 	require.NotEqual(t, prevCid, cid)
@@ -178,11 +180,11 @@ func TestExecGitBlame(t *testing.T) {
 		return
 	}
 
-	cid, err := ExecGetCommitAtDate(repoDir, "main", "now")
+	cid, err := ExecGetLastestCommit(repoDir, "main", "", "now")
 	require.Nil(t, err)
 	require.NotEmpty(t, cid)
 
-	lines, err := ExecGitBlame(repoDir, "file1", cid)
+	lines, err := ExecGitBlame(repoDir, "file1", cid.CommitId)
 	require.Nil(t, err)
 	require.NotEmpty(t, lines)
 	require.Equal(t, 2, len(lines))

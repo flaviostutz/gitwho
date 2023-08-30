@@ -13,22 +13,59 @@ func init() {
 	logrus.SetLevel(logrus.DebugLevel)
 }
 
-func TestAnalyseCodeOwnershipAllFiles(t *testing.T) {
-	// require.InDeltaf(t, float64(0), v, 0.01, "")
+func TestTimelineOwnership1(t *testing.T) {
+	logrus.SetLevel(logrus.DebugLevel)
 	repoDir, err := utils.ResolveTestOwnershipRepo()
 	require.Nil(t, err)
+	results, err := TimelineCodeOwnership(OwnershipTimelineOptions{
+		BaseOptions: utils.BaseOptions{
+			RepoDir: repoDir,
+			Branch:  "main",
+		},
+		MinDuplicateLines: 2,
+		Until:             "now",
+		Period:            "1 second",
+	}, nil)
+	require.Nil(t, err)
+	if err != nil {
+		return
+	}
+
+	require.Len(t, results, 2)
+	require.NotEmpty(t, results[0].Commit.CommitId)
+	require.NotEmpty(t, results[0].Commit.AuthorName)
+	require.Equal(t, 3, results[0].TotalLines)
+	require.Equal(t, 1, results[0].TotalFiles)
+	require.Equal(t, 0, results[0].TotalLinesDuplicated)
+	require.Equal(t, 2, len(results[0].AuthorsLines))
+
+	require.Equal(t, 7, results[1].TotalLines)
+	require.Equal(t, 2, results[1].TotalFiles)
+	require.Equal(t, 0, results[1].TotalLinesDuplicated)
+	require.Equal(t, 3, len(results[1].AuthorsLines))
+}
+
+func TestAnalyseCodeOwnershipAllFiles(t *testing.T) {
+	repoDir, err := utils.ResolveTestOwnershipRepo()
+	require.Nil(t, err)
+
+	commit, err := utils.ExecGetLastestCommit(repoDir, "main", "", "now")
+	require.Nil(t, err)
+
 	results, err := AnalyseCodeOwnership(OwnershipOptions{
 		BaseOptions: utils.BaseOptions{
 			RepoDir: repoDir,
 			Branch:  "main",
 		},
 		MinDuplicateLines: 2,
-		When:              "now",
+		CommitId:          commit.CommitId,
 	}, nil)
 	require.Nil(t, err)
 	if err != nil {
 		return
 	}
+	require.NotEmpty(t, results.Commit.CommitId)
+	require.NotEmpty(t, results.Commit.AuthorName)
 	require.Equal(t, 7, results.TotalLines)
 	require.Equal(t, 2, results.TotalFiles)
 	require.Equal(t, 0, results.TotalLinesDuplicated)
@@ -44,13 +81,17 @@ func TestAnalyseCodeOwnershipAllFiles(t *testing.T) {
 func TestAnalyseCodeOwnershipCheckSums(t *testing.T) {
 	repoDir, err := utils.ResolveTestOwnershipDuplicatesRepo()
 	require.Nil(t, err)
+
+	commit, err := utils.ExecGetLastestCommit(repoDir, "main", "", "now")
+	require.Nil(t, err)
+
 	results, err := AnalyseCodeOwnership(OwnershipOptions{
 		BaseOptions: utils.BaseOptions{
 			RepoDir: repoDir,
 			Branch:  "main",
 		},
 		MinDuplicateLines: 2,
-		When:              "now",
+		CommitId:          commit.CommitId,
 	}, nil)
 	require.Nil(t, err)
 	if err != nil {
@@ -77,13 +118,16 @@ func TestAnalyseCodeDuplicates(t *testing.T) {
 	repoDir, err := utils.ResolveTestOwnershipDuplicatesRepo()
 	require.Nil(t, err)
 
+	commit, err := utils.ExecGetLastestCommit(repoDir, "main", "", "now")
+	require.Nil(t, err)
+
 	results, err := AnalyseCodeOwnership(OwnershipOptions{
 		BaseOptions: utils.BaseOptions{
 			RepoDir: repoDir,
 			Branch:  "main",
 		},
 		MinDuplicateLines: 2,
-		When:              "now",
+		CommitId:          commit.CommitId,
 	}, nil)
 	require.Nil(t, err)
 	if err != nil {
@@ -102,16 +146,20 @@ func TestAnalyseCodeDuplicates(t *testing.T) {
 
 func TestAnalyseCodeOwnershipRegexFiles(t *testing.T) {
 	// require.InDeltaf(t, float64(0), v, 0.01, "")
-	repo, err := utils.ResolveTestOwnershipRepo()
+	repoDir, err := utils.ResolveTestOwnershipRepo()
 	require.Nil(t, err)
+
+	commit, err := utils.ExecGetLastestCommit(repoDir, "main", "", "now")
+	require.Nil(t, err)
+
 	results, err := AnalyseCodeOwnership(OwnershipOptions{
 		BaseOptions: utils.BaseOptions{
-			RepoDir:    repo,
+			RepoDir:    repoDir,
 			Branch:     "main",
 			FilesRegex: "/dir1.1/",
 		},
 		MinDuplicateLines: 2,
-		When:              "now",
+		CommitId:          commit.CommitId,
 	}, nil)
 	require.Nil(t, err)
 	if err != nil {
@@ -123,17 +171,21 @@ func TestAnalyseCodeOwnershipRegexFiles(t *testing.T) {
 
 func TestAnalyseCodeOwnershipRegexNotFiles(t *testing.T) {
 	// require.InDeltaf(t, float64(0), v, 0.01, "")
-	repo, err := utils.ResolveTestOwnershipRepo()
+	repoDir, err := utils.ResolveTestOwnershipRepo()
 	require.Nil(t, err)
+
+	commit, err := utils.ExecGetLastestCommit(repoDir, "main", "", "now")
+	require.Nil(t, err)
+
 	results, err := AnalyseCodeOwnership(OwnershipOptions{
 		BaseOptions: utils.BaseOptions{
-			RepoDir:       repo,
+			RepoDir:       repoDir,
 			Branch:        "main",
 			FilesRegex:    "/dir1.1/",
 			FilesNotRegex: "/dir1.1/",
 		},
 		MinDuplicateLines: 2,
-		When:              "now",
+		CommitId:          commit.CommitId,
 	}, nil)
 	require.Nil(t, err)
 	if err != nil {

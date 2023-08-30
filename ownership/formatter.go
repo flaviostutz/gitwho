@@ -5,7 +5,13 @@ import (
 	"strconv"
 )
 
-func FormatOwnershipResults(ownershipResult OwnershipResult, full bool) string {
+func FormatTimelineOwnershipResults(ownershipResult []OwnershipResult, full bool) string {
+	text := fmt.Sprintf("Total authors: %d\n", len(ownershipResult[0].AuthorsLines))
+	text += fmt.Sprintf("Total files: %d\n", ownershipResult[0].TotalFiles)
+	return text
+}
+
+func FormatCodeOwnershipResults(ownershipResult OwnershipResult, full bool) string {
 	text := fmt.Sprintf("Total authors: %d\n", len(ownershipResult.AuthorsLines))
 	text += fmt.Sprintf("Total files: %d\n", ownershipResult.TotalFiles)
 	if full {
