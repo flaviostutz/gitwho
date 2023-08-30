@@ -36,6 +36,14 @@ run-ownership:
 	# go run ./ ownership --repo /Users/flaviostutz/Documents/development/flaviostutz/gitwho --branch main --files "." --when "now"
 	go run ./ ownership --repo /Users/flaviostutz/Documents/development/nn/mortgage-loan --branch master --files ".ts$$" --files-not "" --when "now" --format full
 
+run-ownership-timeline:
+# gocv, orb, conductor
+	# go run ./ ownership-timeline --repo /Users/flaviostutz/Documents/development/flaviostutz/conductor --branch main --files .md --format full
+	# go run ./ ownership-timeline --repo /Users/flaviostutz/Documents/development/flaviostutz/moby --branch master --files test --files-not "vendor" --format full
+	# go run ./ ownership-timeline --repo /Users/flaviostutz/Documents/development/flaviostutz/gitwho --branch main --files "." --when "now"
+	go run ./ ownership-timeline --repo /Users/flaviostutz/Documents/development/nn/mortgage-loan --branch master --files "mutation" --files-not "" --since="3 months ago" --until "now" --period "2 week" --format full
+
+
 run-duplicates:
 # gocv, orb, conductor
 	# go run ./ duplicates --repo /Users/flaviostutz/Documents/development/flaviostutz/conductor --branch main --files .md --format full

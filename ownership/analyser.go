@@ -109,7 +109,7 @@ func TimelineCodeOwnership(opts OwnershipTimelineOptions, progressChan chan<- ut
 		result = append(result, onwershipResult)
 		processedCommits = append(processedCommits, analysisOpts.CommitId)
 
-		when = fmt.Sprintf("%s - %s", commit.Date.Format(time.DateOnly), opts.Period)
+		when = fmt.Sprintf("%s - %s", when, opts.Period)
 		prevCommitId = commit.CommitId
 	}
 

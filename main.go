@@ -10,7 +10,7 @@ import (
 func main() {
 
 	if len(os.Args) < 2 {
-		fmt.Println("Usage: gitwho [changes|ownership|duplicates]")
+		fmt.Println("Usage: gitwho [changes|ownership|ownership-timeline|duplicates]")
 		os.Exit(1)
 	}
 
@@ -21,11 +21,14 @@ func main() {
 	case "ownership":
 		cli.RunOwnership(os.Args)
 
+	case "ownership-timeline":
+		cli.RunOwnershipTimeline(os.Args)
+
 	case "duplicates":
 		cli.RunDuplicates(os.Args)
 
 	default:
-		fmt.Println("Usage: gitwho [changes|ownership|duplicates]")
+		fmt.Println("Usage: gitwho [changes|ownership|ownership-timeline|duplicates]")
 		os.Exit(1)
 	}
 }

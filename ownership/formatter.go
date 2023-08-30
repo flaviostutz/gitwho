@@ -3,12 +3,38 @@ package ownership
 import (
 	"fmt"
 	"strconv"
+	"time"
+
+	"github.com/fatih/color"
+	"github.com/flaviostutz/gitwho/utils"
+	"github.com/rodaine/table"
 )
 
-func FormatTimelineOwnershipResults(ownershipResult []OwnershipResult, full bool) string {
-	text := fmt.Sprintf("Total authors: %d\n", len(ownershipResult[0].AuthorsLines))
-	text += fmt.Sprintf("Total files: %d\n", ownershipResult[0].TotalFiles)
-	return text
+func PrintTimelineOwnershipResults(ownershipResults []OwnershipResult, full bool) {
+	headerFmt := color.New(color.FgGreen, color.Underline).SprintfFunc()
+	columnFmt := color.New(color.FgYellow).SprintfFunc()
+
+	tbl := table.New("Date", "Files", "Lines", "Duplicates")
+	tbl.WithHeaderFormatter(headerFmt).WithFirstColumnFormatter(columnFmt)
+
+	firstResult := OwnershipResult{}
+	prevResult := OwnershipResult{}
+	for i, result := range ownershipResults {
+		if i == 0 {
+			firstResult = result
+		}
+		tbl.AddRow(result.Commit.Date.Format(time.DateOnly),
+			fmt.Sprintf("%d%s", result.TotalFiles, utils.CalcDiffStr(result.TotalFiles, prevResult.TotalFiles)),
+			fmt.Sprintf("%d%s", result.TotalLines, utils.CalcDiffStr(result.TotalLines, prevResult.TotalLines)),
+			fmt.Sprintf("%d%s", result.TotalLinesDuplicated, utils.CalcDiffStr(result.TotalLinesDuplicated, prevResult.TotalLinesDuplicated)))
+		prevResult = result
+	}
+	tbl.AddRow("Inc/period",
+		fmt.Sprintf("%d%s", prevResult.TotalFiles-firstResult.TotalFiles, utils.CalcDiffPercStr(prevResult.TotalFiles, firstResult.TotalFiles)),
+		fmt.Sprintf("%d%s", prevResult.TotalLines-firstResult.TotalLines, utils.CalcDiffPercStr(prevResult.TotalLines, firstResult.TotalLines)),
+		fmt.Sprintf("%d%s", prevResult.TotalLinesDuplicated-firstResult.TotalLinesDuplicated, utils.CalcDiffPercStr(prevResult.TotalLinesDuplicated, firstResult.TotalLinesDuplicated)),
+	)
+	tbl.Print()
 }
 
 func FormatCodeOwnershipResults(ownershipResult OwnershipResult, full bool) string {

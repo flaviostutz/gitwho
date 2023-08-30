@@ -3,6 +3,8 @@ package changes
 import (
 	"fmt"
 	"sort"
+
+	"github.com/flaviostutz/gitwho/utils"
 )
 
 func FormatFullTextResults(changes ChangesResult) string {
@@ -44,7 +46,7 @@ func FormatTopTextResults(changes ChangesResult) string {
 	for i := 0; i < len(changes.AuthorsLines) && i < 3; i++ {
 		al := changes.AuthorsLines[i]
 		mailStr := fmt.Sprintf(" %s", al.AuthorMail)
-		text += fmt.Sprintf("  %s%s: %d%s\n", al.AuthorName, mailStr, calcTopCoderScore(al.LinesTouched), calcPercStr(calcTopCoderScore(al.LinesTouched), calcTopCoderScore(changes.TotalLinesTouched)))
+		text += fmt.Sprintf("  %s%s: %d%s\n", al.AuthorName, mailStr, calcTopCoderScore(al.LinesTouched), utils.CalcPercStr(calcTopCoderScore(al.LinesTouched), calcTopCoderScore(changes.TotalLinesTouched)))
 	}
 
 	// top new liners
@@ -56,7 +58,7 @@ func FormatTopTextResults(changes ChangesResult) string {
 	text += "\nTop New Liners\n"
 	for i := 0; i < len(changes.AuthorsLines) && i < 3; i++ {
 		al := changes.AuthorsLines[i]
-		text += fmt.Sprintf("  %s: %d%s\n", al.AuthorName, al.LinesTouched.New, calcPercStr(al.LinesTouched.New, changes.TotalLinesTouched.New))
+		text += fmt.Sprintf("  %s: %d%s\n", al.AuthorName, al.LinesTouched.New, utils.CalcPercStr(al.LinesTouched.New, changes.TotalLinesTouched.New))
 	}
 
 	// top refactorers
@@ -68,7 +70,7 @@ func FormatTopTextResults(changes ChangesResult) string {
 	text += "\nTop Refactorers\n"
 	for i := 0; i < len(changes.AuthorsLines) && i < 3; i++ {
 		al := changes.AuthorsLines[i]
-		text += fmt.Sprintf("  %s: %d%s\n", al.AuthorName, al.LinesTouched.RefactorOther+al.LinesTouched.RefactorOwn, calcPercStr(al.LinesTouched.RefactorOther+al.LinesTouched.RefactorOwn, changes.TotalLinesTouched.RefactorOther+changes.TotalLinesTouched.RefactorOwn))
+		text += fmt.Sprintf("  %s: %d%s\n", al.AuthorName, al.LinesTouched.RefactorOther+al.LinesTouched.RefactorOwn, utils.CalcPercStr(al.LinesTouched.RefactorOther+al.LinesTouched.RefactorOwn, changes.TotalLinesTouched.RefactorOther+changes.TotalLinesTouched.RefactorOwn))
 	}
 
 	// top helpers
@@ -80,7 +82,7 @@ func FormatTopTextResults(changes ChangesResult) string {
 	text += "\nTop Helpers\n"
 	for i := 0; i < len(changes.AuthorsLines) && i < 3; i++ {
 		al := changes.AuthorsLines[i]
-		text += fmt.Sprintf("  %s: %d%s\n", al.AuthorName, al.LinesTouched.ChurnOther, calcPercStr(al.LinesTouched.ChurnOther, changes.TotalLinesTouched.ChurnOther))
+		text += fmt.Sprintf("  %s: %d%s\n", al.AuthorName, al.LinesTouched.ChurnOther, utils.CalcPercStr(al.LinesTouched.ChurnOther, changes.TotalLinesTouched.ChurnOther))
 	}
 
 	// top churners
@@ -92,7 +94,7 @@ func FormatTopTextResults(changes ChangesResult) string {
 	text += "\nTop Churners\n"
 	for i := 0; i < len(changes.AuthorsLines) && i < 3; i++ {
 		al := changes.AuthorsLines[i]
-		text += fmt.Sprintf("  %s: %d%s\n", al.AuthorName, al.LinesTouched.ChurnOwn+al.LinesTouched.ChurnReceived, calcPercStr(al.LinesTouched.ChurnOwn+al.LinesTouched.ChurnReceived, changes.TotalLinesTouched.ChurnOwn+changes.TotalLinesTouched.ChurnReceived))
+		text += fmt.Sprintf("  %s: %d%s\n", al.AuthorName, al.LinesTouched.ChurnOwn+al.LinesTouched.ChurnReceived, utils.CalcPercStr(al.LinesTouched.ChurnOwn+al.LinesTouched.ChurnReceived, changes.TotalLinesTouched.ChurnOwn+changes.TotalLinesTouched.ChurnReceived))
 	}
 
 	return text
@@ -115,23 +117,16 @@ func calcTopCoderScore(ai LinesTouched) int {
 
 func formatLinesTouched(changes LinesTouched, totals LinesTouched) string {
 	totalTouched := changes.New + changes.Changes
-	text := fmt.Sprintf("- Total lines touched: %d%s\n", totalTouched, calcPercStr(changes.New+changes.Changes, totals.New+totals.Changes))
-	text += fmt.Sprintf("  - New lines: %d%s\n", changes.New, calcPercStr(changes.New, totalTouched))
-	text += fmt.Sprintf("  - Changed lines: %d%s\n", changes.Changes, calcPercStr(changes.Changes, totalTouched))
-	text += fmt.Sprintf("    - Refactor: %d%s\n", changes.RefactorOwn+changes.RefactorOther, calcPercStr(changes.RefactorOwn+changes.RefactorOther, changes.Changes))
-	text += fmt.Sprintf("      - Refactor of own lines: %d%s\n", changes.RefactorOwn, calcPercStr(changes.RefactorOwn, changes.RefactorOwn+changes.RefactorOther))
-	text += fmt.Sprintf("      - Refactor of other's lines: %d%s\n", changes.RefactorOther, calcPercStr(changes.RefactorOther, changes.RefactorOwn+changes.RefactorOther))
+	text := fmt.Sprintf("- Total lines touched: %d%s\n", totalTouched, utils.CalcPercStr(changes.New+changes.Changes, totals.New+totals.Changes))
+	text += fmt.Sprintf("  - New lines: %d%s\n", changes.New, utils.CalcPercStr(changes.New, totalTouched))
+	text += fmt.Sprintf("  - Changed lines: %d%s\n", changes.Changes, utils.CalcPercStr(changes.Changes, totalTouched))
+	text += fmt.Sprintf("    - Refactor: %d%s\n", changes.RefactorOwn+changes.RefactorOther, utils.CalcPercStr(changes.RefactorOwn+changes.RefactorOther, changes.Changes))
+	text += fmt.Sprintf("      - Refactor of own lines: %d%s\n", changes.RefactorOwn, utils.CalcPercStr(changes.RefactorOwn, changes.RefactorOwn+changes.RefactorOther))
+	text += fmt.Sprintf("      - Refactor of other's lines: %d%s\n", changes.RefactorOther, utils.CalcPercStr(changes.RefactorOther, changes.RefactorOwn+changes.RefactorOther))
 	text += fmt.Sprintf("      * Refactor done by others to own lines (help received): %d\n", changes.RefactorReceived)
-	text += fmt.Sprintf("    - Churn: %d%s\n", changes.ChurnOwn+changes.ChurnOther, calcPercStr(changes.ChurnOwn+changes.ChurnOther, changes.Changes))
-	text += fmt.Sprintf("      - Churn of own lines: %d%s\n", changes.ChurnOwn, calcPercStr(changes.ChurnOwn, changes.ChurnOwn+changes.ChurnOther))
-	text += fmt.Sprintf("      - Churn of other's lines (help given): %d%s\n", changes.ChurnOther, calcPercStr(changes.ChurnOther, changes.ChurnOwn+changes.ChurnOther))
+	text += fmt.Sprintf("    - Churn: %d%s\n", changes.ChurnOwn+changes.ChurnOther, utils.CalcPercStr(changes.ChurnOwn+changes.ChurnOther, changes.Changes))
+	text += fmt.Sprintf("      - Churn of own lines: %d%s\n", changes.ChurnOwn, utils.CalcPercStr(changes.ChurnOwn, changes.ChurnOwn+changes.ChurnOther))
+	text += fmt.Sprintf("      - Churn of other's lines (help given): %d%s\n", changes.ChurnOther, utils.CalcPercStr(changes.ChurnOther, changes.ChurnOwn+changes.ChurnOther))
 	text += fmt.Sprintf("      * Churn done by others to own lines (help received): %d\n", changes.ChurnReceived)
 	return text
-}
-
-func calcPercStr(value int, total int) string {
-	if total == 0 {
-		return ""
-	}
-	return fmt.Sprintf(" (%d%%)", int(100*float64(value)/float64(total)))
 }

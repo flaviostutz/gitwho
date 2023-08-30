@@ -25,7 +25,7 @@ func RunOwnershipTimeline(osArgs []string) {
 	flags.IntVar(&opts.MinDuplicateLines, "min-dup-lines", 4, "Min number of similar lines in a row to be considered a duplicate")
 	flags.StringVar(&cliOpts.Format, "format", "full", "Output format. 'full' (more details) or 'short' (lines per author)")
 	flags.StringVar(&cliOpts.GoProfileFile, "profile-file", "", "Profile file to dump golang runtime data to")
-	flags.BoolVar(&cliOpts.Verbose, "verbose", false, "Show verbose logs during processing")
+	flags.BoolVar(&cliOpts.Verbose, "verbose", true, "Show verbose logs during processing")
 
 	flags.Parse(osArgs[2:])
 
@@ -44,6 +44,5 @@ func RunOwnershipTimeline(osArgs []string) {
 		fmt.Println("Failed to perform ownership-timeline analysis. err=", err)
 		os.Exit(2)
 	}
-	output := ownership.FormatTimelineOwnershipResults(ownershipResults, cliOpts.Format == "full")
-	fmt.Println(output)
+	ownership.PrintTimelineOwnershipResults(ownershipResults, cliOpts.Format == "full")
 }
