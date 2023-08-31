@@ -307,9 +307,6 @@ func fileWorker(fileWorkerInputChan <-chan fileWorkerRequest,
 		ownershipResult := OwnershipResult{TotalLines: 0, authorLinesMap: make(map[string]AuthorLines, 0)}
 		ownershipResult.FilePath = req.filePath
 
-		authorsRe := regexp.MustCompile(req.authorsRegex)
-		authorsNotRe := regexp.MustCompile(req.authorsNotRegex)
-
 		commitInfo, err := utils.ExecGitCommitInfo(req.repoDir, req.commitId)
 		if err != nil {
 			fileWorkerErrChan <- errors.New(fmt.Sprintf("Couldn't get commit info. commitId=%s; err=%s", req.commitId, err))
@@ -353,11 +350,8 @@ func fileWorker(fileWorkerInputChan <-chan fileWorkerRequest,
 			if strings.Trim(lineAuthor.LineContents, " ") == "" {
 				continue
 			}
-			if (!authorsRe.MatchString(lineAuthor.AuthorName) && !authorsRe.MatchString(lineAuthor.AuthorMail)) ||
-				(req.authorsNotRegex != "" &&
-					(authorsNotRe.MatchString(lineAuthor.AuthorName) || authorsNotRe.MatchString(lineAuthor.AuthorMail))) {
-				countAuthor = false
-			} else {
+			countAuthor = authorCounted(req, lineAuthor.AuthorName, lineAuthor.AuthorMail)
+			if countAuthor {
 				fileTouched = true
 			}
 
@@ -403,11 +397,11 @@ func fileWorker(fileWorkerInputChan <-chan fileWorkerRequest,
 						authorLines.OwnedLinesDuplicateOriginal += req.minDuplicateLines
 						// someone else is copying your line
 					} else {
-						originalAuthorLines := ownershipResult.authorLinesMap[duplicates[0].AuthorName]
-						originalAuthorLines.AuthorMail = duplicates[0].AuthorMail
-						originalAuthorLines.AuthorName = duplicates[0].AuthorName
-						originalAuthorLines.OwnedLinesDuplicateOriginalOthers += req.minDuplicateLines
-						if countAuthor {
+						if authorCounted(req, duplicates[0].AuthorName, duplicates[0].AuthorMail) {
+							originalAuthorLines := ownershipResult.authorLinesMap[duplicates[0].AuthorName]
+							originalAuthorLines.AuthorMail = duplicates[0].AuthorMail
+							originalAuthorLines.AuthorName = duplicates[0].AuthorName
+							originalAuthorLines.OwnedLinesDuplicateOriginalOthers += req.minDuplicateLines
 							ownershipResult.authorLinesMap[duplicates[0].AuthorName] = originalAuthorLines
 						}
 					}
@@ -429,4 +423,12 @@ func fileWorker(fileWorkerInputChan <-chan fileWorkerRequest,
 		// time.Sleep(1 * time.Second)
 		// fmt.Printf("Time spent: %s\n", time.Since(startTime))
 	}
+}
+
+func authorCounted(req fileWorkerRequest, authorName string, authorMail string) bool {
+	authorsRe := regexp.MustCompile(req.authorsRegex)
+	authorsNotRe := regexp.MustCompile(req.authorsNotRegex)
+	return (authorsRe.MatchString(authorName) || authorsRe.MatchString(authorMail)) &&
+		(req.authorsNotRegex == "" ||
+			(!authorsNotRe.MatchString(authorName) && !authorsNotRe.MatchString(authorMail)))
 }

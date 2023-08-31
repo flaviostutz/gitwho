@@ -38,7 +38,7 @@ func PrintTimelineOwnershipResults(ownershipResults []OwnershipResult, full bool
 }
 
 func FormatCodeOwnershipResults(ownershipResult OwnershipResult, full bool) string {
-	text := fmt.Sprintf("Total authors: %d\n", len(ownershipResult.AuthorsLines))
+	text := fmt.Sprintf("\nTotal authors: %d\n", len(ownershipResult.AuthorsLines))
 	text += fmt.Sprintf("Total files: %d\n", ownershipResult.TotalFiles)
 	if full {
 		text += fmt.Sprintf("Avg line age: %s\n", avgLineAgeStr(ownershipResult.LinesAgeDaysSum, ownershipResult.TotalLines))
