@@ -60,6 +60,8 @@ type fileWorkerRequest struct {
 	filePath          string
 	commitId          string
 	minDuplicateLines int
+	authorsRegex      string
+	authorsNotRegex   string
 }
 
 func TimelineCodeOwnership(opts OwnershipTimelineOptions, progressChan chan<- utils.ProgressInfo) ([]OwnershipResult, error) {
@@ -144,14 +146,24 @@ func AnalyseCodeOwnership(opts OwnershipOptions, progressChan chan<- utils.Progr
 		return OwnershipResult{}, fmt.Errorf("MinDuplicateLines must be > 0")
 	}
 
-	fre, err := regexp.Compile(opts.FilesRegex)
+	fileRe, err := regexp.Compile(opts.FilesRegex)
 	if err != nil {
 		return result, errors.New("file filter regex is invalid. err=" + err.Error())
 	}
 
-	freNot, err := regexp.Compile(opts.FilesNotRegex)
+	fileReNot, err := regexp.Compile(opts.FilesNotRegex)
 	if err != nil {
 		return result, errors.New("files-not filter regex is invalid. err=" + err.Error())
+	}
+
+	_, err = regexp.Compile(opts.AuthorsRegex)
+	if err != nil {
+		return result, errors.New("authors filter regex is invalid. err=" + err.Error())
+	}
+
+	_, err = regexp.Compile(opts.AuthorsNotRegex)
+	if err != nil {
+		return result, errors.New("authors-not filter regex is invalid. err=" + err.Error())
 	}
 
 	logrus.Debugf("Analysing branch %s at %s", opts.Branch, opts.CommitId)
@@ -233,13 +245,20 @@ func AnalyseCodeOwnership(opts OwnershipOptions, progressChan chan<- utils.Progr
 		}
 
 		for _, fileName := range files {
-			if strings.Trim(fileName, " ") == "" || !fre.MatchString(fileName) || (opts.FilesNotRegex != "" && freNot.MatchString(fileName)) {
+			if strings.Trim(fileName, " ") == "" || !fileRe.MatchString(fileName) || (opts.FilesNotRegex != "" && fileReNot.MatchString(fileName)) {
 				// logrus.Debugf("Ignoring file %s", file.Name)
 				continue
 			}
 			totalFiles += 1
 			progressInfo.TotalTasks += 1
-			fileWorkerInputChan <- fileWorkerRequest{repoDir: opts.RepoDir, filePath: fileName, commitId: opts.CommitId, minDuplicateLines: opts.MinDuplicateLines}
+			fileWorkerInputChan <- fileWorkerRequest{
+				repoDir:           opts.RepoDir,
+				filePath:          fileName,
+				commitId:          opts.CommitId,
+				minDuplicateLines: opts.MinDuplicateLines,
+				authorsRegex:      opts.AuthorsRegex,
+				authorsNotRegex:   opts.AuthorsNotRegex,
+			}
 		}
 
 		// finished publishing request messages
@@ -288,6 +307,9 @@ func fileWorker(fileWorkerInputChan <-chan fileWorkerRequest,
 		ownershipResult := OwnershipResult{TotalLines: 0, authorLinesMap: make(map[string]AuthorLines, 0)}
 		ownershipResult.FilePath = req.filePath
 
+		authorsRe := regexp.MustCompile(req.authorsRegex)
+		authorsNotRe := regexp.MustCompile(req.authorsNotRegex)
+
 		commitInfo, err := utils.ExecGitCommitInfo(req.repoDir, req.commitId)
 		if err != nil {
 			fileWorkerErrChan <- errors.New(fmt.Sprintf("Couldn't get commit info. commitId=%s; err=%s", req.commitId, err))
@@ -325,19 +347,30 @@ func fileWorker(fileWorkerInputChan <-chan fileWorkerRequest,
 		}
 
 		// go over each line of the file
-		ownershipResult.TotalFiles += 1
+		fileTouched := false
 		for i, lineAuthor := range blameResult {
+			countAuthor := true
 			if strings.Trim(lineAuthor.LineContents, " ") == "" {
 				continue
 			}
-			ownershipResult.TotalLines += 1
+			if (!authorsRe.MatchString(lineAuthor.AuthorName) && !authorsRe.MatchString(lineAuthor.AuthorMail)) ||
+				(req.authorsNotRegex != "" &&
+					(authorsNotRe.MatchString(lineAuthor.AuthorName) || authorsNotRe.MatchString(lineAuthor.AuthorMail))) {
+				countAuthor = false
+			} else {
+				fileTouched = true
+			}
+
+			lineAge := (commitInfo.Date.Sub(lineAuthor.AuthorDate).Hours()) / float64(24)
+			if countAuthor {
+				ownershipResult.TotalLines += 1
+				ownershipResult.LinesAgeDaysSum += lineAge
+			}
 			authorLines := ownershipResult.authorLinesMap[lineAuthor.AuthorName]
 			authorLines.AuthorName = lineAuthor.AuthorName
 			authorLines.AuthorMail = lineAuthor.AuthorMail
 			authorLines.OwnedLinesTotal += 1
-			lineAge := (commitInfo.Date.Sub(lineAuthor.AuthorDate).Hours()) / float64(24)
 			authorLines.OwnedLinesAgeDaysSum += lineAge
-			ownershipResult.LinesAgeDaysSum += lineAge
 
 			// Duplication analysis
 			// this is very sensitive as a lot of memory can be used by the tracker
@@ -374,11 +407,19 @@ func fileWorker(fileWorkerInputChan <-chan fileWorkerRequest,
 						originalAuthorLines.AuthorMail = duplicates[0].AuthorMail
 						originalAuthorLines.AuthorName = duplicates[0].AuthorName
 						originalAuthorLines.OwnedLinesDuplicateOriginalOthers += req.minDuplicateLines
-						ownershipResult.authorLinesMap[duplicates[0].AuthorName] = originalAuthorLines
+						if countAuthor {
+							ownershipResult.authorLinesMap[duplicates[0].AuthorName] = originalAuthorLines
+						}
 					}
 				}
 			}
-			ownershipResult.authorLinesMap[lineAuthor.AuthorName] = authorLines
+			if countAuthor {
+				ownershipResult.authorLinesMap[lineAuthor.AuthorName] = authorLines
+			}
+		}
+
+		if fileTouched {
+			ownershipResult.TotalFiles += 1
 		}
 
 		ownershipResult.blameTime = time.Since(startTime)

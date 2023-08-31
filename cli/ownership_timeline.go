@@ -19,13 +19,15 @@ func RunOwnershipTimeline(osArgs []string) {
 	flags.StringVar(&opts.Branch, "branch", "main", "Branch name to analyse")
 	flags.StringVar(&opts.FilesRegex, "files", ".*", "Regex for selecting which file paths to include in analysis")
 	flags.StringVar(&opts.FilesNotRegex, "files-not", "", "Regex for filtering out files from analysis")
-	flags.StringVar(&opts.Since, "since", "90 days ago", "Starting date for historical analysis. Eg: '1 year ago'")
+	flags.StringVar(&opts.AuthorsRegex, "authors", ".*", "Regex for selecting which authors to include in analysis")
+	flags.StringVar(&opts.AuthorsNotRegex, "authors-not", "", "Regex for filtering out authors from analysis")
+	flags.StringVar(&opts.Since, "since", "3 months ago", "Starting date for historical analysis. Eg: '1 year ago'")
 	flags.StringVar(&opts.Until, "until", "now", "Ending date for historical analysis. Eg: 'now'")
-	flags.StringVar(&opts.Period, "period", "1 month", "Show ownership data each [period] in the range [since]-[until]. Eg.: '7 days', '1 month'")
+	flags.StringVar(&opts.Period, "period", "2 weeks", "Show ownership data each [period] in the range [since]-[until]. Eg.: '7 days', '1 month'")
 	flags.IntVar(&opts.MinDuplicateLines, "min-dup-lines", 4, "Min number of similar lines in a row to be considered a duplicate")
 	flags.StringVar(&cliOpts.Format, "format", "full", "Output format. 'full' (more details) or 'short' (lines per author)")
 	flags.StringVar(&cliOpts.GoProfileFile, "profile-file", "", "Profile file to dump golang runtime data to")
-	flags.BoolVar(&cliOpts.Verbose, "verbose", true, "Show verbose logs during processing")
+	flags.BoolVar(&cliOpts.Verbose, "verbose", false, "Show verbose logs during processing")
 
 	flags.Parse(osArgs[2:])
 

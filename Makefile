@@ -7,7 +7,7 @@ unit-tests:
 	go test -cover -coverprofile=./changes/coverage.out ./changes
 	go test -cover -coverprofile=./utils/coverage.out ./utils
 	go test -cover -coverprofile=./cli/coverage.out ./cli
-	make coverage
+	# make coverage
 
 test: unit-tests
 
@@ -26,8 +26,8 @@ deploy: publish-npm-all
 
 run-changes:
 	# go run ./ changes --repo /Users/flaviostutz/Documents/development/flaviostutz/conductor --branch main --files .md --since "5 years ago" --until "3 years ago" --format full
-	go run ./ changes --repo /Users/flaviostutz/Documents/development/flaviostutz/moby --branch master --files ".*" --files-not "vendor" --since "30 days ago" --until "now" --format full
-	# go run ./ changes --repo /Users/flaviostutz/Documents/development/nn/mortgage-loan --branch master --files ".ts$$" --since "1 months ago" --until "now" --format short
+	# go run ./ changes --repo /Users/flaviostutz/Documents/development/flaviostutz/moby --branch master --files ".*" --files-not "vendor" --since "30 days ago" --until "now" --format full
+	go run ./ changes --repo /Users/flaviostutz/Documents/development/nn/mortgage-loan --branch master --files ".ts$$" --since "30 days ago" --until "15 days ago" --format short
 
 run-ownership:
 # gocv, orb, conductor
@@ -41,7 +41,7 @@ run-ownership-timeline:
 	# go run ./ ownership-timeline --repo /Users/flaviostutz/Documents/development/flaviostutz/conductor --branch main --files .md --format full
 	# go run ./ ownership-timeline --repo /Users/flaviostutz/Documents/development/flaviostutz/moby --branch master --files test --files-not "vendor" --format full
 	# go run ./ ownership-timeline --repo /Users/flaviostutz/Documents/development/flaviostutz/gitwho --branch main --files "." --when "now"
-	go run ./ ownership-timeline --repo /Users/flaviostutz/Documents/development/nn/mortgage-loan --branch master --files "mutation" --files-not "" --since="3 months ago" --until "now" --period "2 week" --format full
+	go run ./ ownership-timeline --repo /Users/flaviostutz/Documents/development/nn/mortgage-loan --branch master --files "dossier|mutation|upload|shared" --files-not "" --since="9 months ago" --until "now" --period "1 month" --format full
 
 
 run-duplicates:

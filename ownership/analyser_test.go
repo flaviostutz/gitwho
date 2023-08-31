@@ -78,6 +78,102 @@ func TestAnalyseCodeOwnershipAllFiles(t *testing.T) {
 	require.Equal(t, results.TotalLines, sumLines)
 }
 
+func TestAnalyseCodeOwnershipAuthorRegex(t *testing.T) {
+	repoDir, err := utils.ResolveTestOwnershipRepo()
+	require.Nil(t, err)
+
+	commit, err := utils.ExecGetLastestCommit(repoDir, "main", "", "now")
+	require.Nil(t, err)
+
+	results, err := AnalyseCodeOwnership(OwnershipOptions{
+		BaseOptions: utils.BaseOptions{
+			RepoDir:      repoDir,
+			Branch:       "main",
+			AuthorsRegex: "author1",
+		},
+		MinDuplicateLines: 2,
+		CommitId:          commit.CommitId,
+	}, nil)
+	require.Nil(t, err)
+	if err != nil {
+		return
+	}
+	require.NotEmpty(t, results.Commit.CommitId)
+	require.NotEmpty(t, results.Commit.AuthorName)
+	require.Equal(t, 1, results.TotalLines)
+	require.Equal(t, 1, results.TotalFiles)
+	require.Equal(t, 0, results.TotalLinesDuplicated)
+	require.Equal(t, 1, len(results.AuthorsLines))
+
+	sumLines := 0
+	for _, al := range results.AuthorsLines {
+		sumLines += al.OwnedLinesTotal
+	}
+	require.Equal(t, results.TotalLines, sumLines)
+}
+
+func TestAnalyseCodeOwnershipAuthorNotRegex(t *testing.T) {
+	repoDir, err := utils.ResolveTestOwnershipRepo()
+	require.Nil(t, err)
+
+	commit, err := utils.ExecGetLastestCommit(repoDir, "main", "", "now")
+	require.Nil(t, err)
+
+	results, err := AnalyseCodeOwnership(OwnershipOptions{
+		BaseOptions: utils.BaseOptions{
+			RepoDir:         repoDir,
+			Branch:          "main",
+			AuthorsNotRegex: "author2|author3",
+		},
+		MinDuplicateLines: 2,
+		CommitId:          commit.CommitId,
+	}, nil)
+	require.Nil(t, err)
+	if err != nil {
+		return
+	}
+	require.NotEmpty(t, results.Commit.CommitId)
+	require.NotEmpty(t, results.Commit.AuthorName)
+	require.Equal(t, 1, results.TotalLines)
+	require.Equal(t, 1, results.TotalFiles)
+	require.Equal(t, 0, results.TotalLinesDuplicated)
+	require.Equal(t, 1, len(results.AuthorsLines))
+
+	sumLines := 0
+	for _, al := range results.AuthorsLines {
+		sumLines += al.OwnedLinesTotal
+	}
+	require.Equal(t, results.TotalLines, sumLines)
+}
+
+func TestAnalyseCodeOwnershipAuthorNotRegexMail(t *testing.T) {
+	repoDir, err := utils.ResolveTestOwnershipRepo()
+	require.Nil(t, err)
+
+	commit, err := utils.ExecGetLastestCommit(repoDir, "main", "", "now")
+	require.Nil(t, err)
+
+	results, err := AnalyseCodeOwnership(OwnershipOptions{
+		BaseOptions: utils.BaseOptions{
+			RepoDir:         repoDir,
+			Branch:          "main",
+			AuthorsNotRegex: "@mail.com",
+		},
+		MinDuplicateLines: 2,
+		CommitId:          commit.CommitId,
+	}, nil)
+	require.Nil(t, err)
+	if err != nil {
+		return
+	}
+	require.NotEmpty(t, results.Commit.CommitId)
+	require.NotEmpty(t, results.Commit.AuthorName)
+	require.Equal(t, 0, results.TotalLines)
+	require.Equal(t, 0, results.TotalFiles)
+	require.Equal(t, 0, results.TotalLinesDuplicated)
+	require.Equal(t, 0, len(results.AuthorsLines))
+}
+
 func TestAnalyseCodeOwnershipCheckSums(t *testing.T) {
 	repoDir, err := utils.ResolveTestOwnershipDuplicatesRepo()
 	require.Nil(t, err)
