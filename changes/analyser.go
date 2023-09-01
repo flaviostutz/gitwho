@@ -74,15 +74,18 @@ type ChangesResult struct {
 	TotalCommits   int
 	authorLinesMap map[string]AuthorLines // temporary map used during processing
 	/* Change stats per author */
-	AuthorsLines []AuthorLines
-	analysisTime time.Duration
-	skippedFiles int
+	AuthorsLines  []AuthorLines
+	analysisTime  time.Duration
+	skippedFiles  int
+	authorSkipped bool
 }
 
 type fileWorkerRequest struct {
-	repoDir  string
-	commitId string
-	filePath string
+	repoDir         string
+	commitId        string
+	filePath        string
+	authorsRegex    string
+	authorsNotRegex string
 }
 type commitWorkerRequest struct {
 	repoDir  string
@@ -138,21 +141,24 @@ func AnalyseChanges(opts ChangesOptions, progressChan chan<- utils.ProgressInfo)
 
 		logrus.Debugf("Counting total lines changed per author")
 		for fileResult := range fileWorkersOutputChan {
-			commitsWithFiles[fileResult.CommitId] = true
-			_, ok := fileCounterMap[fileResult.FilePath]
-			if !ok {
-				fileCounterMap[fileResult.FilePath] = true
-				result.TotalFiles++
+
+			if !fileResult.authorSkipped {
+				commitsWithFiles[fileResult.CommitId] = true
+				_, ok := fileCounterMap[fileResult.FilePath]
+				if !ok {
+					fileCounterMap[fileResult.FilePath] = true
+					result.TotalFiles++
+				}
+				result.TotalLinesTouched = sumLinesChanges(result.TotalLinesTouched, fileResult.TotalLinesTouched)
+				for author := range fileResult.authorLinesMap {
+					fileAuthorLines := fileResult.authorLinesMap[author]
+					authorLines := result.authorLinesMap[author]
+					authorLines.LinesTouched = sumLinesChanges(authorLines.LinesTouched, fileAuthorLines.LinesTouched)
+					authorLines.filesTouchedMap = sumFilesTouched(authorLines.filesTouchedMap, fileAuthorLines.filesTouchedMap)
+					result.authorLinesMap[author] = authorLines
+				}
 			}
-			result.TotalLinesTouched = sumLinesChanges(result.TotalLinesTouched, fileResult.TotalLinesTouched)
-			for author := range fileResult.authorLinesMap {
-				fileAuthorLines := fileResult.authorLinesMap[author]
-				authorLines := result.authorLinesMap[author]
-				authorLines.LinesTouched = sumLinesChanges(authorLines.LinesTouched, fileAuthorLines.LinesTouched)
-				authorLines.filesTouchedMap = sumFilesTouched(authorLines.filesTouchedMap, fileAuthorLines.filesTouchedMap)
-				// FIXME see if this is needed
-				result.authorLinesMap[author] = authorLines
-			}
+
 			progressInfo.CompletedTotalTime += fileResult.analysisTime
 			progressInfo.CompletedTasks += 1 + fileResult.skippedFiles
 			progressInfo.CompletedTotalTime += result.analysisTime
@@ -226,7 +232,13 @@ func AnalyseChanges(opts ChangesOptions, progressChan chan<- utils.ProgressInfo)
 					}
 					totalFiles += 1
 					progressInfo.TotalTasks += 1
-					fileWorkersInputChan <- fileWorkerRequest{repoDir: opts.RepoDir, filePath: fileName, commitId: req.commitId}
+					fileWorkersInputChan <- fileWorkerRequest{
+						repoDir:         opts.RepoDir,
+						filePath:        fileName,
+						commitId:        req.commitId,
+						authorsRegex:    opts.AuthorsRegex,
+						authorsNotRegex: opts.AuthorsNotRegex,
+					}
 				}
 			}
 		}()
@@ -301,7 +313,6 @@ func sumFilesTouched(map1 map[string]FileTouched, map2 map[string]FileTouched) m
 		fileChanges2 := map2[fileNameKey]
 		fileChanges1.Name = fileChanges2.Name
 		fileChanges1.Lines += fileChanges2.Lines
-		// FIXME check if this is necessary
 		map1[fileNameKey] = fileChanges1
 	}
 	return map1

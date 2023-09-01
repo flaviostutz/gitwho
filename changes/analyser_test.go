@@ -69,6 +69,72 @@ func TestAnalyseChangesFile1(t *testing.T) {
 	require.Equal(t, 2, result.AuthorsLines[1].FilesTouched[0].Lines)
 }
 
+func TestAnalyseChangesFile1Author1(t *testing.T) {
+	repoDir, err := utils.ResolveTestOwnershipRepo()
+	require.Nil(t, err)
+	if err != nil {
+		return
+	}
+
+	logrus.SetLevel(logrus.DebugLevel)
+
+	result, err := AnalyseChanges(ChangesOptions{
+		BaseOptions: utils.BaseOptions{
+			RepoDir:      repoDir,
+			Branch:       "main",
+			FilesRegex:   "file1",
+			AuthorsRegex: "author1",
+		},
+	}, nil)
+
+	require.Nil(t, err)
+	require.Equal(t, 3, result.TotalCommits)
+	require.Equal(t, 1, result.TotalFiles)
+	require.Equal(t, 2, result.TotalLinesTouched.New)
+	require.Equal(t, 2, result.TotalLinesTouched.Changes)
+
+	require.Equal(t, 1, len(result.AuthorsLines))
+
+	require.Equal(t, "author1", result.AuthorsLines[0].AuthorName)
+	require.Equal(t, "file1", result.AuthorsLines[0].FilesTouched[0].Name)
+	require.Equal(t, 4, result.AuthorsLines[0].FilesTouched[0].Lines)
+}
+
+func TestAnalyseChangesNotAuthor1(t *testing.T) {
+	repoDir, err := utils.ResolveTestOwnershipRepo()
+	require.Nil(t, err)
+	if err != nil {
+		return
+	}
+
+	logrus.SetLevel(logrus.DebugLevel)
+
+	result, err := AnalyseChanges(ChangesOptions{
+		BaseOptions: utils.BaseOptions{
+			RepoDir:         repoDir,
+			Branch:          "main",
+			FilesRegex:      "",
+			AuthorsNotRegex: "author1",
+		},
+	}, nil)
+
+	require.Nil(t, err)
+	require.Equal(t, 2, result.TotalCommits)
+	require.Equal(t, 2, result.TotalFiles)
+	require.Equal(t, 6, result.TotalLinesTouched.New)
+	require.Equal(t, 1, result.TotalLinesTouched.Changes)
+
+	require.Equal(t, 2, len(result.AuthorsLines))
+
+	require.Equal(t, "author3", result.AuthorsLines[0].AuthorName)
+	require.Equal(t, "dir1/dir1.1/file2", result.AuthorsLines[0].FilesTouched[0].Name)
+	require.Equal(t, 5, result.AuthorsLines[0].FilesTouched[0].Lines)
+
+	require.Equal(t, "author2", result.AuthorsLines[1].AuthorName)
+	require.Equal(t, "file1", result.AuthorsLines[1].FilesTouched[0].Name)
+	require.Equal(t, 2, result.AuthorsLines[1].FilesTouched[0].Lines)
+}
+
 func TestAnalyseChangesAllFiles(t *testing.T) {
 	repoDir, err := utils.ResolveTestOwnershipRepo()
 	require.Nil(t, err)

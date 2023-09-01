@@ -28,7 +28,6 @@ func RunChanges(osArgs []string) {
 	flags.BoolVar(&cliOpts.Verbose, "verbose", false, "Show verbose logs during processing")
 
 	flags.Parse(osArgs[2:])
-
 	progressChan := setupBasic(cliOpts)
 	defer close(progressChan)
 

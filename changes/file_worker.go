@@ -3,6 +3,7 @@ package changes
 import (
 	"errors"
 	"fmt"
+	"regexp"
 	"sync"
 	"time"
 
@@ -19,9 +20,8 @@ func fileAnalysisWorker(fileWorkerInputChan <-chan fileWorkerRequest, analyseFil
 	skippedFiles := 0
 	for req := range fileWorkerInputChan {
 
-		// fmt.Printf(">>>>%s %s\n", req.commitId, req.filePath)
-
 		startTime := time.Now()
+
 		changesFileResult := ChangesFileResult{
 			CommitId: req.commitId,
 			FilePath: req.filePath,
@@ -77,17 +77,20 @@ func fileAnalysisWorker(fileWorkerInputChan <-chan fileWorkerRequest, analyseFil
 			break
 		}
 
+		fileTouchedByCountedAuthor := false
 		// there is no previous commit because this is a brand new file
 		if prevCommitId == "" {
 			// consider all lines as "New"
 			for _, dstBlame := range fileDstBlame {
-				addAuthorLines(&changesFileResult,
+				added := addAuthorLines(&changesFileResult,
 					dstBlame.AuthorName,
 					dstBlame.AuthorMail,
 					LinesTouched{New: 1},
-					req.filePath)
+					req)
+				fileTouchedByCountedAuthor = added || fileTouchedByCountedAuthor
 			}
 			changesFileResult.analysisTime = time.Since(startTime)
+			changesFileResult.authorSkipped = !fileTouchedByCountedAuthor
 			analyseFileOutputChan <- changesFileResult
 			continue
 		}
@@ -115,11 +118,12 @@ func fileAnalysisWorker(fileWorkerInputChan <-chan fileWorkerRequest, analyseFil
 			// NEW lines
 			if diff.Operation == utils.OperationAdd {
 				// added lines are simply "new"
-				addAuthorLines(&changesFileResult,
+				added := addAuthorLines(&changesFileResult,
 					fileDstBlame[diff.DstLines[0].Number-1].AuthorName,
 					fileDstBlame[diff.DstLines[0].Number-1].AuthorMail,
 					LinesTouched{New: len(diff.DstLines)},
-					req.filePath)
+					req)
+				fileTouchedByCountedAuthor = added || fileTouchedByCountedAuthor
 				continue
 			}
 
@@ -150,7 +154,7 @@ func fileAnalysisWorker(fileWorkerInputChan <-chan fileWorkerRequest, analyseFil
 
 					// REFACTORED it's own line
 					if srcline.AuthorName == commitInfo.AuthorName {
-						addAuthorLines(&changesFileResult,
+						added := addAuthorLines(&changesFileResult,
 							dstAuthorName,
 							dstAuthorMail,
 							LinesTouched{
@@ -158,12 +162,13 @@ func fileAnalysisWorker(fileWorkerInputChan <-chan fileWorkerRequest, analyseFil
 								RefactorOwn: 1,
 								AgeDaysSum:  lineAge.Hours() / float64(24),
 							},
-							req.filePath)
+							req)
+						fileTouchedByCountedAuthor = added || fileTouchedByCountedAuthor
 						continue
 					}
 
 					// REFACTORED someone else's line
-					addAuthorLines(&changesFileResult,
+					added := addAuthorLines(&changesFileResult,
 						dstAuthorName,
 						dstAuthorMail,
 						LinesTouched{
@@ -171,14 +176,15 @@ func fileAnalysisWorker(fileWorkerInputChan <-chan fileWorkerRequest, analyseFil
 							RefactorOther: 1,
 							AgeDaysSum:    lineAge.Hours() / float64(24),
 						},
-						req.filePath)
+						req)
+					fileTouchedByCountedAuthor = added || fileTouchedByCountedAuthor
 
 					// if someone changed your line, you receive a "refactor received" count
 					addAuthorLines(&changesFileResult,
 						srcline.AuthorName,
 						srcline.AuthorMail,
 						LinesTouched{RefactorReceived: 1},
-						req.filePath)
+						req)
 
 					continue
 				}
@@ -187,7 +193,7 @@ func fileAnalysisWorker(fileWorkerInputChan <-chan fileWorkerRequest, analyseFil
 
 				// churn by the same author
 				if srcline.AuthorName == commitInfo.AuthorName {
-					addAuthorLines(&changesFileResult,
+					added := addAuthorLines(&changesFileResult,
 						dstAuthorName,
 						dstAuthorMail,
 						LinesTouched{
@@ -195,13 +201,13 @@ func fileAnalysisWorker(fileWorkerInputChan <-chan fileWorkerRequest, analyseFil
 							ChurnOwn:   1,
 							AgeDaysSum: lineAge.Hours() / float64(24),
 						},
-						req.filePath)
-
+						req)
+					fileTouchedByCountedAuthor = added || fileTouchedByCountedAuthor
 					continue
 				}
 
 				// churn by a different author
-				addAuthorLines(&changesFileResult,
+				added := addAuthorLines(&changesFileResult,
 					dstAuthorName,
 					dstAuthorMail,
 					LinesTouched{
@@ -209,29 +215,34 @@ func fileAnalysisWorker(fileWorkerInputChan <-chan fileWorkerRequest, analyseFil
 						ChurnOther: 1,
 						AgeDaysSum: lineAge.Hours() / float64(24),
 					},
-					req.filePath)
+					req)
+				fileTouchedByCountedAuthor = added || fileTouchedByCountedAuthor
 
 				// if someone changed your line, you receive a "churn received" count
 				addAuthorLines(&changesFileResult,
 					srcline.AuthorName,
 					srcline.AuthorMail,
 					LinesTouched{ChurnReceived: 1},
-					req.filePath)
+					req)
 			}
 
 			// special case when changes led to additional lines in destination
 			if len(diff.DstLines) > len(diff.SrcLines) {
 				for i := len(diff.SrcLines); i < len(diff.DstLines); i++ {
 					dstline := fileDstBlame[i+diff.DstLines[0].Number-1]
-					addAuthorLines(&changesFileResult,
+					added := addAuthorLines(&changesFileResult,
 						dstline.AuthorName,
 						dstline.AuthorMail,
 						LinesTouched{New: 1},
-						req.filePath)
+						req)
+					fileTouchedByCountedAuthor = added || fileTouchedByCountedAuthor
 				}
 			}
 
 		}
+
+		// skip file analysis results of files that were touched only by authors that are not being counted
+		changesFileResult.authorSkipped = !fileTouchedByCountedAuthor
 
 		changesFileResult.analysisTime = time.Since(startTime)
 		changesFileResult.skippedFiles = skippedFiles
@@ -242,7 +253,11 @@ func fileAnalysisWorker(fileWorkerInputChan <-chan fileWorkerRequest, analyseFil
 	}
 }
 
-func addAuthorLines(changesFileResult *ChangesFileResult, authorName string, authorMail string, linesChanges LinesTouched, filePath string) {
+func addAuthorLines(changesFileResult *ChangesFileResult, authorName string, authorMail string, linesChanges LinesTouched, req fileWorkerRequest) bool {
+	if !authorCounted(req, authorName, authorMail) {
+		return false
+	}
+
 	authorKey := fmt.Sprintf("%s###%s", authorName, authorMail)
 
 	authorLine, ok := changesFileResult.authorLinesMap[authorKey]
@@ -254,15 +269,22 @@ func addAuthorLines(changesFileResult *ChangesFileResult, authorName string, aut
 	authorLine.LinesTouched = sumLinesChanges(authorLine.LinesTouched, linesChanges)
 
 	// files touched
-	fileChanges := authorLine.filesTouchedMap[filePath]
-	fileChanges.Name = filePath
+	fileChanges := authorLine.filesTouchedMap[req.filePath]
+	fileChanges.Name = req.filePath
 	fileChanges.Lines += linesChanges.New + linesChanges.ChurnOther + linesChanges.ChurnOwn + linesChanges.RefactorOther + linesChanges.RefactorOwn
-	// FIXME check if this is required
-	authorLine.filesTouchedMap[filePath] = fileChanges
+	authorLine.filesTouchedMap[req.filePath] = fileChanges
 
-	// FIXME check if this is required
 	changesFileResult.authorLinesMap[authorKey] = authorLine
 
 	// add to overall totals
 	changesFileResult.TotalLinesTouched = sumLinesChanges(changesFileResult.TotalLinesTouched, linesChanges)
+	return true
+}
+
+func authorCounted(req fileWorkerRequest, authorName string, authorMail string) bool {
+	authorsRe := regexp.MustCompile(req.authorsRegex)
+	authorsNotRe := regexp.MustCompile(req.authorsNotRegex)
+	return ((authorsRe.MatchString(authorName) || authorsRe.MatchString(authorMail)) &&
+		(req.authorsNotRegex == "" ||
+			(!authorsNotRe.MatchString(authorName) && !authorsNotRe.MatchString(authorMail))))
 }

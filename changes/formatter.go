@@ -42,7 +42,7 @@ func FormatTopTextResults(changes ChangesResult) string {
 		aj := changes.AuthorsLines[j].LinesTouched
 		return calcTopCoderScore(ai) > calcTopCoderScore(aj)
 	})
-	text := "Top Coders (new+refactor-churn)\n"
+	text := "\nTop Coders (new+refactor-churn)\n"
 	for i := 0; i < len(changes.AuthorsLines) && i < 3; i++ {
 		al := changes.AuthorsLines[i]
 		mailStr := fmt.Sprintf(" %s", al.AuthorMail)
