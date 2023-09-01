@@ -46,5 +46,19 @@ func RunOwnershipTimeline(osArgs []string) {
 		fmt.Println("Failed to perform ownership-timeline analysis. err=", err)
 		os.Exit(2)
 	}
-	ownership.PrintTimelineOwnershipResults(ownershipResults, cliOpts.Format == "full")
+
+	switch cliOpts.Format {
+	case "full":
+		ownership.PrintTimelineOwnershipResults(ownershipResults, true)
+	case "short":
+		ownership.PrintTimelineOwnershipResults(ownershipResults, false)
+	case "graph":
+		url := ownership.ServeOwnershipTimeline(ownershipResults)
+		_, err := utils.ExecShellf("", "open %s", url)
+		if err != nil {
+			fmt.Printf("Couldn't open browser automatically. See results at %s\n", url)
+		}
+		fmt.Printf("Serving graph at %s\n", url)
+		select {}
+	}
 }

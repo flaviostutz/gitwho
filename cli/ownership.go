@@ -23,7 +23,7 @@ func RunOwnership(osArgs []string) {
 	flags.StringVar(&opts.AuthorsNotRegex, "authors-not", "", "Regex for filtering out authors from analysis")
 	flags.IntVar(&opts.MinDuplicateLines, "min-dup-lines", 4, "Min number of similar lines in a row to be considered a duplicate")
 	flags.StringVar(&when, "when", "now", "Date to do analysis in repo")
-	flags.StringVar(&cliOpts.Format, "format", "full", "Output format. 'full' (more details) or 'short' (lines per author)")
+	flags.StringVar(&cliOpts.Format, "format", "full", "Output format. 'full' (more details), 'short' (lines per author) or 'graph' (open browser)")
 	flags.StringVar(&cliOpts.GoProfileFile, "profile-file", "", "Profile file to dump golang runtime data to")
 	flags.BoolVar(&cliOpts.Verbose, "verbose", false, "Show verbose logs during processing")
 
@@ -40,11 +40,26 @@ func RunOwnership(osArgs []string) {
 	opts.CommitId = commit.CommitId
 
 	logrus.Debugf("Starting analysis of code ownership. commitId=%s", opts.CommitId)
-	ownershipResults, err := ownership.AnalyseCodeOwnership(opts, progressChan)
+	ownershipResult, err := ownership.AnalyseCodeOwnership(opts, progressChan)
 	if err != nil {
 		fmt.Println("Failed to perform ownership analysis. err=", err)
 		os.Exit(2)
 	}
-	output := ownership.FormatCodeOwnershipResults(ownershipResults, cliOpts.Format == "full")
-	fmt.Println(output)
+
+	switch cliOpts.Format {
+	case "full":
+		output := ownership.FormatCodeOwnershipResults(ownershipResult, true)
+		fmt.Println(output)
+	case "short":
+		output := ownership.FormatCodeOwnershipResults(ownershipResult, false)
+		fmt.Println(output)
+	case "graph":
+		url := ownership.ServeOwnership(ownershipResult)
+		_, err := utils.ExecShellf("", "open %s", url)
+		if err != nil {
+			fmt.Printf("Couldn't open browser automatically. See results at %s\n", url)
+		}
+		fmt.Printf("Serving graph at %s\n", url)
+		select {}
+	}
 }

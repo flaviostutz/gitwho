@@ -16,8 +16,8 @@ type CliOpts struct {
 }
 
 func setupBasic(cliOpts CliOpts) chan<- utils.ProgressInfo {
-	if cliOpts.Format != "full" && cliOpts.Format != "short" {
-		fmt.Println("'--format' should be 'full or 'short''")
+	if cliOpts.Format != "full" && cliOpts.Format != "short" && cliOpts.Format != "graph" {
+		fmt.Println("'--format' should be (full|short|graph)")
 		os.Exit(1)
 	}
 
