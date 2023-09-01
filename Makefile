@@ -41,7 +41,7 @@ run-ownership-timeline:
 	# go run ./ ownership-timeline --repo /Users/flaviostutz/Documents/development/flaviostutz/conductor --branch main --files .md --format full
 	# go run ./ ownership-timeline --repo /Users/flaviostutz/Documents/development/flaviostutz/moby --branch master --files test --files-not "vendor" --format full
 	# go run ./ ownership-timeline --repo /Users/flaviostutz/Documents/development/flaviostutz/gitwho --branch main --files "." --when "now"
-	go run ./ ownership-timeline --repo /Users/flaviostutz/Documents/development/nn/mortgage-loan --branch master --files "dossier|mutation|upload|shared" --files-not "" --since="9 months ago" --until "now" --period "1 month" --format full
+	go run ./ ownership-timeline --repo /Users/flaviostutz/Documents/development/nn/mortgage-loan --branch master --files "dossier" --files-not "" --since="3 months ago" --until "now" --period "1 month" --format full
 
 
 run-duplicates:
