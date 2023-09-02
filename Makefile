@@ -27,7 +27,7 @@ deploy: publish-npm-all
 run-changes:
 	# go run ./ changes --repo /Users/flaviostutz/Documents/development/flaviostutz/conductor --branch main --files .md --since "5 years ago" --until "3 years ago" --format full
 	# go run ./ changes --repo /Users/flaviostutz/Documents/development/flaviostutz/moby --branch master --files ".*" --files-not "vendor" --since "30 days ago" --until "now" --format full
-	go run ./ changes --repo /Users/flaviostutz/Documents/development/nn/mortgage-loan --branch master --files ".ts$$" --since "15 days ago" --until "now" --format full --authors "Flavio|Marcio|Niels|Gabriel" --verbose true
+	go run ./ changes --repo /Users/flaviostutz/Documents/development/nn/mortgage-loan --branch master --files ".ts$$" --since "15 days ago" --until "now" --format graph --authors "Flavio|Marcio|Niels|Gabriel" --verbose true
 
 run-ownership:
 # gocv, orb, conductor

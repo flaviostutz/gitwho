@@ -50,11 +50,13 @@ func RunOwnership(osArgs []string) {
 	case "full":
 		output := ownership.FormatCodeOwnershipResults(ownershipResult, true)
 		fmt.Println(output)
+
 	case "short":
 		output := ownership.FormatCodeOwnershipResults(ownershipResult, false)
 		fmt.Println(output)
+
 	case "graph":
-		url := ownership.ServeOwnership(ownershipResult)
+		url := ownership.ServeOwnership(ownershipResult, opts)
 		_, err := utils.ExecShellf("", "open %s", url)
 		if err != nil {
 			fmt.Printf("Couldn't open browser automatically. See results at %s\n", url)

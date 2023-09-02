@@ -23,7 +23,7 @@ func RunChanges(osArgs []string) {
 	flags.StringVar(&opts.AuthorsNotRegex, "authors-not", "", "Regex for filtering out authors from analysis")
 	flags.StringVar(&opts.Since, "since", "30 days ago", "Filter changes made from this date")
 	flags.StringVar(&opts.Until, "until", "now", "Filter changes made util this date")
-	flags.StringVar(&cliOpts.Format, "format", "full", "Output format. 'full' (more details) or 'short' (lines per author)")
+	flags.StringVar(&cliOpts.Format, "format", "full", "Output format. 'full' (more details), 'short' (lines per author) or 'graph' (open browser)")
 	flags.StringVar(&cliOpts.GoProfileFile, "profile-file", "", "Profile file to dump golang runtime data to")
 	flags.BoolVar(&cliOpts.Verbose, "verbose", false, "Show verbose logs during processing")
 
@@ -43,16 +43,28 @@ func RunChanges(osArgs []string) {
 		fmt.Println("Failed to perform changes analysis. err=", err)
 		os.Exit(2)
 	}
-	if cliOpts.Format == "short" {
-		output := changes.FormatTopTextResults(changesResults)
-		fmt.Println(output)
-	} else {
-		output := changes.FormatFullTextResults(changesResults)
-		fmt.Println(output)
-	}
 
 	if changesResults.TotalCommits == 0 {
 		fmt.Println("No changes found")
 		os.Exit(3)
+	}
+
+	switch cliOpts.Format {
+	case "full":
+		output := changes.FormatFullTextResults(changesResults)
+		fmt.Println(output)
+
+	case "short":
+		output := changes.FormatTopTextResults(changesResults)
+		fmt.Println(output)
+
+	case "graph":
+		url := changes.ServeChanges(changesResults, opts)
+		_, err := utils.ExecShellf("", "open %s", url)
+		if err != nil {
+			fmt.Printf("Couldn't open browser automatically. See results at %s\n", url)
+		}
+		fmt.Printf("Serving graph at %s\n", url)
+		select {}
 	}
 }

@@ -32,3 +32,21 @@ func CalcDiffStr(curValue int, prevValue int) string {
 	}
 	return fmt.Sprintf(" (%s%d)", sig, diff)
 }
+
+func BaseOptsStr(baseOpts BaseOptions) string {
+	str := ""
+	str += AttrStr("repo", baseOpts.RepoDir)
+	str += AttrStr("branch", baseOpts.Branch)
+	str += AttrStr("files", baseOpts.FilesRegex)
+	str += AttrStr("files-not", baseOpts.FilesNotRegex)
+	str += AttrStr("authors", baseOpts.AuthorsRegex)
+	str += AttrStr("authors-not", baseOpts.AuthorsNotRegex)
+	return str
+}
+
+func AttrStr(label string, value string) string {
+	if value != "" {
+		return fmt.Sprintf("%s: %s\n", label, value)
+	}
+	return ""
+}

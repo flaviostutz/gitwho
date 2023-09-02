@@ -53,7 +53,7 @@ func RunOwnershipTimeline(osArgs []string) {
 	case "short":
 		ownership.PrintTimelineOwnershipResults(ownershipResults, false)
 	case "graph":
-		url := ownership.ServeOwnershipTimeline(ownershipResults)
+		url := ownership.ServeOwnershipTimeline(ownershipResults, opts)
 		_, err := utils.ExecShellf("", "open %s", url)
 		if err != nil {
 			fmt.Printf("Couldn't open browser automatically. See results at %s\n", url)
