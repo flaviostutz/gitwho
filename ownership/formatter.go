@@ -138,3 +138,29 @@ func avgLineAgeStr(linesAgeDaysSum float64, totalLines int) string {
 	// fmt.Printf("%s %d\n", linesAgeSum, totalLines)
 	return fmt.Sprintf("%1.f days", (linesAgeDaysSum / float64(totalLines)))
 }
+
+func formatSimpleOwnershipTimelineResults(results []OwnershipResult) string {
+	str := "\nDate | Lines | Duplicates | Files\n"
+
+	firstResult := OwnershipResult{}
+	prevResult := OwnershipResult{}
+	for i, result := range results {
+		if i == 0 {
+			firstResult = result
+		}
+		str += fmt.Sprintf("%s | %d%s | %d%s | %d%s\n",
+			result.Commit.Date.Format(time.DateOnly),
+			result.TotalLinesDuplicated, utils.CalcDiffStr(result.TotalLinesDuplicated, prevResult.TotalLinesDuplicated),
+			result.TotalLines, utils.CalcDiffStr(result.TotalLines, prevResult.TotalLines),
+			result.TotalFiles, utils.CalcDiffStr(result.TotalFiles, prevResult.TotalFiles),
+		)
+		prevResult = result
+	}
+	str += fmt.Sprintf("%s | %d%s | %d%s | %d%s\n",
+		"Inc/period",
+		prevResult.TotalLinesDuplicated-firstResult.TotalLinesDuplicated, utils.CalcDiffPercStr(prevResult.TotalLinesDuplicated, firstResult.TotalLinesDuplicated),
+		prevResult.TotalLines-firstResult.TotalLines, utils.CalcDiffPercStr(prevResult.TotalLines, firstResult.TotalLines),
+		prevResult.TotalFiles-firstResult.TotalFiles, utils.CalcDiffPercStr(prevResult.TotalFiles, firstResult.TotalFiles),
+	)
+	return str
+}
