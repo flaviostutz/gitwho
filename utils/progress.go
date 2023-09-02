@@ -41,6 +41,6 @@ func ShowProgress(progressChan <-chan ProgressInfo) {
 			}
 		}
 		// print to stderr so this won't be seen by tools parsing the results on stdout
-		os.Stderr.WriteString(fmt.Sprintf("%d%% (%d/%d%s) %dms %s \r \a", int(perc), pc.CompletedTasks, pc.TotalTasks, pending, int(avg), fileName))
+		os.Stderr.WriteString(fmt.Sprintf("%d%% (%d/%d%s) %dms %s \r", int(perc), pc.CompletedTasks, pc.TotalTasks, pending, int(avg), fileName))
 	}
 }
