@@ -21,10 +21,10 @@ type BlameLine struct {
 }
 
 type CommitInfo struct {
-	AuthorName string
-	AuthorMail string
-	Date       time.Time
-	CommitId   string
+	AuthorName string    `json:"author_name"`
+	AuthorMail string    `json:"author_mail"`
+	Date       time.Time `json:"date"`
+	CommitId   string    `json:"commit_id"`
 }
 
 func ExecGitBlame(repoPath string, filePath string, revision string) ([]BlameLine, error) {

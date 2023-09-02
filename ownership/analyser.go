@@ -17,40 +17,40 @@ import (
 
 type OwnershipOptions struct {
 	utils.BaseOptions
-	MinDuplicateLines int
-	CommitId          string
+	MinDuplicateLines int    `json:"min_duplicate_lines"`
+	CommitId          string `json:"commit_id"`
 }
 
 type OwnershipTimelineOptions struct {
 	utils.BaseOptions
-	MinDuplicateLines int
-	Since             string
-	Until             string
-	Period            string
+	MinDuplicateLines int    `json:"min_duplicate_lines"`
+	Since             string `json:"since"`
+	Until             string `json:"until"`
+	Period            string `json:"period"`
 }
 
 type AuthorLines struct {
-	AuthorName           string
-	AuthorMail           string
-	OwnedLinesTotal      int
-	OwnedLinesAgeDaysSum float64
+	AuthorName           string  `json:"author_name"`
+	AuthorMail           string  `json:"author_mail"`
+	OwnedLinesTotal      int     `json:"owned_lines_total"`
+	OwnedLinesAgeDaysSum float64 `json:"owned_lines_age_days_sum"`
 	// OwnedLinesDuplicate total lines owned that were found duplicated in repo
-	OwnedLinesDuplicate int
+	OwnedLinesDuplicate int `json:"owned_lines_duplicate"`
 	// OwnedLinesDuplicateOriginal total lines owned that were found duplicated in repo but were originally created by the author
-	OwnedLinesDuplicateOriginal int
+	OwnedLinesDuplicateOriginal int `json:"owned_lines_duplicate_original"`
 	// OwnedLinesDuplicateOriginalOthers total lines owned that were found duplicated by someone else (your code was duplicated by others)
-	OwnedLinesDuplicateOriginalOthers int
+	OwnedLinesDuplicateOriginalOthers int `json:"owned_lines_duplicate_original_others"`
 }
 type OwnershipResult struct {
-	Commit               utils.CommitInfo
-	TotalFiles           int
-	TotalLines           int
-	TotalLinesDuplicated int
-	LinesAgeDaysSum      float64
+	Commit               utils.CommitInfo       `json:"commit"`
+	TotalFiles           int                    `json:"total_files"`
+	TotalLines           int                    `json:"total_lines"`
+	TotalLinesDuplicated int                    `json:"total_files_duplicated"`
+	LinesAgeDaysSum      float64                `json:"lines_age_days_sum"`
 	authorLinesMap       map[string]AuthorLines // temporary map used during processing
-	AuthorsLines         []AuthorLines
-	FilePath             string
-	DuplicateLineGroups  []utils.LineGroup
+	AuthorsLines         []AuthorLines          `json:"authors_lines"`
+	FilePath             string                 `json:"file_path"`
+	DuplicateLineGroups  []utils.LineGroup      `json:"duplicate_line_groups"`
 	blameTime            time.Duration
 	skippedFiles         int
 }
@@ -125,6 +125,15 @@ func TimelineCodeOwnership(opts OwnershipTimelineOptions, progressChan chan<- ut
 func AnalyseCodeOwnership(opts OwnershipOptions, progressChan chan<- utils.ProgressInfo) (OwnershipResult, error) {
 	if opts.CommitId == "" {
 		return OwnershipResult{}, fmt.Errorf("opts.CommitId is required")
+	}
+
+	// check if cached results exists
+	cachedResults, err := GetCachedResults(opts)
+	if err != nil {
+		return OwnershipResult{}, err
+	}
+	if cachedResults != nil {
+		return *cachedResults, nil
 	}
 
 	commit, err := utils.ExecGitCommitInfo(opts.RepoDir, opts.CommitId)
@@ -290,6 +299,10 @@ func AnalyseCodeOwnership(opts OwnershipOptions, progressChan chan<- utils.Progr
 	logrus.Debug("Summary worker finished")
 
 	// fmt.Printf("SUMMARY: %v\n", result)
+
+	if opts.CacheFile != "" {
+		SaveCachedResults(opts, result)
+	}
 
 	return result, nil
 }
