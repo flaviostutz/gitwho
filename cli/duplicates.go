@@ -46,6 +46,11 @@ func RunDuplicates(osArgs []string) {
 		os.Exit(2)
 	}
 
+	if cliOpts.Format == "graph" {
+		fmt.Printf("format 'graph' is not supported\n")
+		os.Exit(3)
+	}
+
 	output := ownership.FormatDuplicatesResults(ownershipResults, cliOpts.Format == "full")
 	fmt.Println(output)
 }

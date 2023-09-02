@@ -35,6 +35,41 @@ Total lines: 3668
   Flavio Stutz <flaviostutz@test.nl>: 950 (25.9%) avg-days:18 dup:42 orig:34 dup-others:7
 ```
 
+* When using "--format graph"
+
+<img src="ownership.png" width="500">
+
+### Example: show code ownership timeline stats
+```sh
+npx -y @gitwho/darwin-arm64@latest ownership-timeline
+
+Date        Lines        Duplicates     Files       
+2023-06-10  6864         33368          656         
+2023-06-23  6864 (0)     33576 (+208)   658 (+2)    
+2023-07-07  6784 (-80)   34599 (+1023)  668 (+10)   
+2023-07-22  6780 (-4)    34945 (+346)   671 (+3)    
+2023-07-23  6832 (+52)   35603 (+658)   672 (+1)    
+2023-08-19  6820 (-12)   36758 (+1155)  674 (+2)    
+2023-09-01  6868 (+48)   37327 (+569)   677 (+3)    
+Inc/period  4 (+0%)      3959 (+11%)    21 (+3%)  
+
+Sebastiaan van Stijn
+Date        Lines          Duplicates (total)  Duplicates (original)  
+2023-06-10  16076          1120                1028                   
+2023-06-23  16135 (+59)    1132 (+12)          1044 (+16)             
+2023-07-07  17304 (+1169)  1148 (+16)          1060 (+16)             
+2023-07-22  17689 (+385)   1152 (+4)           1068 (+8)              
+2023-07-23  18345 (+656)   1212 (+60)          1128 (+60)             
+2023-08-19  20068 (+1723)  1260 (+48)          1168 (+40)             
+2023-09-01  20715 (+647)   1320 (+60)          1220 (+52)             
+Inc/period  4639 (+28%)    200 (+17%)          192 (+18%)
+```
+
+* When using "--format graph"
+
+<img src="ownership-timeline.png" width="500">
+
+
 ### Example: Show changes stats for the last 30 days
 
 ```sh
@@ -75,6 +110,10 @@ Author: Flávio Stutz <flaviostutz@gmail.com>
     - Makefile (360)
     - utils/duplicates.go (299)
 ```
+
+* When using "--format graph"
+
+<img src="changes.png" width="500">
 
 ### Example: Show duplicate lines
 
