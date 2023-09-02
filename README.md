@@ -247,6 +247,10 @@ Usage of ownership:
         Date time to analyse (default "now")
 ```
 
+## General options
+
+In general, the commands allows filtering by time (since, until, period etc), authors and files, so you can tweak the queries to focus on specific areas to create insights by your own.
+
 ## More examples
 
 * Show simple list of authors with most lines of code in markdown pages
