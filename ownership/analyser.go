@@ -128,12 +128,14 @@ func AnalyseCodeOwnership(opts OwnershipOptions, progressChan chan<- utils.Progr
 	}
 
 	// check if cached results exists
-	cachedResults, err := GetCachedResults(opts)
-	if err != nil {
-		return OwnershipResult{}, err
-	}
-	if cachedResults != nil {
-		return *cachedResults, nil
+	if opts.CacheFile != "" {
+		cachedResults, err := GetFromCache(opts)
+		if err != nil {
+			return OwnershipResult{}, err
+		}
+		if cachedResults != nil {
+			return *cachedResults, nil
+		}
 	}
 
 	commit, err := utils.ExecGitCommitInfo(opts.RepoDir, opts.CommitId)
@@ -301,7 +303,7 @@ func AnalyseCodeOwnership(opts OwnershipOptions, progressChan chan<- utils.Progr
 	// fmt.Printf("SUMMARY: %v\n", result)
 
 	if opts.CacheFile != "" {
-		SaveCachedResults(opts, result)
+		SaveToCache(opts, result)
 	}
 
 	return result, nil

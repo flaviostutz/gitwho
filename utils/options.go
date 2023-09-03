@@ -8,4 +8,5 @@ type BaseOptions struct {
 	AuthorsNotRegex string `json:"authors_not_regex"`
 	RepoDir         string `json:"repo_dir"`
 	CacheFile       string `json:"cache_file"`
+	CacheTTLSeconds int    `json:"cache_ttl_seconds"`
 }

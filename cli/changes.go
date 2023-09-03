@@ -21,6 +21,8 @@ func RunChanges(osArgs []string) {
 	flags.StringVar(&opts.FilesNotRegex, "files-not", "", "Regex for filtering out files from analysis")
 	flags.StringVar(&opts.AuthorsRegex, "authors", ".*", "Regex for selecting which authors to include in analysis")
 	flags.StringVar(&opts.AuthorsNotRegex, "authors-not", "", "Regex for filtering out authors from analysis")
+	flags.StringVar(&opts.CacheFile, "cache-file", "", "If defined, stores results in a cache file that can be used in subsequent calls that uses the same parameters.")
+	flags.IntVar(&opts.CacheTTLSeconds, "cache-ttl", 15552000, "Time in seconds for old items in cache file to be deleted. Defaults to 6 months")
 	flags.StringVar(&opts.Since, "since", "30 days ago", "Filter changes made from this date")
 	flags.StringVar(&opts.Until, "until", "now", "Filter changes made util this date")
 	flags.StringVar(&cliOpts.Format, "format", "full", "Output format. 'full' (more details), 'short' (lines per author) or 'graph' (open browser)")

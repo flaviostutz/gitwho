@@ -31,17 +31,17 @@ run-changes:
 
 run-ownership:
 # gocv, orb, conductor
-	# go run ./ ownership --repo /Users/flaviostutz/Documents/development/flaviostutz/conductor --branch main --files .md --format full
-	go run ./ ownership --repo /Users/flaviostutz/Documents/development/flaviostutz/moby --branch master --files ".*" --files-not vendor --authors "Sebastiaan|Brian|Cory|Tõnis|Jana" --format graph
-	# go run ./ ownership --repo /Users/flaviostutz/Documents/development/flaviostutz/gitwho --branch main --files "." --when "now"
-	# go run ./ ownership --repo /Users/flaviostutz/Documents/development/nn/mortgage-loan --branch master --files "shared" --files-not "" --when "now" --format graph
+	go run ./ ownership --repo /Users/flaviostutz/Documents/development/flaviostutz/conductor --branch main --cache-file gitwho.cache --files .md --format full
+	# go run ./ ownership --repo /Users/flaviostutz/Documents/development/flaviostutz/moby --branch master --cache-file gitwho.cache --files ".*" --files-not vendor --authors "Sebastiaan|Brian|Cory|Tõnis|Jana" --format graph
+	# go run ./ ownership --repo /Users/flaviostutz/Documents/development/flaviostutz/gitwho --branch main --cache-file gitwho.cache --files "." --when "now"
+	# go run ./ ownership --repo /Users/flaviostutz/Documents/development/nn/mortgage-loan --branch master --cache-file gitwho.cache --files "shared" --files-not "" --when "now" --format graph
 
 run-ownership-timeline:
 # gocv, orb, conductor
-	go run ./ ownership-timeline --repo /Users/flaviostutz/Documents/development/flaviostutz/conductor --branch main --files .md --format graph
-	# go run ./ ownership-timeline --repo /Users/flaviostutz/Documents/development/flaviostutz/moby --branch master --files test --files-not "vendor" --since="3 months ago" --until "now" --period "2 weeks" --authors "Sebastiaan|Brian|Cory|Tõnis|Jana" --format full
-	# go run ./ ownership-timeline --repo /Users/flaviostutz/Documents/development/flaviostutz/gitwho --branch main --files "." --when "now"
-	# go run ./ ownership-timeline --repo /Users/flaviostutz/Documents/development/nn/mortgage-loan --branch master --files "test" --files-not "" --since="8 months ago" --until "now" --period "1 month" --format graph
+	go run ./ ownership-timeline --repo /Users/flaviostutz/Documents/development/flaviostutz/conductor --branch main --cache-file gitwho.cache --files "" --since="12 months ago" --until "now" --period "1 month" --format graph
+	# go run ./ ownership-timeline --repo /Users/flaviostutz/Documents/development/flaviostutz/moby --branch master --cache-file gitwho.cache --files test --files-not "vendor" --since="3 months ago" --until "now" --period "2 weeks" --authors "Sebastiaan|Brian|Cory|Tõnis|Jana" --format full
+	# go run ./ ownership-timeline --repo /Users/flaviostutz/Documents/development/flaviostutz/gitwho --branch main --cache-file gitwho.cache --files "." --when "now"
+	# go run ./ ownership-timeline --repo /Users/flaviostutz/Documents/development/nn/mortgage-loan --branch master --cache-file gitwho.cache --files "test" --files-not "" --since="8 months ago" --until "now" --period "1 month" --format graph
 
 
 run-duplicates:

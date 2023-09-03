@@ -2,10 +2,12 @@ package ownership
 
 import (
 	"fmt"
+	"os"
 	"testing"
 	"time"
 
 	"github.com/flaviostutz/gitwho/utils"
+	"github.com/stretchr/testify/require"
 )
 
 var (
@@ -17,6 +19,8 @@ var (
 			FilesNotRegex:   "test",
 			AuthorsRegex:    "abraham-neto|.*",
 			AuthorsNotRegex: "Found.*There",
+			CacheFile:       "gitwho.cache",
+			CacheTTLSeconds: 10,
 		},
 		MinDuplicateLines: 4,
 		CommitId:          "abc123abc123abc123abc123abc123abc123abc123abc123abc123abc123abc123",
@@ -45,20 +49,79 @@ var (
 )
 
 func TestSaveNewCachedResultsOwnership(t *testing.T) {
+	opts1 := sampleOpts // clone instance
+	opts1.CommitId = "123123123"
+	os.Remove(opts1.CacheFile)
 
+	result, err := GetFromCache(opts1)
+	require.Nil(t, err)
+	require.Nil(t, result)
+
+	err = SaveToCache(opts1, sampleResult)
+	require.Nil(t, err)
+
+	result2, err := GetFromCache(opts1)
+	require.Nil(t, err)
+	require.NotNil(t, result2)
+	require.Equal(t, sampleResult, *result2)
 }
 
 func TestSaveExistingCachedResultsOwnership(t *testing.T) {
+	opts1 := sampleOpts // clone instance
+	opts1.CommitId = "abcabc"
+	os.Remove(opts1.CacheFile)
+
+	err := SaveToCache(opts1, sampleResult)
+	require.Nil(t, err)
+
+	err = SaveToCache(opts1, sampleResult)
+	require.Nil(t, err)
+
+	result2, err := GetFromCache(opts1)
+	require.Nil(t, err)
+	require.NotNil(t, result2)
+	require.Equal(t, sampleResult, *result2)
 }
 
 func TestGetExistingCachedResultsOwnership(t *testing.T) {
+	opts1 := sampleOpts // clone instance
+	opts1.CommitId = "xyzxyz"
+	os.Remove(opts1.CacheFile)
+
+	err := SaveToCache(opts1, sampleResult)
+	require.Nil(t, err)
+
+	result2, err := GetFromCache(opts1)
+	require.Nil(t, err)
+	require.NotNil(t, result2)
+	require.Equal(t, sampleResult, *result2)
 }
 
-func TestGetUnexistingCachedResultsOwnership(t *testing.T) {
+func TestCacheAutoCleanup(t *testing.T) {
+	opts1 := sampleOpts // clone instance
+	opts1.CommitId = "bbbbbbbb"
+	opts1.CacheTTLSeconds = 1
+	os.Remove(opts1.CacheFile)
+
+	err := SaveToCache(opts1, sampleResult)
+	require.Nil(t, err)
+
+	// not expired
+	result2, err := GetFromCache(opts1)
+	require.Nil(t, err)
+	require.NotNil(t, result2)
+
+	// wait for expiration
+	time.Sleep(1100 * time.Millisecond)
+
+	// expired
+	result3, err := GetFromCache(opts1)
+	require.Nil(t, err)
+	require.Nil(t, result3)
 }
 
 func getSampleDate() time.Time {
-	d, err := time.Parse(time.RFC3339, "2023-08-15T20:12:32Z-02:02")
+	d, err := time.Parse(time.RFC3339, "2023-08-15T20:12:32-02:00")
 	if err != nil {
 		fmt.Println(err)
 		panic(1)
