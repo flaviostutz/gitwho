@@ -19,7 +19,7 @@ var (
 			FilesNotRegex:   "test",
 			AuthorsRegex:    "abraham-neto|.*",
 			AuthorsNotRegex: "Found.*There",
-			CacheFile:       "gitwho.cache",
+			CacheFile:       "gitwho-cache",
 			CacheTTLSeconds: 10,
 		},
 		MinDuplicateLines: 4,

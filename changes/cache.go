@@ -1,4 +1,4 @@
-package ownership
+package changes
 
 import (
 	"bytes"
@@ -10,9 +10,9 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var cacheTable = "GITWHO_OWNERSHIP_CACHE"
+var cacheTable = "GITWHO_CHANGES_CACHE"
 
-func GetFromCache(opts OwnershipOptions) (*OwnershipResult, error) {
+func GetFromCache(opts ChangesOptions) (*ChangesResult, error) {
 	// logrus.Debugf("Reusing results found in cache file")
 	cachedb, err := utils.NewCacheDB(opts.CacheFile, cacheTable, opts.CacheTTLSeconds)
 	if err != nil {
@@ -31,7 +31,7 @@ func GetFromCache(opts OwnershipOptions) (*OwnershipResult, error) {
 	}
 
 	logrus.Debugf("Cache hit for %s", cacheKey)
-	result := OwnershipResult{}
+	result := ChangesResult{}
 	err = json.NewDecoder(strings.NewReader(*cachedValue)).Decode(&result)
 	if err != nil {
 		return nil, err
@@ -40,7 +40,7 @@ func GetFromCache(opts OwnershipOptions) (*OwnershipResult, error) {
 	return &result, nil
 }
 
-func SaveToCache(opts OwnershipOptions, result OwnershipResult) error {
+func SaveToCache(opts ChangesOptions, result ChangesResult) error {
 	// logrus.Debugf("Saving results to cache file")
 
 	cachedb, err := utils.NewCacheDB(opts.CacheFile, cacheTable, opts.CacheTTLSeconds)
@@ -49,6 +49,7 @@ func SaveToCache(opts OwnershipOptions, result OwnershipResult) error {
 	}
 	defer cachedb.Close()
 
+	// FIXME add last commit time and current date to key
 	cacheKey := getCacheKey(opts)
 
 	b, err := json.Marshal(result)
@@ -66,14 +67,14 @@ func SaveToCache(opts OwnershipOptions, result OwnershipResult) error {
 	return nil
 }
 
-func getCacheKey(opts OwnershipOptions) string {
-	return fmt.Sprintf("%s:%s:%s:%s:%s:%s:%s:%d",
+func getCacheKey(opts ChangesOptions) string {
+	return fmt.Sprintf("%s:%s:%s:%s:%s:%s:%s:%s",
 		opts.RepoDir,
-		opts.CommitId,
 		opts.Branch,
 		opts.AuthorsRegex,
 		opts.AuthorsNotRegex,
 		opts.FilesRegex,
 		opts.FilesNotRegex,
-		opts.MinDuplicateLines)
+		opts.Since,
+		opts.Until)
 }

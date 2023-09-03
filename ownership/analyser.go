@@ -300,8 +300,6 @@ func AnalyseCodeOwnership(opts OwnershipOptions, progressChan chan<- utils.Progr
 	summaryWorkerWaitGroup.Wait()
 	logrus.Debug("Summary worker finished")
 
-	// fmt.Printf("SUMMARY: %v\n", result)
-
 	if opts.CacheFile != "" {
 		SaveToCache(opts, result)
 	}

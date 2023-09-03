@@ -93,6 +93,18 @@ type commitWorkerRequest struct {
 }
 
 func AnalyseChanges(opts ChangesOptions, progressChan chan<- utils.ProgressInfo) (ChangesResult, error) {
+
+	// check if cached results exists
+	if opts.CacheFile != "" {
+		cachedResults, err := GetFromCache(opts)
+		if err != nil {
+			return ChangesResult{}, err
+		}
+		if cachedResults != nil {
+			return *cachedResults, nil
+		}
+	}
+
 	result := ChangesResult{
 		TotalLinesTouched: LinesTouched{},
 		authorLinesMap:    make(map[string]AuthorLines, 0),
@@ -286,7 +298,9 @@ func AnalyseChanges(opts ChangesOptions, progressChan chan<- utils.ProgressInfo)
 	summaryWorkerWaitGroup.Wait()
 	logrus.Debug("Summary worker finished")
 
-	// fmt.Printf("SUMMARY: %v\n", result)
+	if opts.CacheFile != "" {
+		SaveToCache(opts, result)
+	}
 
 	return result, nil
 }

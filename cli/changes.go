@@ -66,7 +66,7 @@ func RunChanges(osArgs []string) {
 		if err != nil {
 			fmt.Printf("Couldn't open browser automatically. See results at %s\n", url)
 		}
-		fmt.Printf("Serving graph at %s\n", url)
+		fmt.Printf("\nServing graph at %s\n", url)
 		select {}
 	}
 }

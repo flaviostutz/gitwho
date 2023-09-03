@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"os"
 	"testing"
 	"time"
 
@@ -8,9 +9,9 @@ import (
 )
 
 func TestSaveGetCache(t *testing.T) {
-	// os.Remove("gitwho.cache")
+	os.Remove("gitwho-cache")
 
-	cachedb, err := NewCacheDB("gitwho.cache", "TEST_CACHE", 1)
+	cachedb, err := NewCacheDB("gitwho-cache", "TEST_CACHE", 1)
 	require.Nil(t, err)
 
 	err = cachedb.PutValue("key", "value")
