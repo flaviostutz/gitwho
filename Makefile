@@ -30,11 +30,11 @@ run-changes:
 	go run ./ changes --repo /Users/flaviostutz/Documents/development/flaviostutz/moby --branch master --cache-file "gitwho-cache" --verbose --files ".*" --files-not "vendor" --since "2023-07-01" --until "2023-08-01" --format graph
 	# go run ./ changes --repo /Users/flaviostutz/Documents/development/nn/mortgage-loan --branch master --cache-file gitwho-cache --files ".ts$$" --since "15 days ago" --until "now" --format graph --authors "Flavio|Marcio|Niels|Gabriel" --verbose
 
-run-changes-timeline:
-	# go run ./ changes-timeline --repo /Users/flaviostutz/Documents/development/flaviostutz/conductor --branch main --cache-file gitwho-cache --files .md --since "5 years ago" --until "3 years ago" --format full
-	# go run ./ changes-timeline --repo /Users/flaviostutz/Documents/development/flaviostutz/moby --branch master --cache-file "gitwho-cache" --verbose --files ".*" --files-not "vendor" --since "30 days ago" --until "now" --format graph
-	# go run ./ changes-timeline --repo /Users/flaviostutz/Documents/development/flaviostutz/moby --branch master --cache-file "gitwho-cache" --verbose --files ".md" --files-not "vendor" --since "6 months ago" --authors A.* --until "now" --period "1 month" --format graph
-	go run ./ changes-timeline --repo /Users/flaviostutz/Documents/development/nn/mortgage-loan --branch master --cache-file gitwho-cache --files "" --since "2023-01-01" --until "now" --period "4 weeks" --verbose --format graph
+run-changes-timeseries:
+	# go run ./ changes-timeseries --repo /Users/flaviostutz/Documents/development/flaviostutz/conductor --branch main --cache-file gitwho-cache --files .md --since "5 years ago" --until "3 years ago" --format full
+	# go run ./ changes-timeseries --repo /Users/flaviostutz/Documents/development/flaviostutz/moby --branch master --cache-file "gitwho-cache" --verbose --files ".*" --files-not "vendor" --since "30 days ago" --until "now" --format graph
+	# go run ./ changes-timeseries --repo /Users/flaviostutz/Documents/development/flaviostutz/moby --branch master --cache-file "gitwho-cache" --verbose --files ".md" --files-not "vendor" --since "6 months ago" --authors A.* --until "now" --period "1 month" --format graph
+	go run ./ changes-timeseries --repo /Users/flaviostutz/Documents/development/nn/mortgage-loan --branch master --cache-file gitwho-cache --files "" --since "2023-01-01" --until "now" --period "4 weeks" --verbose --format graph
 
 run-ownership:
 # gocv, orb, conductor
@@ -43,12 +43,12 @@ run-ownership:
 	# go run ./ ownership --repo /Users/flaviostutz/Documents/development/flaviostutz/gitwho --branch main --cache-file gitwho-cache --files "." --when "now"
 	# go run ./ ownership --repo /Users/flaviostutz/Documents/development/nn/mortgage-loan --branch master --cache-file gitwho-cache --files "shared" --files-not "" --when "now" --format graph
 
-run-ownership-timeline:
+run-ownership-timeseries:
 # gocv, orb, conductor
-	# go run ./ ownership-timeline --repo /Users/flaviostutz/Documents/development/flaviostutz/conductor --branch main --cache-file gitwho-cache --files "" --since="18 months ago" --until "now" --period "1 month" --format graph
-	go run ./ ownership-timeline --repo /Users/flaviostutz/Documents/development/flaviostutz/moby --branch master --cache-file gitwho-cache --files ".md" --files-not "vendor" --since="1 years ago" --until "now" --period "1 month" --format full
-	# go run ./ ownership-timeline --repo /Users/flaviostutz/Documents/development/flaviostutz/gitwho --branch main --cache-file gitwho-cache --files "." --when "now"
-	# go run ./ ownership-timeline --repo /Users/flaviostutz/Documents/development/nn/mortgage-loan --branch master --cache-file gitwho-cache --files "test" --files-not "" --since="8 months ago" --until "now" --period "1 month" --format graph
+	# go run ./ ownership-timeseries --repo /Users/flaviostutz/Documents/development/flaviostutz/conductor --branch main --cache-file gitwho-cache --files "" --since="18 months ago" --until "now" --period "1 month" --format graph
+	# go run ./ ownership-timeseries --repo /Users/flaviostutz/Documents/development/flaviostutz/moby --branch master --cache-file gitwho-cache --files ".md" --files-not "vendor" --since="1 years ago" --until "now" --period "1 month" --format full
+	# go run ./ ownership-timeseries --repo /Users/flaviostutz/Documents/development/flaviostutz/gitwho --branch main --cache-file gitwho-cache --files "." --when "now"
+	go run ./ ownership-timeseries --repo /Users/flaviostutz/Documents/development/nn/mortgage-loan --branch master --cache-file gitwho-cache --files "mutation|dossier|shared" --files-not "" --since="8 months ago" --until "now" --period "1 month" --authors "Flavio|Sven|Marcio|Gabriel|Niels" --format graph
 
 
 run-duplicates:

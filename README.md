@@ -39,9 +39,9 @@ Total lines: 3668
 
 <img src="ownership.png" width="500">
 
-### Example: show code ownership timeline stats
+### Example: show code ownership timeseries stats
 ```sh
-npx -y @gitwho/darwin-arm64@latest ownership-timeline
+npx -y @gitwho/darwin-arm64@latest ownership-timeseries
 
 Date        Lines        Duplicates     Files       
 2023-06-10  6864         33368          656         
@@ -67,7 +67,7 @@ Inc/period  4639 (+28%)    200 (+17%)          192 (+18%)
 
 * When using "--format graph"
 
-<img src="ownership-timeline.png" width="500">
+<img src="ownership-timeseries.png" width="500">
 
 
 ### Example: Show changes stats for the last 30 days

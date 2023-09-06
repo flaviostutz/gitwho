@@ -10,11 +10,11 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func RunChangesTimeline(osArgs []string) {
-	opts := changes.ChangesTimelineOptions{}
+func RunChangesTimeseries(osArgs []string) {
+	opts := changes.ChangesTimeseriesOptions{}
 	cliOpts := CliOpts{}
 
-	flags := flag.NewFlagSet("changes-timeline", flag.ExitOnError)
+	flags := flag.NewFlagSet("changes-timeseries", flag.ExitOnError)
 	flags.StringVar(&opts.RepoDir, "repo", ".", "Repository path to analyse")
 	flags.StringVar(&opts.Branch, "branch", "main", "Branch name to analyse")
 	flags.StringVar(&opts.FilesRegex, "files", ".*", "Regex for selecting which file paths to include in analysis")
@@ -41,7 +41,7 @@ func RunChangesTimeline(osArgs []string) {
 	}
 
 	logrus.Debugf("Starting analysis of code changes")
-	changesResults, err := changes.AnalyseTimelineChanges(opts, progressChan)
+	changesResults, err := changes.AnalyseTimeseriesChanges(opts, progressChan)
 	if err != nil {
 		fmt.Println("Failed to perform changes analysis. err=", err)
 		os.Exit(2)
@@ -54,15 +54,15 @@ func RunChangesTimeline(osArgs []string) {
 
 	switch cliOpts.Format {
 	case "full":
-		output := changes.FormatTimelineChangesResults(changesResults, true)
+		output := changes.FormatTimeseriesChangesResults(changesResults, true)
 		fmt.Println(output)
 
 	case "short":
-		output := changes.FormatTimelineChangesResults(changesResults, false)
+		output := changes.FormatTimeseriesChangesResults(changesResults, false)
 		fmt.Println(output)
 
 	case "graph":
-		url := changes.ServeChangesTimeline(changesResults, opts)
+		url := changes.ServeChangesTimeseries(changesResults, opts)
 		_, err := utils.ExecShellf("", "open %s", url)
 		if err != nil {
 			fmt.Printf("Couldn't open browser automatically. See results at %s\n", url)

@@ -21,7 +21,7 @@ type OwnershipOptions struct {
 	CommitId          string `json:"commit_id"`
 }
 
-type OwnershipTimelineOptions struct {
+type OwnershipTimeseriesOptions struct {
 	utils.BaseOptions
 	MinDuplicateLines int    `json:"min_duplicate_lines"`
 	Since             string `json:"since"`
@@ -64,7 +64,7 @@ type fileWorkerRequest struct {
 	authorsNotRegex   string
 }
 
-func AnalyseTimelineOwnership(opts OwnershipTimelineOptions, progressChan chan<- utils.ProgressInfo) ([]OwnershipResult, error) {
+func AnalyseTimeseriesOwnership(opts OwnershipTimeseriesOptions, progressChan chan<- utils.ProgressInfo) ([]OwnershipResult, error) {
 	if opts.Period == "" {
 		return nil, fmt.Errorf("opts.Period is required")
 	}

@@ -11,15 +11,16 @@ import (
 	"github.com/go-echarts/go-echarts/v2/types"
 )
 
-// ServeOwnershipTimeline Start server with a web page with graphs and
+// ServeOwnershipTimeseries Start server with a web page with graphs and
 // returns the random URL generated for the page
-func ServeOwnershipTimeline(ownershipResults []OwnershipResult, ownershipTimelineOpts OwnershipTimelineOptions) string {
+func ServeOwnershipTimeseries(ownershipResults []OwnershipResult, ownershipTimeseriesOpts OwnershipTimeseriesOptions) string {
 
+	// OWNERSHIP SHARE TIMESERIES
 	tr := charts.NewThemeRiver()
 	tr.SetGlobalOptions(
 		charts.WithInitializationOpts(opts.Initialization{Theme: types.ThemeShine}),
 		charts.WithTitleOpts(opts.Title{
-			Title: "Ownership Timeline",
+			Title: "Line Ownership Timeseries",
 		}),
 		charts.WithSingleAxisOpts(opts.SingleAxis{
 			Type:   "time",
@@ -49,15 +50,71 @@ func ServeOwnershipTimeline(ownershipResults []OwnershipResult, ownershipTimelin
 
 	tr.AddSeries("ownership", data)
 
+	// OWNERSHIP TOTAL PER AUTHOR TIMESERIES
+	datesX := make([]string, 0)
+	for _, oresults := range ownershipResults {
+		datesX = append(datesX, oresults.Commit.Date.Format(time.DateOnly))
+	}
+	line := charts.NewLine()
+	line.SetGlobalOptions(
+		charts.WithInitializationOpts(opts.Initialization{Theme: types.ThemeShine}),
+		charts.WithTitleOpts(opts.Title{
+			Title: "Line Ownership per Author",
+		}),
+		charts.WithXAxisOpts(opts.XAxis{
+			Type: "category",
+		}),
+		charts.WithTooltipOpts(opts.Tooltip{
+			Trigger: "axis",
+			Show:    true,
+		}),
+		charts.WithLegendOpts(opts.Legend{
+			Show: true,
+			Type: "scroll",
+			Top:  "23px",
+		}),
+		charts.WithAnimation(),
+	)
+
+	line.SetXAxis(datesX)
+	byAuthorResults := SortByAuthorDate(ownershipResults)
+	for _, authorResult := range byAuthorResults {
+		authorValues := make([]opts.LineData, 0)
+		for _, date := range datesX {
+			authorValue := 0
+			// look for value on this date
+			for _, authorResult := range authorResult.AuthorLinesDate {
+				if authorResult.Date == date {
+					authorValue = authorResult.AuthorLines.OwnedLinesTotal
+					break
+				}
+			}
+			authorValues = append(authorValues, opts.LineData{Value: authorValue})
+		}
+		for i, authorResultsDate := range authorResult.AuthorLinesDate {
+			if authorResultsDate.Date == datesX[i] {
+				authorValues = append(authorValues, opts.LineData{Value: authorResultsDate.AuthorLines.OwnedLinesTotal})
+			} else {
+				authorValues = append(authorValues, opts.LineData{Value: 100})
+			}
+		}
+		line.AddSeries(authorResult.AuthorName, authorValues,
+			charts.WithLineChartOpts(
+				opts.LineChart{Smooth: false},
+			),
+		)
+	}
+
 	page := components.NewPage()
+	page.SetLayout(components.PageFlexLayout)
 	page.AddCharts(
-		tr,
+		tr, line,
 	)
 
 	info := "<pre style=\"display:flex;justify-content:center\"><code>"
-	info += utils.BaseOptsStr(ownershipTimelineOpts.BaseOptions)
-	info += ownershipTimelineOptsStr(ownershipTimelineOpts)
-	info += FormatTimelineOwnershipResults(ownershipResults, true)
+	info += utils.BaseOptsStr(ownershipTimeseriesOpts.BaseOptions)
+	info += ownershipTimeseriesOptsStr(ownershipTimeseriesOpts)
+	info += FormatTimeseriesOwnershipResults(ownershipResults, true)
 	info += "</code></pre>"
 
 	url, _ := utils.ServeGraphPage(page, info)
@@ -110,7 +167,7 @@ func ServeOwnership(ownershipResult OwnershipResult, ownershipOpts OwnershipOpti
 	return url
 }
 
-func ownershipTimelineOptsStr(opts OwnershipTimelineOptions) string {
+func ownershipTimeseriesOptsStr(opts OwnershipTimeseriesOptions) string {
 	str := utils.AttrStr("since", opts.Since)
 	str += utils.AttrStr("until", opts.Until)
 	str += utils.AttrStr("period", opts.Period)

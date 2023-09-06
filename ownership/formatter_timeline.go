@@ -9,7 +9,7 @@ import (
 	"github.com/rodaine/table"
 )
 
-func FormatTimelineOwnershipResults(ownershipResults []OwnershipResult, full bool) string {
+func FormatTimeseriesOwnershipResults(ownershipResults []OwnershipResult, full bool) string {
 	str := "\n"
 
 	tblWriter := bytes.NewBufferString("")
@@ -37,13 +37,13 @@ func FormatTimelineOwnershipResults(ownershipResults []OwnershipResult, full boo
 	str += tblWriter.String()
 
 	if full {
-		str += formatAuthorsTimelines(ownershipResults)
+		str += formatAuthorsTimeseries(ownershipResults)
 	}
 
 	return str
 }
 
-func formatAuthorsTimelines(ownershipResults []OwnershipResult) string {
+func formatAuthorsTimeseries(ownershipResults []OwnershipResult) string {
 
 	str := ""
 	authorNameLinesDates := SortByAuthorDate(ownershipResults)

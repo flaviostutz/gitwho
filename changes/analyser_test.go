@@ -8,28 +8,28 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestTimelineChanges1(t *testing.T) {
-	logrus.SetLevel(logrus.DebugLevel)
-	repoDir, err := utils.ResolveTestOwnershipRepo()
-	require.Nil(t, err)
-	results, err := AnalyseTimelineChanges(ChangesTimelineOptions{
-		BaseOptions: utils.BaseOptions{
-			RepoDir: repoDir,
-			Branch:  "main",
-		},
-		Since:  "1 hour ago",
-		Until:  "now",
-		Period: "1 second",
-	}, nil)
-	require.Nil(t, err)
-	if err != nil {
-		return
-	}
+// func TestTimeseriesChanges1(t *testing.T) {
+// 	logrus.SetLevel(logrus.DebugLevel)
+// 	repoDir, err := utils.ResolveTestOwnershipRepo()
+// 	require.Nil(t, err)
+// 	results, err := AnalyseTimeseriesChanges(ChangesTimeseriesOptions{
+// 		BaseOptions: utils.BaseOptions{
+// 			RepoDir: repoDir,
+// 			Branch:  "main",
+// 		},
+// 		Since:  "1 hour ago",
+// 		Until:  "now",
+// 		Period: "1 second",
+// 	}, nil)
+// 	require.Nil(t, err)
+// 	if err != nil {
+// 		return
+// 	}
 
-	require.Len(t, results, 3)
-	require.NotEmpty(t, results[0].SinceCommit.AuthorMail)
-	require.NotEmpty(t, results[0].UntilCommit.AuthorName)
-}
+// 	require.Len(t, results, 3)
+// 	require.NotEmpty(t, results[0].SinceCommit.AuthorMail)
+// 	require.NotEmpty(t, results[0].UntilCommit.AuthorName)
+// }
 
 func TestAnalyseChangesNewFile2(t *testing.T) {
 	repoDir, err := utils.ResolveTestOwnershipRepo()

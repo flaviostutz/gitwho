@@ -22,7 +22,7 @@ type ChangesOptions struct {
 	Until string
 }
 
-type ChangesTimelineOptions struct {
+type ChangesTimeseriesOptions struct {
 	utils.BaseOptions
 	Since  string `json:"since"`
 	Until  string `json:"until"`
@@ -102,7 +102,7 @@ type commitWorkerRequest struct {
 	commitId string
 }
 
-func AnalyseTimelineChanges(opts ChangesTimelineOptions, progressChan chan<- utils.ProgressInfo) ([]ChangesResult, error) {
+func AnalyseTimeseriesChanges(opts ChangesTimeseriesOptions, progressChan chan<- utils.ProgressInfo) ([]ChangesResult, error) {
 	if opts.Period == "" {
 		return nil, fmt.Errorf("opts.Period is required")
 	}

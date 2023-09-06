@@ -13,11 +13,11 @@ func init() {
 	logrus.SetLevel(logrus.DebugLevel)
 }
 
-func TestTimelineOwnership1(t *testing.T) {
+func TestTimeseriesOwnership1(t *testing.T) {
 	logrus.SetLevel(logrus.DebugLevel)
 	repoDir, err := utils.ResolveTestOwnershipRepo()
 	require.Nil(t, err)
-	results, err := AnalyseTimelineOwnership(OwnershipTimelineOptions{
+	results, err := AnalyseTimeseriesOwnership(OwnershipTimeseriesOptions{
 		BaseOptions: utils.BaseOptions{
 			RepoDir: repoDir,
 			Branch:  "main",

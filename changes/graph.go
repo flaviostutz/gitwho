@@ -10,16 +10,16 @@ import (
 	"github.com/go-echarts/go-echarts/v2/types"
 )
 
-// ServeChangesTimeline Start server with a web page with graphs and
+// ServeChangesTimeseries Start server with a web page with graphs and
 // returns the random URL generated for the page
-func ServeChangesTimeline(changesResults []ChangesResult, ownershipTimelineOpts ChangesTimelineOptions) string {
+func ServeChangesTimeseries(changesResults []ChangesResult, ownershipTimeseriesOpts ChangesTimeseriesOptions) string {
 
-	// CHANGES TIMELINE
+	// CHANGES TIMESERIES
 	tr := charts.NewThemeRiver()
 	tr.SetGlobalOptions(
 		charts.WithInitializationOpts(opts.Initialization{Theme: types.ThemeShine}),
 		charts.WithTitleOpts(opts.Title{
-			Title: "Lines Touched Timeline",
+			Title: "Lines Touched Timeseries",
 		}),
 		charts.WithSingleAxisOpts(opts.SingleAxis{
 			Type:   "time",
@@ -105,9 +105,9 @@ func ServeChangesTimeline(changesResults []ChangesResult, ownershipTimelineOpts 
 	)
 
 	info := "<pre style=\"display:flex;justify-content:center\"><code>"
-	info += utils.BaseOptsStr(ownershipTimelineOpts.BaseOptions)
-	info += changesTimelineOptsStr(ownershipTimelineOpts)
-	info += FormatTimelineChangesResults(changesResults, true)
+	info += utils.BaseOptsStr(ownershipTimeseriesOpts.BaseOptions)
+	info += changesTimeseriesOptsStr(ownershipTimeseriesOpts)
+	info += FormatTimeseriesChangesResults(changesResults, true)
 	info += "</code></pre>"
 
 	url, _ := utils.ServeGraphPage(page, info)
@@ -179,9 +179,9 @@ func changesOptsStr(changesOpts ChangesOptions) string {
 	return str
 }
 
-func changesTimelineOptsStr(changesTimelineOpts ChangesTimelineOptions) string {
-	str := utils.AttrStr("since", changesTimelineOpts.Since)
-	str += utils.AttrStr("until", changesTimelineOpts.Until)
-	str += utils.AttrStr("period", changesTimelineOpts.Period)
+func changesTimeseriesOptsStr(changesTimeseriesOpts ChangesTimeseriesOptions) string {
+	str := utils.AttrStr("since", changesTimeseriesOpts.Since)
+	str += utils.AttrStr("until", changesTimeseriesOpts.Until)
+	str += utils.AttrStr("period", changesTimeseriesOpts.Period)
 	return str
 }

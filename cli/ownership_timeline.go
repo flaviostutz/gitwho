@@ -10,11 +10,11 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func RunOwnershipTimeline(osArgs []string) {
-	opts := ownership.OwnershipTimelineOptions{}
+func RunOwnershipTimeseries(osArgs []string) {
+	opts := ownership.OwnershipTimeseriesOptions{}
 	cliOpts := CliOpts{}
 
-	flags := flag.NewFlagSet("ownership-timeline", flag.ExitOnError)
+	flags := flag.NewFlagSet("ownership-timeseries", flag.ExitOnError)
 	flags.StringVar(&opts.RepoDir, "repo", ".", "Repository path to analyse")
 	flags.StringVar(&opts.Branch, "branch", "main", "Branch name to analyse")
 	flags.StringVar(&opts.FilesRegex, "files", ".*", "Regex for selecting which file paths to include in analysis")
@@ -43,21 +43,21 @@ func RunOwnershipTimeline(osArgs []string) {
 	}
 
 	logrus.Debugf("Starting analysis of code ownership")
-	ownershipResults, err := ownership.AnalyseTimelineOwnership(opts, progressChan)
+	ownershipResults, err := ownership.AnalyseTimeseriesOwnership(opts, progressChan)
 	if err != nil {
-		fmt.Println("Failed to perform ownership-timeline analysis. err=", err)
+		fmt.Println("Failed to perform ownership-timeseries analysis. err=", err)
 		os.Exit(2)
 	}
 
 	switch cliOpts.Format {
 	case "full":
-		str := ownership.FormatTimelineOwnershipResults(ownershipResults, true)
+		str := ownership.FormatTimeseriesOwnershipResults(ownershipResults, true)
 		fmt.Println(str)
 	case "short":
-		str := ownership.FormatTimelineOwnershipResults(ownershipResults, false)
+		str := ownership.FormatTimeseriesOwnershipResults(ownershipResults, false)
 		fmt.Println(str)
 	case "graph":
-		url := ownership.ServeOwnershipTimeline(ownershipResults, opts)
+		url := ownership.ServeOwnershipTimeseries(ownershipResults, opts)
 		_, err := utils.ExecShellf("", "open %s", url)
 		if err != nil {
 			fmt.Printf("Couldn't open browser automatically. See results at %s\n", url)
