@@ -55,8 +55,8 @@ func ServeOwnershipTimeseries(ownershipResults []OwnershipResult, ownershipTimes
 	for _, oresults := range ownershipResults {
 		datesX = append(datesX, oresults.Commit.Date.Format(time.DateOnly))
 	}
-	line := charts.NewLine()
-	line.SetGlobalOptions(
+	lineAuthor := charts.NewLine()
+	lineAuthor.SetGlobalOptions(
 		charts.WithInitializationOpts(opts.Initialization{Theme: types.ThemeShine}),
 		charts.WithTitleOpts(opts.Title{
 			Title: "Line Ownership per Author",
@@ -76,7 +76,7 @@ func ServeOwnershipTimeseries(ownershipResults []OwnershipResult, ownershipTimes
 		charts.WithAnimation(),
 	)
 
-	line.SetXAxis(datesX)
+	lineAuthor.SetXAxis(datesX)
 	byAuthorResults := SortByAuthorDate(ownershipResults)
 	for _, authorResult := range byAuthorResults {
 		authorValues := make([]opts.LineData, 0)
@@ -91,24 +91,75 @@ func ServeOwnershipTimeseries(ownershipResults []OwnershipResult, ownershipTimes
 			}
 			authorValues = append(authorValues, opts.LineData{Value: authorValue})
 		}
-		for i, authorResultsDate := range authorResult.AuthorLinesDate {
-			if authorResultsDate.Date == datesX[i] {
-				authorValues = append(authorValues, opts.LineData{Value: authorResultsDate.AuthorLines.OwnedLinesTotal})
-			} else {
-				authorValues = append(authorValues, opts.LineData{Value: 100})
-			}
-		}
-		line.AddSeries(authorResult.AuthorName, authorValues,
+		// for i, authorResultsDate := range authorResult.AuthorLinesDate {
+		// 	if authorResultsDate.Date == datesX[i] {
+		// 		authorValues = append(authorValues, opts.LineData{Value: authorResultsDate.AuthorLines.OwnedLinesTotal})
+		// 	} else {
+		// 		authorValues = append(authorValues, opts.LineData{Value: 100})
+		// 	}
+		// }
+		lineAuthor.AddSeries(authorResult.AuthorName, authorValues,
 			charts.WithLineChartOpts(
 				opts.LineChart{Smooth: false},
 			),
 		)
 	}
 
+	// TOTAL LINES
+	// OWNERSHIP TOTAL PER AUTHOR TIMESERIES
+	lineTotal := charts.NewLine()
+	lineTotal.SetGlobalOptions(
+		charts.WithInitializationOpts(opts.Initialization{Theme: types.ThemeShine, Height: "350px"}),
+		charts.WithTitleOpts(opts.Title{
+			Title: "Lines",
+		}),
+		charts.WithXAxisOpts(opts.XAxis{
+			Type: "category",
+		}),
+		charts.WithTooltipOpts(opts.Tooltip{
+			Trigger: "axis",
+			Show:    true,
+		}),
+		charts.WithLegendOpts(opts.Legend{
+			Show: true,
+			Type: "scroll",
+			Top:  "23px",
+		}),
+		charts.WithAnimation(),
+	)
+
+	lineTotal.SetXAxis(datesX)
+	totalValues := make([]opts.LineData, 0)
+	duplicateValues := make([]opts.LineData, 0)
+	for _, date := range datesX {
+		totalValue := 0
+		duplicateValue := 0
+		// look for value on this date
+		for _, ownershipResult := range ownershipResults {
+			if ownershipResult.Commit.Date.Format(time.DateOnly) == date {
+				totalValue = ownershipResult.TotalLines
+				duplicateValue = ownershipResult.TotalLinesDuplicated
+				break
+			}
+		}
+		totalValues = append(totalValues, opts.LineData{Value: totalValue})
+		duplicateValues = append(duplicateValues, opts.LineData{Value: duplicateValue})
+	}
+	lineTotal.AddSeries("Total Lines", totalValues,
+		charts.WithLineChartOpts(
+			opts.LineChart{Smooth: false},
+		),
+	)
+	lineTotal.AddSeries("Duplicate Lines", duplicateValues,
+		charts.WithLineChartOpts(
+			opts.LineChart{Smooth: false},
+		),
+	)
+
 	page := components.NewPage()
 	page.SetLayout(components.PageFlexLayout)
 	page.AddCharts(
-		tr, line,
+		tr, lineTotal, lineAuthor,
 	)
 
 	info := "<pre style=\"display:flex;justify-content:center\"><code>"
