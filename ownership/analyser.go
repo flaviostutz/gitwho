@@ -359,11 +359,10 @@ func fileWorker(fileWorkerInputChan <-chan fileWorkerRequest,
 		// go over each line of the file
 		fileTouched := false
 		for i, lineAuthor := range blameResult {
-			countAuthor := true
 			if strings.Trim(lineAuthor.LineContents, " ") == "" {
 				continue
 			}
-			countAuthor = authorCounted(req, lineAuthor.AuthorName, lineAuthor.AuthorMail)
+			countAuthor := authorCounted(req, lineAuthor.AuthorName, lineAuthor.AuthorMail)
 			if countAuthor {
 				fileTouched = true
 			}
@@ -373,11 +372,14 @@ func fileWorker(fileWorkerInputChan <-chan fileWorkerRequest,
 				ownershipResult.TotalLines += 1
 				ownershipResult.LinesAgeDaysSum += lineAge
 			}
+
 			authorLines := ownershipResult.authorLinesMap[lineAuthor.AuthorName]
 			authorLines.AuthorName = lineAuthor.AuthorName
 			authorLines.AuthorMail = lineAuthor.AuthorMail
-			authorLines.OwnedLinesTotal += 1
-			authorLines.OwnedLinesAgeDaysSum += lineAge
+			if countAuthor {
+				authorLines.OwnedLinesTotal += 1
+				authorLines.OwnedLinesAgeDaysSum += lineAge
+			}
 
 			// Duplication analysis
 			// this is very sensitive as a lot of memory can be used by the tracker
@@ -400,14 +402,18 @@ func fileWorker(fileWorkerInputChan <-chan fileWorkerRequest,
 						CommitDate: lineAuthor.AuthorDate,
 					})
 				if isDuplicate {
-					ownershipResult.TotalLinesDuplicated += req.minDuplicateLines
-					authorLines.OwnedLinesDuplicate += req.minDuplicateLines
+					if countAuthor {
+						ownershipResult.TotalLinesDuplicated += req.minDuplicateLines
+						authorLines.OwnedLinesDuplicate += req.minDuplicateLines
+					}
 					sort.Slice(duplicates, func(i, j int) bool {
 						return duplicates[i].CommitDate.Compare(duplicates[j].CommitDate) == -1
 					})
 					// first commiter of the duplicated line was the author
 					if duplicates[0].AuthorName == lineAuthor.AuthorName {
-						authorLines.OwnedLinesDuplicateOriginal += req.minDuplicateLines
+						if countAuthor {
+							authorLines.OwnedLinesDuplicateOriginal += req.minDuplicateLines
+						}
 						// someone else is copying your line
 					} else {
 						if authorCounted(req, duplicates[0].AuthorName, duplicates[0].AuthorMail) {

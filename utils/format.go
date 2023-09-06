@@ -23,6 +23,9 @@ func CalcDiffPercStr(curValue int, prevValue int) string {
 
 func CalcDiffStr(curValue int, prevValue int) string {
 	diff := curValue - prevValue
+	if prevValue == 0 {
+		return "       "
+	}
 	sig := ""
 	if diff > 0 {
 		sig = "+"
