@@ -271,3 +271,4 @@ In general, the commands allows filtering by time (since, until, period etc), au
 
 - For detecting line ownership, line age etc gitwho uses "git blame"
 
+- If you have the same author with multiple name/mail combinations in commits, use the file .mailmap so you can group results for the same person. For more info, see https://git-scm.com/docs/gitmailmap
