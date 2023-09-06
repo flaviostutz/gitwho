@@ -57,7 +57,7 @@ func ServeOwnershipTimeline(ownershipResults []OwnershipResult, ownershipTimelin
 	info := "<pre style=\"display:flex;justify-content:center\"><code>"
 	info += utils.BaseOptsStr(ownershipTimelineOpts.BaseOptions)
 	info += ownershipTimelineOptsStr(ownershipTimelineOpts)
-	info += formatSimpleOwnershipTimelineResults(ownershipResults)
+	info += FormatTimelineOwnershipResults(ownershipResults, false)
 	info += "</code></pre>"
 
 	url, _ := utils.ServeGraphPage(page, info)

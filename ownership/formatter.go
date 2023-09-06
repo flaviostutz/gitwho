@@ -1,11 +1,11 @@
 package ownership
 
 import (
+	"bytes"
 	"fmt"
 	"strconv"
 	"time"
 
-	"github.com/fatih/color"
 	"github.com/flaviostutz/gitwho/utils"
 	"github.com/rodaine/table"
 )
@@ -15,14 +15,12 @@ type authorLinesDate struct {
 	authorLines AuthorLines
 }
 
-func PrintTimelineOwnershipResults(ownershipResults []OwnershipResult, full bool) {
-	fmt.Println()
+func FormatTimelineOwnershipResults(ownershipResults []OwnershipResult, full bool) string {
+	str := "\n"
 
-	headerFmt := color.New(color.FgGreen, color.Underline).SprintfFunc()
-	columnFmt := color.New(color.FgYellow).SprintfFunc()
-
+	tblWriter := bytes.NewBufferString("")
 	tbl := table.New("Date", "Lines", "Duplicates", "Files")
-	tbl.WithHeaderFormatter(headerFmt).WithFirstColumnFormatter(columnFmt)
+	tbl.WithWriter(tblWriter)
 
 	firstResult := OwnershipResult{}
 	prevResult := OwnershipResult{}
@@ -42,24 +40,27 @@ func PrintTimelineOwnershipResults(ownershipResults []OwnershipResult, full bool
 		fmt.Sprintf("%d%s", prevResult.TotalFiles-firstResult.TotalFiles, utils.CalcDiffPercStr(prevResult.TotalFiles, firstResult.TotalFiles)),
 	)
 	tbl.Print()
+	str += tblWriter.String()
 
 	if full {
-		printAuthorsTimelines(ownershipResults)
+		str += formatAuthorsTimelines(ownershipResults)
 	}
+
+	return str
 }
 
-func printAuthorsTimelines(ownershipResults []OwnershipResult) {
+func formatAuthorsTimelines(ownershipResults []OwnershipResult) string {
 
+	str := ""
 	authorNameLinesDates := SortByAuthorDate(ownershipResults)
 
 	// display data
 	for _, authorNameLinesDate := range authorNameLinesDates {
-		fmt.Printf("\n%s\n", authorNameLinesDate.AuthorName)
-		headerFmt := color.New(color.FgGreen, color.Underline).SprintfFunc()
-		columnFmt := color.New(color.FgYellow).SprintfFunc()
+		str += fmt.Sprintf("\n%s\n", authorNameLinesDate.AuthorName)
 
+		tblWriter := bytes.NewBufferString("")
 		tbl := table.New("Date", "Lines", "Duplicates (total)", "Duplicates (original)")
-		tbl.WithHeaderFormatter(headerFmt).WithFirstColumnFormatter(columnFmt)
+		tbl.WithWriter(tblWriter)
 
 		firstResult := AuthorLines{}
 		prevResult := AuthorLines{}
@@ -81,7 +82,9 @@ func printAuthorsTimelines(ownershipResults []OwnershipResult) {
 			fmt.Sprintf("%d%s", prevResult.OwnedLinesDuplicateOriginal-firstResult.OwnedLinesDuplicateOriginal, utils.CalcDiffPercStr(prevResult.OwnedLinesDuplicateOriginal, firstResult.OwnedLinesDuplicateOriginal)),
 		)
 		tbl.Print()
+		str += tblWriter.String()
 	}
+	return str
 }
 
 func FormatCodeOwnershipResults(ownershipResult OwnershipResult, full bool) string {
@@ -137,30 +140,4 @@ func FormatDuplicatesResults(ownershipResult OwnershipResult, full bool) string 
 func avgLineAgeStr(linesAgeDaysSum float64, totalLines int) string {
 	// fmt.Printf("%s %d\n", linesAgeSum, totalLines)
 	return fmt.Sprintf("%1.f days", (linesAgeDaysSum / float64(totalLines)))
-}
-
-func formatSimpleOwnershipTimelineResults(results []OwnershipResult) string {
-	str := "\nDate | Lines | Duplicates | Files\n"
-
-	firstResult := OwnershipResult{}
-	prevResult := OwnershipResult{}
-	for i, result := range results {
-		if i == 0 {
-			firstResult = result
-		}
-		str += fmt.Sprintf("%s | %d%s | %d%s | %d%s\n",
-			result.Commit.Date.Format(time.DateOnly),
-			result.TotalLinesDuplicated, utils.CalcDiffStr(result.TotalLinesDuplicated, prevResult.TotalLinesDuplicated),
-			result.TotalLines, utils.CalcDiffStr(result.TotalLines, prevResult.TotalLines),
-			result.TotalFiles, utils.CalcDiffStr(result.TotalFiles, prevResult.TotalFiles),
-		)
-		prevResult = result
-	}
-	str += fmt.Sprintf("%s | %d%s | %d%s | %d%s\n",
-		"Inc/period",
-		prevResult.TotalLinesDuplicated-firstResult.TotalLinesDuplicated, utils.CalcDiffPercStr(prevResult.TotalLinesDuplicated, firstResult.TotalLinesDuplicated),
-		prevResult.TotalLines-firstResult.TotalLines, utils.CalcDiffPercStr(prevResult.TotalLines, firstResult.TotalLines),
-		prevResult.TotalFiles-firstResult.TotalFiles, utils.CalcDiffPercStr(prevResult.TotalFiles, firstResult.TotalFiles),
-	)
-	return str
 }

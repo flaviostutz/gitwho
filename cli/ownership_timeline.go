@@ -51,9 +51,11 @@ func RunOwnershipTimeline(osArgs []string) {
 
 	switch cliOpts.Format {
 	case "full":
-		ownership.PrintTimelineOwnershipResults(ownershipResults, true)
+		str := ownership.FormatTimelineOwnershipResults(ownershipResults, true)
+		fmt.Println(str)
 	case "short":
-		ownership.PrintTimelineOwnershipResults(ownershipResults, false)
+		str := ownership.FormatTimelineOwnershipResults(ownershipResults, false)
+		fmt.Println(str)
 	case "graph":
 		url := ownership.ServeOwnershipTimeline(ownershipResults, opts)
 		_, err := utils.ExecShellf("", "open %s", url)
