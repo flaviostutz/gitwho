@@ -64,7 +64,7 @@ type fileWorkerRequest struct {
 	authorsNotRegex   string
 }
 
-func TimelineCodeOwnership(opts OwnershipTimelineOptions, progressChan chan<- utils.ProgressInfo) ([]OwnershipResult, error) {
+func AnalyseTimelineOwnership(opts OwnershipTimelineOptions, progressChan chan<- utils.ProgressInfo) ([]OwnershipResult, error) {
 	if opts.Period == "" {
 		return nil, fmt.Errorf("opts.Period is required")
 	}
@@ -104,7 +104,7 @@ func TimelineCodeOwnership(opts OwnershipTimelineOptions, progressChan chan<- ut
 		}
 
 		analysisOpts.CommitId = commit.CommitId
-		onwershipResult, err := AnalyseCodeOwnership(analysisOpts, progressChan)
+		onwershipResult, err := AnalyseOwnership(analysisOpts, progressChan)
 		if err != nil {
 			return nil, err
 		}
@@ -122,7 +122,7 @@ func TimelineCodeOwnership(opts OwnershipTimelineOptions, progressChan chan<- ut
 	return result, nil
 }
 
-func AnalyseCodeOwnership(opts OwnershipOptions, progressChan chan<- utils.ProgressInfo) (OwnershipResult, error) {
+func AnalyseOwnership(opts OwnershipOptions, progressChan chan<- utils.ProgressInfo) (OwnershipResult, error) {
 	if opts.CommitId == "" {
 		return OwnershipResult{}, fmt.Errorf("opts.CommitId is required")
 	}

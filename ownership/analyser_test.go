@@ -17,7 +17,7 @@ func TestTimelineOwnership1(t *testing.T) {
 	logrus.SetLevel(logrus.DebugLevel)
 	repoDir, err := utils.ResolveTestOwnershipRepo()
 	require.Nil(t, err)
-	results, err := TimelineCodeOwnership(OwnershipTimelineOptions{
+	results, err := AnalyseTimelineOwnership(OwnershipTimelineOptions{
 		BaseOptions: utils.BaseOptions{
 			RepoDir: repoDir,
 			Branch:  "main",
@@ -52,7 +52,7 @@ func TestAnalyseCodeOwnershipAllFiles(t *testing.T) {
 	commit, err := utils.ExecGetLastestCommit(repoDir, "main", "", "now")
 	require.Nil(t, err)
 
-	results, err := AnalyseCodeOwnership(OwnershipOptions{
+	results, err := AnalyseOwnership(OwnershipOptions{
 		BaseOptions: utils.BaseOptions{
 			RepoDir: repoDir,
 			Branch:  "main",
@@ -85,7 +85,7 @@ func TestAnalyseCodeOwnershipAuthorRegex(t *testing.T) {
 	commit, err := utils.ExecGetLastestCommit(repoDir, "main", "", "now")
 	require.Nil(t, err)
 
-	results, err := AnalyseCodeOwnership(OwnershipOptions{
+	results, err := AnalyseOwnership(OwnershipOptions{
 		BaseOptions: utils.BaseOptions{
 			RepoDir:      repoDir,
 			Branch:       "main",
@@ -119,7 +119,7 @@ func TestAnalyseCodeOwnershipAuthorNotRegex(t *testing.T) {
 	commit, err := utils.ExecGetLastestCommit(repoDir, "main", "", "now")
 	require.Nil(t, err)
 
-	results, err := AnalyseCodeOwnership(OwnershipOptions{
+	results, err := AnalyseOwnership(OwnershipOptions{
 		BaseOptions: utils.BaseOptions{
 			RepoDir:         repoDir,
 			Branch:          "main",
@@ -153,7 +153,7 @@ func TestAnalyseCodeOwnershipAuthorNotRegexMail(t *testing.T) {
 	commit, err := utils.ExecGetLastestCommit(repoDir, "main", "", "now")
 	require.Nil(t, err)
 
-	results, err := AnalyseCodeOwnership(OwnershipOptions{
+	results, err := AnalyseOwnership(OwnershipOptions{
 		BaseOptions: utils.BaseOptions{
 			RepoDir:         repoDir,
 			Branch:          "main",
@@ -181,7 +181,7 @@ func TestAnalyseCodeOwnershipCheckSums(t *testing.T) {
 	commit, err := utils.ExecGetLastestCommit(repoDir, "main", "", "now")
 	require.Nil(t, err)
 
-	results, err := AnalyseCodeOwnership(OwnershipOptions{
+	results, err := AnalyseOwnership(OwnershipOptions{
 		BaseOptions: utils.BaseOptions{
 			RepoDir: repoDir,
 			Branch:  "main",
@@ -217,7 +217,7 @@ func TestAnalyseCodeDuplicates(t *testing.T) {
 	commit, err := utils.ExecGetLastestCommit(repoDir, "main", "", "now")
 	require.Nil(t, err)
 
-	results, err := AnalyseCodeOwnership(OwnershipOptions{
+	results, err := AnalyseOwnership(OwnershipOptions{
 		BaseOptions: utils.BaseOptions{
 			RepoDir: repoDir,
 			Branch:  "main",
@@ -248,7 +248,7 @@ func TestAnalyseCodeOwnershipRegexFiles(t *testing.T) {
 	commit, err := utils.ExecGetLastestCommit(repoDir, "main", "", "now")
 	require.Nil(t, err)
 
-	results, err := AnalyseCodeOwnership(OwnershipOptions{
+	results, err := AnalyseOwnership(OwnershipOptions{
 		BaseOptions: utils.BaseOptions{
 			RepoDir:    repoDir,
 			Branch:     "main",
@@ -273,7 +273,7 @@ func TestAnalyseCodeOwnershipRegexNotFiles(t *testing.T) {
 	commit, err := utils.ExecGetLastestCommit(repoDir, "main", "", "now")
 	require.Nil(t, err)
 
-	results, err := AnalyseCodeOwnership(OwnershipOptions{
+	results, err := AnalyseOwnership(OwnershipOptions{
 		BaseOptions: utils.BaseOptions{
 			RepoDir:       repoDir,
 			Branch:        "main",

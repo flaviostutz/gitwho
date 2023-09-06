@@ -184,7 +184,7 @@ func ExecDiffTree(repoDir string, commitId1 string) ([]string, error) {
 	return lines, nil
 }
 
-func ExecCommitsInRange(repoDir string, branch string, since string, until string) ([]string, error) {
+func ExecCommitIdsInRange(repoDir string, branch string, since string, until string) ([]string, error) {
 	sinceStr := ""
 	if since != "" {
 		sinceStr = fmt.Sprintf("--since=\"%s\"", since)
@@ -215,6 +215,44 @@ func ExecDiffFileRevisions(repoDir string, filePath string, srcCommitId string, 
 	}
 
 	return ParseNormalDiffOutput(cmdResult)
+}
+
+func ExecGetCommitsInRange(repoDir string, branch string, since string, until string) ([]CommitInfo, error) {
+	cmdResult, err := ExecShellf(repoDir, "/usr/bin/git rev-list --since=\"%s\" --until=\"%s\" --format=\"%%H---%%cI---%%cN---%%cE\" %s", since, until, branch)
+	if err != nil {
+		return nil, err
+	}
+
+	lines, err := linesToArray(cmdResult)
+	if err != nil {
+		return nil, err
+	}
+
+	results := make([]CommitInfo, 0)
+
+	if len(lines) == 0 {
+		return results, nil
+	}
+
+	for i := 1; i < len(lines); i += 2 {
+		line := lines[i]
+		parts := strings.Split(line, "---")
+
+		date, err := time.Parse(time.RFC3339, parts[1])
+		if err != nil {
+			return nil, err
+		}
+
+		cinfo := CommitInfo{
+			CommitId:   parts[0],
+			Date:       date,
+			AuthorName: parts[2],
+			AuthorMail: parts[3],
+		}
+		results = append(results, cinfo)
+	}
+
+	return results, nil
 }
 
 func ExecGetLastestCommit(repoDir string, branch string, since string, until string) (*CommitInfo, error) {

@@ -1,12 +1,118 @@
 package changes
 
 import (
+	"time"
+
 	"github.com/flaviostutz/gitwho/utils"
 	"github.com/go-echarts/go-echarts/v2/charts"
 	"github.com/go-echarts/go-echarts/v2/components"
 	"github.com/go-echarts/go-echarts/v2/opts"
 	"github.com/go-echarts/go-echarts/v2/types"
 )
+
+// ServeChangesTimeline Start server with a web page with graphs and
+// returns the random URL generated for the page
+func ServeChangesTimeline(changesResults []ChangesResult, ownershipTimelineOpts ChangesTimelineOptions) string {
+
+	// CHANGES TIMELINE
+	tr := charts.NewThemeRiver()
+	tr.SetGlobalOptions(
+		charts.WithInitializationOpts(opts.Initialization{Theme: types.ThemeShine}),
+		charts.WithTitleOpts(opts.Title{
+			Title: "Lines Touched Timeline",
+		}),
+		charts.WithSingleAxisOpts(opts.SingleAxis{
+			Type:   "time",
+			Bottom: "10%",
+		}),
+		charts.WithTooltipOpts(opts.Tooltip{
+			Trigger: "axis",
+			Show:    true,
+		}),
+		charts.WithLegendOpts(opts.Legend{
+			Show: true,
+			Type: "scroll",
+			Top:  "23px",
+		}),
+	)
+
+	data := make([]opts.ThemeRiverData, 0)
+	for _, resultsTs := range changesResults {
+		for _, authorLines := range resultsTs.AuthorsLines {
+			if authorLines.LinesTouched.New+authorLines.LinesTouched.Changes == 0 {
+				continue
+			}
+			data = append(data, opts.ThemeRiverData{
+				Date:  resultsTs.UntilCommit.Date.Format(time.RFC3339),
+				Name:  authorLines.AuthorName,
+				Value: float64(authorLines.LinesTouched.New + authorLines.LinesTouched.Changes),
+			})
+		}
+	}
+
+	tr.AddSeries("changes", data)
+
+	// TOTAL CHANGES PIE
+	pie := charts.NewPie()
+
+	authorTotals := make(map[string]int, 0)
+	items := make([]opts.PieData, 0)
+	for _, resultsTs := range changesResults {
+		for _, authorLines := range resultsTs.AuthorsLines {
+			if authorLines.LinesTouched.New+authorLines.LinesTouched.Changes == 0 {
+				continue
+			}
+			authorTotal := authorTotals[authorLines.AuthorName]
+			authorTotal += authorLines.LinesTouched.New + authorLines.LinesTouched.Changes
+			authorTotals[authorLines.AuthorName] = authorTotal
+		}
+	}
+
+	for authorName, authorTotal := range authorTotals {
+		items = append(items, opts.PieData{Name: authorName, Value: authorTotal})
+	}
+
+	pie.SetGlobalOptions(
+		charts.WithInitializationOpts(opts.Initialization{Theme: types.ThemeShine}),
+		charts.WithTitleOpts(opts.Title{
+			Title: "Total Lines Touched",
+		}),
+		charts.WithTooltipOpts(opts.Tooltip{
+			Trigger: "axis",
+			Show:    true,
+		}),
+		charts.WithLegendOpts(opts.Legend{
+			Show: true,
+			Type: "scroll",
+			Top:  "23px",
+		}),
+	)
+
+	pie.AddSeries("pie", items).
+		SetSeriesOptions(charts.WithLabelOpts(
+			opts.Label{
+				Show:      true,
+				Formatter: "{b}: {c}",
+			}),
+		)
+
+	// ADD GRAPHS TO PAGE
+	page := components.NewPage()
+	page.SetLayout(components.PageFlexLayout)
+	page.AddCharts(
+		tr,
+		pie,
+	)
+
+	info := "<pre style=\"display:flex;justify-content:center\"><code>"
+	info += utils.BaseOptsStr(ownershipTimelineOpts.BaseOptions)
+	info += changesTimelineOptsStr(ownershipTimelineOpts)
+	info += FormatTimelineChangesResults(changesResults, true)
+	info += "</code></pre>"
+
+	url, _ := utils.ServeGraphPage(page, info)
+	return url
+}
 
 // ServeChanges Start server with a web page with graphs and
 // returns the random URL generated for the page
@@ -70,5 +176,12 @@ func ServeChanges(result ChangesResult, changesOpts ChangesOptions) string {
 func changesOptsStr(changesOpts ChangesOptions) string {
 	str := utils.AttrStr("since", changesOpts.Since)
 	str += utils.AttrStr("until", changesOpts.Until)
+	return str
+}
+
+func changesTimelineOptsStr(changesTimelineOpts ChangesTimelineOptions) string {
+	str := utils.AttrStr("since", changesTimelineOpts.Since)
+	str += utils.AttrStr("until", changesTimelineOpts.Until)
+	str += utils.AttrStr("period", changesTimelineOpts.Period)
 	return str
 }

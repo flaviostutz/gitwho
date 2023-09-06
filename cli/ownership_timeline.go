@@ -22,7 +22,7 @@ func RunOwnershipTimeline(osArgs []string) {
 	flags.StringVar(&opts.AuthorsRegex, "authors", ".*", "Regex for selecting which authors to include in analysis")
 	flags.StringVar(&opts.AuthorsNotRegex, "authors-not", "", "Regex for filtering out authors from analysis")
 	flags.StringVar(&opts.CacheFile, "cache-file", "", "If defined, stores results in a cache file that can be used in subsequent calls that uses the same parameters.")
-	flags.IntVar(&opts.CacheTTLSeconds, "cache-ttl", 15552000, "Time in seconds for old items in cache file to be deleted. Defaults to 6 months")
+	flags.IntVar(&opts.CacheTTLSeconds, "cache-ttl", 5184000, "Time in seconds for old items in cache file to be deleted. Defaults to 2 months")
 	flags.StringVar(&opts.Since, "since", "3 months ago", "Starting date for historical analysis. Eg: '1 year ago'")
 	flags.StringVar(&opts.Until, "until", "now", "Ending date for historical analysis. Eg: 'now'")
 	flags.StringVar(&opts.Period, "period", "2 weeks", "Show ownership data each [period] in the range [since]-[until]. Eg.: '7 days', '1 month'")
@@ -36,14 +36,14 @@ func RunOwnershipTimeline(osArgs []string) {
 	progressChan := setupBasic(cliOpts)
 	defer close(progressChan)
 
-	_, err := utils.ExecCommitsInRange(opts.RepoDir, opts.Branch, "", "")
+	_, err := utils.ExecCommitIdsInRange(opts.RepoDir, opts.Branch, "", "")
 	if err != nil {
 		fmt.Printf("Branch %s not found\n", opts.Branch)
 		os.Exit(1)
 	}
 
 	logrus.Debugf("Starting analysis of code ownership")
-	ownershipResults, err := ownership.TimelineCodeOwnership(opts, progressChan)
+	ownershipResults, err := ownership.AnalyseTimelineOwnership(opts, progressChan)
 	if err != nil {
 		fmt.Println("Failed to perform ownership-timeline analysis. err=", err)
 		os.Exit(2)

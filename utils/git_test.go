@@ -51,7 +51,7 @@ func TestExecCommitDate(t *testing.T) {
 		return
 	}
 
-	commitIds, err := ExecCommitsInRange(repoDir, "main", "1 month ago", "now")
+	commitIds, err := ExecCommitIdsInRange(repoDir, "main", "1 month ago", "now")
 	if err != nil {
 		return
 	}
@@ -90,7 +90,7 @@ func TestExecTreeFileSize(t *testing.T) {
 		return
 	}
 
-	commitIds, err := ExecCommitsInRange(repoDir, "main", "1 month ago", "now")
+	commitIds, err := ExecCommitIdsInRange(repoDir, "main", "1 month ago", "now")
 	if err != nil {
 		return
 	}
@@ -113,7 +113,7 @@ func TestExecDiffFileRevisions(t *testing.T) {
 		return
 	}
 
-	commitIds, err := ExecCommitsInRange(repoDir, "main", "1 month ago", "now")
+	commitIds, err := ExecCommitIdsInRange(repoDir, "main", "1 month ago", "now")
 	if err != nil {
 		return
 	}
@@ -127,6 +127,19 @@ func TestExecDiffFileRevisions(t *testing.T) {
 	require.Equal(t, "c", de[0].SrcLines[1].Text)
 }
 
+func TestExecCommitIdsInRange(t *testing.T) {
+	repoDir, err := ResolveTestOwnershipRepo()
+	require.Nil(t, err)
+	if err != nil {
+		return
+	}
+
+	cid, err := ExecCommitIdsInRange(repoDir, "main", "1 week ago", "now")
+	require.Nil(t, err)
+	require.NotEmpty(t, cid)
+	require.Equal(t, 5, len(cid))
+}
+
 func TestExecCommitsInRange(t *testing.T) {
 	repoDir, err := ResolveTestOwnershipRepo()
 	require.Nil(t, err)
@@ -134,10 +147,11 @@ func TestExecCommitsInRange(t *testing.T) {
 		return
 	}
 
-	cid, err := ExecCommitsInRange(repoDir, "main", "1 week ago", "now")
+	commits, err := ExecGetCommitsInRange(repoDir, "main", "1 week ago", "now")
 	require.Nil(t, err)
-	require.NotEmpty(t, cid)
-	require.Equal(t, 5, len(cid))
+	require.Equal(t, 5, len(commits))
+	require.NotEmpty(t, commits[0].AuthorName)
+	require.NotEmpty(t, commits[0].CommitId)
 }
 
 func TestExecDiffIsBinary(t *testing.T) {

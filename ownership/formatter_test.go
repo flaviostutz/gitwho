@@ -14,7 +14,7 @@ func TestFormatCodeOwnershipShort(t *testing.T) {
 	commit, err := utils.ExecGetLastestCommit(repoDir, "main", "", "now")
 	require.Nil(t, err)
 
-	results, err := AnalyseCodeOwnership(OwnershipOptions{
+	results, err := AnalyseOwnership(OwnershipOptions{
 		BaseOptions: utils.BaseOptions{
 			RepoDir: repoDir,
 			Branch:  "main",
@@ -35,7 +35,7 @@ func TestFormatCodeOwnershipFull(t *testing.T) {
 	commit, err := utils.ExecGetLastestCommit(repoDir, "main", "", "now")
 	require.Nil(t, err)
 
-	results, err := AnalyseCodeOwnership(OwnershipOptions{
+	results, err := AnalyseOwnership(OwnershipOptions{
 		BaseOptions: utils.BaseOptions{
 			RepoDir: repoDir,
 			Branch:  "main",
@@ -56,7 +56,7 @@ func TestFormatDuplicatesFull(t *testing.T) {
 	commit, err := utils.ExecGetLastestCommit(repoDir, "main", "", "now")
 	require.Nil(t, err)
 
-	results, err := AnalyseCodeOwnership(OwnershipOptions{
+	results, err := AnalyseOwnership(OwnershipOptions{
 		BaseOptions: utils.BaseOptions{
 			RepoDir: repoDir,
 			Branch:  "main",
