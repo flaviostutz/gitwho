@@ -3,6 +3,8 @@ package changes
 import (
 	"time"
 
+	"github.com/flaviostutz/gitwho/changes"
+	"github.com/flaviostutz/gitwho/cli"
 	"github.com/flaviostutz/gitwho/utils"
 	"github.com/go-echarts/go-echarts/v2/charts"
 	"github.com/go-echarts/go-echarts/v2/components"
@@ -12,7 +14,7 @@ import (
 
 // ServeChangesTimeseries Start server with a web page with graphs and
 // returns the random URL generated for the page
-func ServeChangesTimeseries(changesResults []ChangesResult, ownershipTimeseriesOpts ChangesTimeseriesOptions) string {
+func ServeChangesTimeseries(changesResults []changes.ChangesResult, ownershipTimeseriesOpts changes.ChangesTimeseriesOptions) string {
 
 	// CHANGES TIMESERIES
 	tr := charts.NewThemeRiver()
@@ -110,13 +112,13 @@ func ServeChangesTimeseries(changesResults []ChangesResult, ownershipTimeseriesO
 	info += FormatTimeseriesChangesResults(changesResults, true)
 	info += "</code></pre>"
 
-	url, _ := utils.ServeGraphPage(page, info)
+	url, _ := cli.ServeGraphPage(page, info)
 	return url
 }
 
 // ServeChanges Start server with a web page with graphs and
 // returns the random URL generated for the page
-func ServeChanges(result ChangesResult, changesOpts ChangesOptions) string {
+func ServeChanges(result changes.ChangesResult, changesOpts changes.ChangesOptions) string {
 
 	sankey := charts.NewSankey()
 	sankey.SetGlobalOptions(
@@ -169,17 +171,17 @@ func ServeChanges(result ChangesResult, changesOpts ChangesOptions) string {
 	info += changesOptsStr(changesOpts)
 	info += "</code></pre>"
 
-	url, _ := utils.ServeGraphPage(page, info)
+	url, _ := cli.ServeGraphPage(page, info)
 	return url
 }
 
-func changesOptsStr(changesOpts ChangesOptions) string {
+func changesOptsStr(changesOpts changes.ChangesOptions) string {
 	str := utils.AttrStr("since", changesOpts.Since)
 	str += utils.AttrStr("until", changesOpts.Until)
 	return str
 }
 
-func changesTimeseriesOptsStr(changesTimeseriesOpts ChangesTimeseriesOptions) string {
+func changesTimeseriesOptsStr(changesTimeseriesOpts changes.ChangesTimeseriesOptions) string {
 	str := utils.AttrStr("since", changesTimeseriesOpts.Since)
 	str += utils.AttrStr("until", changesTimeseriesOpts.Until)
 	str += utils.AttrStr("period", changesTimeseriesOpts.Period)

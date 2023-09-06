@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/flaviostutz/gitwho/cli"
+	"github.com/flaviostutz/gitwho/ownership"
 	"github.com/flaviostutz/gitwho/utils"
 	"github.com/go-echarts/go-echarts/v2/charts"
 	"github.com/go-echarts/go-echarts/v2/components"
@@ -13,7 +15,7 @@ import (
 
 // ServeOwnershipTimeseries Start server with a web page with graphs and
 // returns the random URL generated for the page
-func ServeOwnershipTimeseries(ownershipResults []OwnershipResult, ownershipTimeseriesOpts OwnershipTimeseriesOptions) string {
+func ServeOwnershipTimeseries(ownershipResults []ownership.OwnershipResult, ownershipTimeseriesOpts ownership.OwnershipTimeseriesOptions) string {
 
 	// OWNERSHIP SHARE TIMESERIES
 	tr := charts.NewThemeRiver()
@@ -77,7 +79,7 @@ func ServeOwnershipTimeseries(ownershipResults []OwnershipResult, ownershipTimes
 	)
 
 	lineAuthor.SetXAxis(datesX)
-	byAuthorResults := SortByAuthorDate(ownershipResults)
+	byAuthorResults := ownership.SortByAuthorDate(ownershipResults)
 	for _, authorResult := range byAuthorResults {
 		authorValues := make([]opts.LineData, 0)
 		for _, date := range datesX {
@@ -168,11 +170,11 @@ func ServeOwnershipTimeseries(ownershipResults []OwnershipResult, ownershipTimes
 	info += FormatTimeseriesOwnershipResults(ownershipResults, true)
 	info += "</code></pre>"
 
-	url, _ := utils.ServeGraphPage(page, info)
+	url, _ := cli.ServeGraphPage(page, info)
 	return url
 }
 
-func ServeOwnership(ownershipResult OwnershipResult, ownershipOpts OwnershipOptions) string {
+func ServeOwnership(ownershipResult ownership.OwnershipResult, ownershipOpts ownership.OwnershipOptions) string {
 	pie := charts.NewPie()
 
 	items := make([]opts.PieData, 0)
@@ -214,11 +216,11 @@ func ServeOwnership(ownershipResult OwnershipResult, ownershipOpts OwnershipOpti
 	info += FormatCodeOwnershipResults(ownershipResult, true)
 	info += "</code></pre>"
 
-	url, _ := utils.ServeGraphPage(page, info)
+	url, _ := cli.ServeGraphPage(page, info)
 	return url
 }
 
-func ownershipTimeseriesOptsStr(opts OwnershipTimeseriesOptions) string {
+func ownershipTimeseriesOptsStr(opts ownership.OwnershipTimeseriesOptions) string {
 	str := utils.AttrStr("since", opts.Since)
 	str += utils.AttrStr("until", opts.Until)
 	str += utils.AttrStr("period", opts.Period)
@@ -226,7 +228,7 @@ func ownershipTimeseriesOptsStr(opts OwnershipTimeseriesOptions) string {
 	return str
 }
 
-func ownershipOptsStr(opts OwnershipOptions) string {
+func ownershipOptsStr(opts ownership.OwnershipOptions) string {
 	str := utils.AttrStr("commit-id", opts.CommitId)
 	str += utils.AttrStr("min-duplicate", fmt.Sprintf("%d", opts.MinDuplicateLines))
 	return str

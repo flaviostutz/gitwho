@@ -3,6 +3,7 @@ package changes
 import (
 	"testing"
 
+	"github.com/flaviostutz/gitwho/changes"
 	"github.com/flaviostutz/gitwho/utils"
 	"github.com/stretchr/testify/require"
 )
@@ -10,7 +11,7 @@ import (
 func TestFormatChangesShort(t *testing.T) {
 	repoDir, err := utils.ResolveTestOwnershipRepo()
 	require.Nil(t, err)
-	results, err := AnalyseChanges(ChangesOptions{
+	results, err := changes.AnalyseChanges(changes.ChangesOptions{
 		BaseOptions: utils.BaseOptions{
 			RepoDir: repoDir,
 			Branch:  "main",
@@ -26,7 +27,7 @@ func TestFormatChangesShort(t *testing.T) {
 func TestFormatChangesFull(t *testing.T) {
 	repoDir, err := utils.ResolveTestOwnershipRepo()
 	require.Nil(t, err)
-	results, err := AnalyseChanges(ChangesOptions{
+	results, err := changes.AnalyseChanges(changes.ChangesOptions{
 		BaseOptions: utils.BaseOptions{
 			RepoDir: repoDir,
 			Branch:  "main",

@@ -3,6 +3,7 @@ package ownership
 import (
 	"testing"
 
+	"github.com/flaviostutz/gitwho/ownership"
 	"github.com/flaviostutz/gitwho/utils"
 	"github.com/stretchr/testify/require"
 )
@@ -14,7 +15,7 @@ func TestFormatCodeOwnershipShort(t *testing.T) {
 	commit, err := utils.ExecGetLastestCommit(repoDir, "main", "", "now")
 	require.Nil(t, err)
 
-	results, err := AnalyseOwnership(OwnershipOptions{
+	results, err := ownership.AnalyseOwnership(ownership.OwnershipOptions{
 		BaseOptions: utils.BaseOptions{
 			RepoDir: repoDir,
 			Branch:  "main",
@@ -35,7 +36,7 @@ func TestFormatCodeOwnershipFull(t *testing.T) {
 	commit, err := utils.ExecGetLastestCommit(repoDir, "main", "", "now")
 	require.Nil(t, err)
 
-	results, err := AnalyseOwnership(OwnershipOptions{
+	results, err := ownership.AnalyseOwnership(ownership.OwnershipOptions{
 		BaseOptions: utils.BaseOptions{
 			RepoDir: repoDir,
 			Branch:  "main",
@@ -56,7 +57,7 @@ func TestFormatDuplicatesFull(t *testing.T) {
 	commit, err := utils.ExecGetLastestCommit(repoDir, "main", "", "now")
 	require.Nil(t, err)
 
-	results, err := AnalyseOwnership(OwnershipOptions{
+	results, err := ownership.AnalyseOwnership(ownership.OwnershipOptions{
 		BaseOptions: utils.BaseOptions{
 			RepoDir: repoDir,
 			Branch:  "main",

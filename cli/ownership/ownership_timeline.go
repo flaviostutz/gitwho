@@ -1,20 +1,21 @@
-package cli
+package ownership
 
 import (
 	"flag"
 	"fmt"
 	"os"
 
+	"github.com/flaviostutz/gitwho/cli"
 	"github.com/flaviostutz/gitwho/ownership"
 	"github.com/flaviostutz/gitwho/utils"
 	"github.com/sirupsen/logrus"
 )
 
-func RunOwnership(osArgs []string) {
-	opts := ownership.OwnershipOptions{}
-	cliOpts := CliOpts{}
-	when := ""
-	flags := flag.NewFlagSet("ownership", flag.ExitOnError)
+func RunOwnershipTimeseries(osArgs []string) {
+	opts := ownership.OwnershipTimeseriesOptions{}
+	cliOpts := cli.CliOpts{}
+
+	flags := flag.NewFlagSet("ownership-timeseries", flag.ExitOnError)
 	flags.StringVar(&opts.RepoDir, "repo", ".", "Repository path to analyse")
 	flags.StringVar(&opts.Branch, "branch", "main", "Branch name to analyse")
 	flags.StringVar(&opts.FilesRegex, "files", ".*", "Regex for selecting which file paths to include in analysis")
@@ -23,42 +24,41 @@ func RunOwnership(osArgs []string) {
 	flags.StringVar(&opts.AuthorsNotRegex, "authors-not", "", "Regex for filtering out authors from analysis")
 	flags.StringVar(&opts.CacheFile, "cache-file", "", "If defined, stores results in a cache file that can be used in subsequent calls that uses the same parameters.")
 	flags.IntVar(&opts.CacheTTLSeconds, "cache-ttl", 5184000, "Time in seconds for old items in cache file to be deleted. Defaults to 2 months")
+	flags.StringVar(&opts.Since, "since", "3 months ago", "Starting date for historical analysis. Eg: '1 year ago'")
+	flags.StringVar(&opts.Until, "until", "now", "Ending date for historical analysis. Eg: 'now'")
+	flags.StringVar(&opts.Period, "period", "2 weeks", "Show ownership data each [period] in the range [since]-[until]. Eg.: '7 days', '1 month'")
 	flags.IntVar(&opts.MinDuplicateLines, "min-dup-lines", 4, "Min number of similar lines in a row to be considered a duplicate")
-	flags.StringVar(&when, "when", "now", "Date to do analysis in repo")
-	flags.StringVar(&cliOpts.Format, "format", "full", "Output format. 'full' (more details), 'short' (lines per author) or 'graph' (open browser)")
+	flags.StringVar(&cliOpts.Format, "format", "full", "Output format. 'full' (more details) or 'short' (lines per author)")
 	flags.StringVar(&cliOpts.GoProfileFile, "profile-file", "", "Profile file to dump golang runtime data to")
 	flags.BoolVar(&cliOpts.Verbose, "verbose", false, "Show verbose logs during processing")
 
 	flags.Parse(osArgs[2:])
 
-	progressChan := setupBasic(cliOpts)
+	progressChan := cli.SetupBasic(cliOpts)
 	defer close(progressChan)
 
-	commit, err := utils.ExecGetLastestCommit(opts.RepoDir, opts.Branch, "", when)
+	_, err := utils.ExecCommitIdsInRange(opts.RepoDir, opts.Branch, "", "")
 	if err != nil {
 		fmt.Printf("Branch %s not found\n", opts.Branch)
 		os.Exit(1)
 	}
-	opts.CommitId = commit.CommitId
 
-	logrus.Debugf("Starting analysis of code ownership. commitId=%s", opts.CommitId)
-	ownershipResult, err := ownership.AnalyseOwnership(opts, progressChan)
+	logrus.Debugf("Starting analysis of code ownership")
+	ownershipResults, err := ownership.AnalyseTimeseriesOwnership(opts, progressChan)
 	if err != nil {
-		fmt.Println("Failed to perform ownership analysis. err=", err)
+		fmt.Println("Failed to perform ownership-timeseries analysis. err=", err)
 		os.Exit(2)
 	}
 
 	switch cliOpts.Format {
 	case "full":
-		output := ownership.FormatCodeOwnershipResults(ownershipResult, true)
-		fmt.Println(output)
-
+		str := FormatTimeseriesOwnershipResults(ownershipResults, true)
+		fmt.Println(str)
 	case "short":
-		output := ownership.FormatCodeOwnershipResults(ownershipResult, false)
-		fmt.Println(output)
-
+		str := FormatTimeseriesOwnershipResults(ownershipResults, false)
+		fmt.Println(str)
 	case "graph":
-		url := ownership.ServeOwnership(ownershipResult, opts)
+		url := ServeOwnershipTimeseries(ownershipResults, opts)
 		_, err := utils.ExecShellf("", "open %s", url)
 		if err != nil {
 			fmt.Printf("Couldn't open browser automatically. See results at %s\n", url)

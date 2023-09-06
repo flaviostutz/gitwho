@@ -1,4 +1,4 @@
-package cli
+package changes
 
 import (
 	"flag"
@@ -6,15 +6,16 @@ import (
 	"os"
 
 	"github.com/flaviostutz/gitwho/changes"
+	"github.com/flaviostutz/gitwho/cli"
 	"github.com/flaviostutz/gitwho/utils"
 	"github.com/sirupsen/logrus"
 )
 
-func RunChangesTimeseries(osArgs []string) {
-	opts := changes.ChangesTimeseriesOptions{}
-	cliOpts := CliOpts{}
+func RunChanges(osArgs []string) {
+	opts := changes.ChangesOptions{}
+	cliOpts := cli.CliOpts{}
 
-	flags := flag.NewFlagSet("changes-timeseries", flag.ExitOnError)
+	flags := flag.NewFlagSet("changes", flag.ExitOnError)
 	flags.StringVar(&opts.RepoDir, "repo", ".", "Repository path to analyse")
 	flags.StringVar(&opts.Branch, "branch", "main", "Branch name to analyse")
 	flags.StringVar(&opts.FilesRegex, "files", ".*", "Regex for selecting which file paths to include in analysis")
@@ -23,15 +24,14 @@ func RunChangesTimeseries(osArgs []string) {
 	flags.StringVar(&opts.AuthorsNotRegex, "authors-not", "", "Regex for filtering out authors from analysis")
 	flags.StringVar(&opts.CacheFile, "cache-file", "", "If defined, stores results in a cache file that can be used in subsequent calls that uses the same parameters.")
 	flags.IntVar(&opts.CacheTTLSeconds, "cache-ttl", 5184000, "Time in seconds for old items in cache file to be deleted. Defaults to 2 months")
-	flags.StringVar(&opts.Since, "since", "90 days ago", "Filter changes made from this date")
+	flags.StringVar(&opts.Since, "since", "30 days ago", "Filter changes made from this date")
 	flags.StringVar(&opts.Until, "until", "now", "Filter changes made util this date")
-	flags.StringVar(&opts.Period, "period", "30 days ago", "Show changes data each [period] in the range [since]-[until]. Eg.: '7 days', '1 month'")
 	flags.StringVar(&cliOpts.Format, "format", "full", "Output format. 'full' (more details), 'short' (lines per author) or 'graph' (open browser)")
 	flags.StringVar(&cliOpts.GoProfileFile, "profile-file", "", "Profile file to dump golang runtime data to")
 	flags.BoolVar(&cliOpts.Verbose, "verbose", false, "Show verbose logs during processing")
 
 	flags.Parse(osArgs[2:])
-	progressChan := setupBasic(cliOpts)
+	progressChan := cli.SetupBasic(cliOpts)
 	defer close(progressChan)
 
 	_, err := utils.ExecCommitIdsInRange(opts.RepoDir, opts.Branch, "", "")
@@ -41,28 +41,28 @@ func RunChangesTimeseries(osArgs []string) {
 	}
 
 	logrus.Debugf("Starting analysis of code changes")
-	changesResults, err := changes.AnalyseTimeseriesChanges(opts, progressChan)
+	changesResults, err := changes.AnalyseChanges(opts, progressChan)
 	if err != nil {
 		fmt.Println("Failed to perform changes analysis. err=", err)
 		os.Exit(2)
 	}
 
-	if len(changesResults) == 0 {
+	if changesResults.TotalCommits == 0 {
 		fmt.Println("No changes found")
 		os.Exit(3)
 	}
 
 	switch cliOpts.Format {
 	case "full":
-		output := changes.FormatTimeseriesChangesResults(changesResults, true)
+		output := FormatFullTextResults(changesResults)
 		fmt.Println(output)
 
 	case "short":
-		output := changes.FormatTimeseriesChangesResults(changesResults, false)
+		output := FormatTopTextResults(changesResults)
 		fmt.Println(output)
 
 	case "graph":
-		url := changes.ServeChangesTimeseries(changesResults, opts)
+		url := ServeChanges(changesResults, opts)
 		_, err := utils.ExecShellf("", "open %s", url)
 		if err != nil {
 			fmt.Printf("Couldn't open browser automatically. See results at %s\n", url)

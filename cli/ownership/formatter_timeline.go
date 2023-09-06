@@ -5,19 +5,20 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/flaviostutz/gitwho/ownership"
 	"github.com/flaviostutz/gitwho/utils"
 	"github.com/rodaine/table"
 )
 
-func FormatTimeseriesOwnershipResults(ownershipResults []OwnershipResult, full bool) string {
+func FormatTimeseriesOwnershipResults(ownershipResults []ownership.OwnershipResult, full bool) string {
 	str := "\n"
 
 	tblWriter := bytes.NewBufferString("")
 	tbl := table.New("Date", "Lines", "Duplicates", "Files")
 	tbl.WithWriter(tblWriter)
 
-	firstResult := OwnershipResult{}
-	prevResult := OwnershipResult{}
+	firstResult := ownership.OwnershipResult{}
+	prevResult := ownership.OwnershipResult{}
 	for i, result := range ownershipResults {
 		if i == 0 {
 			firstResult = result
@@ -43,10 +44,10 @@ func FormatTimeseriesOwnershipResults(ownershipResults []OwnershipResult, full b
 	return str
 }
 
-func formatAuthorsTimeseries(ownershipResults []OwnershipResult) string {
+func formatAuthorsTimeseries(ownershipResults []ownership.OwnershipResult) string {
 
 	str := ""
-	authorNameLinesDates := SortByAuthorDate(ownershipResults)
+	authorNameLinesDates := ownership.SortByAuthorDate(ownershipResults)
 
 	// display data
 	for _, authorNameLinesDate := range authorNameLinesDates {
@@ -56,8 +57,8 @@ func formatAuthorsTimeseries(ownershipResults []OwnershipResult) string {
 		tbl := table.New("Date", "Lines", "Duplicates (total)", "Duplicates (original)")
 		tbl.WithWriter(tblWriter)
 
-		firstResult := AuthorLines{}
-		prevResult := AuthorLines{}
+		firstResult := ownership.AuthorLines{}
+		prevResult := ownership.AuthorLines{}
 
 		for _, linesData := range authorNameLinesDate.AuthorLinesDate {
 			result := linesData.AuthorLines

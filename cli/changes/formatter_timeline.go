@@ -5,18 +5,19 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/flaviostutz/gitwho/changes"
 	"github.com/flaviostutz/gitwho/utils"
 	"github.com/rodaine/table"
 )
 
-func FormatTimeseriesChangesResults(changesResults []ChangesResult, full bool) string {
+func FormatTimeseriesChangesResults(changesResults []changes.ChangesResult, full bool) string {
 	str := "\n"
 
 	tblWriter := bytes.NewBufferString("")
 	tbl := table.New("Period", "Commits", "Files touched", "Lines touched", "New lines", "Changed lines")
 	tbl.WithWriter(tblWriter)
 
-	prevResult := ChangesResult{}
+	prevResult := changes.ChangesResult{}
 
 	totalCommits := 0
 	totalFiles := 0
@@ -54,10 +55,10 @@ func FormatTimeseriesChangesResults(changesResults []ChangesResult, full bool) s
 	return str
 }
 
-func formatAuthorsTimeseries(changesResults []ChangesResult) string {
+func formatAuthorsTimeseries(changesResults []changes.ChangesResult) string {
 
 	str := ""
-	authorNameLinesDates := SortByAuthorDate(changesResults)
+	authorNameLinesDates := changes.SortByAuthorDate(changesResults)
 
 	// display data
 	for _, authorNameLinesDate := range authorNameLinesDates {
@@ -67,7 +68,7 @@ func formatAuthorsTimeseries(changesResults []ChangesResult) string {
 		tbl := table.New("Period", "Lines touched", "New lines", "Changed lines")
 		tbl.WithWriter(tblWriter)
 
-		prevResult := AuthorLinesDate{}
+		prevResult := changes.AuthorLinesDate{}
 
 		totalChanges := 0
 		totalNew := 0
@@ -94,6 +95,6 @@ func formatAuthorsTimeseries(changesResults []ChangesResult) string {
 	return str
 }
 
-func totalTouched(linesTouched LinesTouched) int {
+func totalTouched(linesTouched changes.LinesTouched) int {
 	return linesTouched.New + linesTouched.Changes
 }

@@ -4,7 +4,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/flaviostutz/gitwho/cli"
+	cliChanges "github.com/flaviostutz/gitwho/cli/changes"
+	cliOwnership "github.com/flaviostutz/gitwho/cli/ownership"
 )
 
 func main() {
@@ -16,19 +17,19 @@ func main() {
 
 	switch os.Args[1] {
 	case "changes":
-		cli.RunChanges(os.Args)
+		cliChanges.RunChanges(os.Args)
 
 	case "changes-timeseries":
-		cli.RunChangesTimeseries(os.Args)
+		cliChanges.RunChangesTimeseries(os.Args)
 
 	case "ownership":
-		cli.RunOwnership(os.Args)
+		cliOwnership.RunOwnership(os.Args)
 
 	case "ownership-timeseries":
-		cli.RunOwnershipTimeseries(os.Args)
+		cliOwnership.RunOwnershipTimeseries(os.Args)
 
 	case "duplicates":
-		cli.RunDuplicates(os.Args)
+		cliOwnership.RunDuplicates(os.Args)
 
 	default:
 		fmt.Println("Usage: gitwho [changes|changes-timeseries|ownership|ownership-timeseries|duplicates]")

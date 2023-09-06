@@ -3,14 +3,16 @@ package ownership
 import (
 	"fmt"
 	"strconv"
+
+	"github.com/flaviostutz/gitwho/ownership"
 )
 
 type authorLinesDate struct {
 	date        string
-	authorLines AuthorLines
+	authorLines ownership.AuthorLines
 }
 
-func FormatCodeOwnershipResults(ownershipResult OwnershipResult, full bool) string {
+func FormatCodeOwnershipResults(ownershipResult ownership.OwnershipResult, full bool) string {
 	text := fmt.Sprintf("\nTotal authors: %d\n", len(ownershipResult.AuthorsLines))
 	text += fmt.Sprintf("Total files: %d\n", ownershipResult.TotalFiles)
 	if full {
@@ -40,7 +42,7 @@ func FormatCodeOwnershipResults(ownershipResult OwnershipResult, full bool) stri
 	return text
 }
 
-func FormatDuplicatesResults(ownershipResult OwnershipResult, full bool) string {
+func FormatDuplicatesResults(ownershipResult ownership.OwnershipResult, full bool) string {
 	text := fmt.Sprintf("Total lines: %d\n", ownershipResult.TotalLines)
 	text += fmt.Sprintf("Duplicated lines: %d (%d%%)\n", ownershipResult.TotalLinesDuplicated, int(100*float64(ownershipResult.TotalLinesDuplicated)/float64(ownershipResult.TotalLines)))
 	counter := 0

@@ -1,10 +1,11 @@
-package cli
+package ownership
 
 import (
 	"flag"
 	"fmt"
 	"os"
 
+	"github.com/flaviostutz/gitwho/cli"
 	"github.com/flaviostutz/gitwho/ownership"
 	"github.com/flaviostutz/gitwho/utils"
 	"github.com/sirupsen/logrus"
@@ -12,7 +13,7 @@ import (
 
 func RunDuplicates(osArgs []string) {
 	opts := ownership.OwnershipOptions{}
-	cliOpts := CliOpts{}
+	cliOpts := cli.CliOpts{}
 	when := ""
 	flags := flag.NewFlagSet("duplicates", flag.ExitOnError)
 	flags.StringVar(&opts.RepoDir, "repo", ".", "Repository path to analyse")
@@ -31,7 +32,7 @@ func RunDuplicates(osArgs []string) {
 
 	flags.Parse(osArgs[2:])
 
-	progressChan := setupBasic(cliOpts)
+	progressChan := cli.SetupBasic(cliOpts)
 	defer close(progressChan)
 
 	commit, err := utils.ExecGetLastestCommit(opts.RepoDir, opts.Branch, "", when)
@@ -53,6 +54,6 @@ func RunDuplicates(osArgs []string) {
 		os.Exit(3)
 	}
 
-	output := ownership.FormatDuplicatesResults(ownershipResults, cliOpts.Format == "full")
+	output := FormatDuplicatesResults(ownershipResults, cliOpts.Format == "full")
 	fmt.Println(output)
 }

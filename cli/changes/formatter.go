@@ -4,34 +4,35 @@ import (
 	"fmt"
 	"sort"
 
+	"github.com/flaviostutz/gitwho/changes"
 	"github.com/flaviostutz/gitwho/utils"
 )
 
-func FormatFullTextResults(changes ChangesResult) string {
-	if changes.TotalCommits == 0 {
+func FormatFullTextResults(cResult changes.ChangesResult) string {
+	if cResult.TotalCommits == 0 {
 		return "No changes found"
 	}
 
-	text := fmt.Sprintf("Total authors active: %d\n", len(changes.AuthorsLines))
-	text += fmt.Sprintf("Total files touched: %d\n", changes.TotalFiles)
-	if changes.TotalLinesTouched.Changes > 0 {
-		text += fmt.Sprintf("Average line age when changed: %d days\n", (int(changes.TotalLinesTouched.AgeDaysSum / float64(changes.TotalLinesTouched.Changes))))
+	text := fmt.Sprintf("Total authors active: %d\n", len(cResult.AuthorsLines))
+	text += fmt.Sprintf("Total files touched: %d\n", cResult.TotalFiles)
+	if cResult.TotalLinesTouched.Changes > 0 {
+		text += fmt.Sprintf("Average line age when changed: %d days\n", (int(cResult.TotalLinesTouched.AgeDaysSum / float64(cResult.TotalLinesTouched.Changes))))
 	}
-	text += formatLinesTouched(changes.TotalLinesTouched, LinesTouched{})
+	text += formatLinesTouched(cResult.TotalLinesTouched, changes.LinesTouched{})
 
-	for _, authorLines := range changes.AuthorsLines {
+	for _, authorLines := range cResult.AuthorsLines {
 		if authorLines.LinesTouched.New+authorLines.LinesTouched.Changes == 0 {
 			continue
 		}
 		mailStr := fmt.Sprintf(" %s", authorLines.AuthorMail)
 		text += fmt.Sprintf("\nAuthor: %s%s\n", authorLines.AuthorName, mailStr)
-		text += formatLinesTouched(authorLines.LinesTouched, changes.TotalLinesTouched)
+		text += formatLinesTouched(authorLines.LinesTouched, cResult.TotalLinesTouched)
 		text += formatTopTouchedFiles(authorLines.FilesTouched)
 	}
 	return text
 }
 
-func FormatTopTextResults(changes ChangesResult) string {
+func FormatTopTextResults(changes changes.ChangesResult) string {
 	if changes.TotalCommits == 0 {
 		return "No changes found"
 	}
@@ -100,7 +101,7 @@ func FormatTopTextResults(changes ChangesResult) string {
 	return text
 }
 
-func formatTopTouchedFiles(filesTouched []FileTouched) string {
+func formatTopTouchedFiles(filesTouched []changes.FileTouched) string {
 	text := fmt.Sprintf("  - Top files:\n")
 	sort.Slice(filesTouched, func(i, j int) bool {
 		return filesTouched[i].Lines > filesTouched[j].Lines
@@ -111,11 +112,11 @@ func formatTopTouchedFiles(filesTouched []FileTouched) string {
 	return text
 }
 
-func calcTopCoderScore(ai LinesTouched) int {
+func calcTopCoderScore(ai changes.LinesTouched) int {
 	return ai.New + 3*ai.RefactorOther + 2*ai.RefactorOwn - 2*ai.ChurnOwn - 4*ai.ChurnReceived
 }
 
-func formatLinesTouched(changes LinesTouched, totals LinesTouched) string {
+func formatLinesTouched(changes changes.LinesTouched, totals changes.LinesTouched) string {
 	totalTouched := changes.New + changes.Changes
 	text := fmt.Sprintf("- Total lines touched: %d%s\n", totalTouched, utils.CalcPercStr(changes.New+changes.Changes, totals.New+totals.Changes))
 	text += fmt.Sprintf("  - New lines: %d%s\n", changes.New, utils.CalcPercStr(changes.New, totalTouched))
