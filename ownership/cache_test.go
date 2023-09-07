@@ -100,7 +100,7 @@ func TestGetExistingCachedResultsOwnership(t *testing.T) {
 func TestCacheAutoCleanup(t *testing.T) {
 	opts1 := sampleOpts // clone instance
 	opts1.CommitId = "bbbbbbbb"
-	opts1.CacheTTLSeconds = 1
+	opts1.CacheTTLSeconds = 2
 	os.Remove(opts1.CacheFile)
 
 	err := SaveToCache(opts1, sampleResult)
@@ -112,7 +112,7 @@ func TestCacheAutoCleanup(t *testing.T) {
 	require.NotNil(t, result2)
 
 	// wait for expiration
-	time.Sleep(1100 * time.Millisecond)
+	time.Sleep(2100 * time.Millisecond)
 
 	// expired
 	result3, err := GetFromCache(opts1)

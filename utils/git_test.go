@@ -51,7 +51,7 @@ func TestExecCommitDate(t *testing.T) {
 		return
 	}
 
-	commitIds, err := ExecCommitIdsInRange(repoDir, "main", "1 month ago", "now")
+	commitIds, err := ExecCommitIdsInDateRange(repoDir, "main", "1 month ago", "now")
 	if err != nil {
 		return
 	}
@@ -90,7 +90,7 @@ func TestExecTreeFileSize(t *testing.T) {
 		return
 	}
 
-	commitIds, err := ExecCommitIdsInRange(repoDir, "main", "1 month ago", "now")
+	commitIds, err := ExecCommitIdsInDateRange(repoDir, "main", "1 month ago", "now")
 	if err != nil {
 		return
 	}
@@ -113,7 +113,7 @@ func TestExecDiffFileRevisions(t *testing.T) {
 		return
 	}
 
-	commitIds, err := ExecCommitIdsInRange(repoDir, "main", "1 month ago", "now")
+	commitIds, err := ExecCommitIdsInDateRange(repoDir, "main", "1 month ago", "now")
 	if err != nil {
 		return
 	}
@@ -134,24 +134,91 @@ func TestExecCommitIdsInRange(t *testing.T) {
 		return
 	}
 
-	cid, err := ExecCommitIdsInRange(repoDir, "main", "1 week ago", "now")
+	cid, err := ExecCommitIdsInDateRange(repoDir, "main", "1 week ago", "now")
 	require.Nil(t, err)
 	require.NotEmpty(t, cid)
 	require.Equal(t, 5, len(cid))
 }
 
-func TestExecCommitsInRange(t *testing.T) {
+func TestExecCommitIdsInDateRangeEmpty(t *testing.T) {
 	repoDir, err := ResolveTestOwnershipRepo()
 	require.Nil(t, err)
 	if err != nil {
 		return
 	}
 
-	commits, err := ExecGetCommitsInRange(repoDir, "main", "1 week ago", "now")
+	cid, err := ExecCommitIdsInDateRange(repoDir, "main", "", "")
+	require.Nil(t, err)
+	require.NotEmpty(t, cid)
+	require.Equal(t, 5, len(cid))
+}
+
+func TestExecCommitsInDateRange(t *testing.T) {
+	repoDir, err := ResolveTestOwnershipRepo()
+	require.Nil(t, err)
+	if err != nil {
+		return
+	}
+
+	commits, err := ExecGetCommitsInDateRange(repoDir, "main", "1 week ago", "now")
 	require.Nil(t, err)
 	require.Equal(t, 5, len(commits))
 	require.NotEmpty(t, commits[0].AuthorName)
 	require.NotEmpty(t, commits[0].CommitId)
+}
+
+func TestExecCommitsInDateRangeEmpty(t *testing.T) {
+	repoDir, err := ResolveTestOwnershipRepo()
+	require.Nil(t, err)
+	if err != nil {
+		return
+	}
+
+	commits, err := ExecGetCommitsInDateRange(repoDir, "main", "", "")
+	require.Nil(t, err)
+	require.Equal(t, 5, len(commits))
+	require.NotEmpty(t, commits[0].AuthorName)
+	require.NotEmpty(t, commits[0].CommitId)
+}
+
+func TestExecCommitIdsInCommitRange(t *testing.T) {
+	repoDir, err := ResolveTestOwnershipRepo()
+	require.Nil(t, err)
+	if err != nil {
+		return
+	}
+
+	commits, err := ExecCommitIdsInDateRange(repoDir, "main", "1 week ago", "now")
+	commits2, err := ExecCommitIdsInCommitRange(repoDir, "main", commits[len(commits)-1], commits[0])
+	require.Nil(t, err)
+	require.Equal(t, 5, len(commits))
+	require.Equal(t, 4, len(commits2))
+}
+
+func TestExecCommitsInCommitRange(t *testing.T) {
+	repoDir, err := ResolveTestOwnershipRepo()
+	require.Nil(t, err)
+	if err != nil {
+		return
+	}
+
+	commits, err := ExecCommitIdsInDateRange(repoDir, "main", "1 week ago", "now")
+	commits2, err := ExecGetCommitsInCommitRange(repoDir, "main", commits[len(commits)-1], commits[0])
+	require.Nil(t, err)
+	require.Equal(t, 5, len(commits))
+	require.Equal(t, 4, len(commits2))
+}
+
+func TestExecCommitsInCommitRangeEmpty(t *testing.T) {
+	repoDir, err := ResolveTestOwnershipRepo()
+	require.Nil(t, err)
+	if err != nil {
+		return
+	}
+
+	commits1, err := ExecGetCommitsInCommitRange(repoDir, "main", "", "")
+	require.Nil(t, err)
+	require.Equal(t, 5, len(commits1))
 }
 
 func TestExecDiffIsBinary(t *testing.T) {

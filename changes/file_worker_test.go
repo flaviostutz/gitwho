@@ -20,7 +20,7 @@ func TestAnalyseWorkerFile1(t *testing.T) {
 	analyseFileInputChan := make(chan fileWorkerRequest, 4)
 	analyseFileOutputChan := make(chan ChangesFileResult, 4)
 
-	commitIds, err := utils.ExecCommitIdsInRange(repoDir, "main", "1 month ago", "now")
+	commitIds, err := utils.ExecCommitIdsInDateRange(repoDir, "main", "1 month ago", "now")
 	if err != nil {
 		return
 	}

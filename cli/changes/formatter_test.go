@@ -16,7 +16,7 @@ func TestFormatChangesShort(t *testing.T) {
 			RepoDir: repoDir,
 			Branch:  "main",
 		},
-		Since: "1 day ago",
+		SinceDate: "1 day ago",
 	}, nil)
 	require.Nil(t, err)
 
@@ -32,7 +32,7 @@ func TestFormatChangesFull(t *testing.T) {
 			RepoDir: repoDir,
 			Branch:  "main",
 		},
-		Since: "1 day ago",
+		SinceDate: "1 day ago",
 	}, nil)
 	require.Nil(t, err)
 

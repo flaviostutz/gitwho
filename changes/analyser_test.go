@@ -1,35 +1,36 @@
 package changes
 
 import (
+	"fmt"
 	"testing"
+	"time"
 
 	"github.com/flaviostutz/gitwho/utils"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/require"
 )
 
-// func TestTimeseriesChanges1(t *testing.T) {
-// 	logrus.SetLevel(logrus.DebugLevel)
-// 	repoDir, err := utils.ResolveTestOwnershipRepo()
-// 	require.Nil(t, err)
-// 	results, err := AnalyseTimeseriesChanges(ChangesTimeseriesOptions{
-// 		BaseOptions: utils.BaseOptions{
-// 			RepoDir: repoDir,
-// 			Branch:  "main",
-// 		},
-// 		Since:  "1 hour ago",
-// 		Until:  "now",
-// 		Period: "1 second",
-// 	}, nil)
-// 	require.Nil(t, err)
-// 	if err != nil {
-// 		return
-// 	}
+func TestTimeseriesChanges1(t *testing.T) {
+	logrus.SetLevel(logrus.DebugLevel)
+	repoDir, err := utils.ResolveTestOwnershipRepo()
+	logs, _ := utils.ExecGetCommitsInDateRange(repoDir, "main", "", "")
+	for _, l := range logs {
+		fmt.Printf("%s %s\n", l.CommitId, l.Date.Format(time.RFC3339))
+	}
 
-// 	require.Len(t, results, 3)
-// 	require.NotEmpty(t, results[0].SinceCommit.AuthorMail)
-// 	require.NotEmpty(t, results[0].UntilCommit.AuthorName)
-// }
+	require.Nil(t, err)
+	results, err := AnalyseTimeseriesChanges(ChangesTimeseriesOptions{
+		BaseOptions: utils.BaseOptions{
+			RepoDir: repoDir,
+			Branch:  "main",
+		},
+		Since:  "2 days ago",
+		Until:  "now",
+		Period: "1 second",
+	}, nil)
+	require.Nil(t, err)
+	require.True(t, len(results) >= 2)
+}
 
 func TestAnalyseChangesNewFile2(t *testing.T) {
 	repoDir, err := utils.ResolveTestOwnershipRepo()

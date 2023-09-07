@@ -176,8 +176,8 @@ func ServeChanges(result changes.ChangesResult, changesOpts changes.ChangesOptio
 }
 
 func changesOptsStr(changesOpts changes.ChangesOptions) string {
-	str := utils.AttrStr("since", changesOpts.Since)
-	str += utils.AttrStr("until", changesOpts.Until)
+	str := utils.AttrStr("since", changesOpts.SinceDate)
+	str += utils.AttrStr("until", changesOpts.UntilDate)
 	return str
 }
 

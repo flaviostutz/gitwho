@@ -24,8 +24,8 @@ func RunChanges(osArgs []string) {
 	flags.StringVar(&opts.AuthorsNotRegex, "authors-not", "", "Regex for filtering out authors from analysis")
 	flags.StringVar(&opts.CacheFile, "cache-file", "", "If defined, stores results in a cache file that can be used in subsequent calls that uses the same parameters.")
 	flags.IntVar(&opts.CacheTTLSeconds, "cache-ttl", 5184000, "Time in seconds for old items in cache file to be deleted. Defaults to 2 months")
-	flags.StringVar(&opts.Since, "since", "30 days ago", "Filter changes made from this date")
-	flags.StringVar(&opts.Until, "until", "now", "Filter changes made util this date")
+	flags.StringVar(&opts.SinceDate, "since", "30 days ago", "Filter changes made from this date")
+	flags.StringVar(&opts.UntilDate, "until", "now", "Filter changes made util this date")
 	flags.StringVar(&cliOpts.Format, "format", "full", "Output format. 'full' (more details), 'short' (lines per author) or 'graph' (open browser)")
 	flags.StringVar(&cliOpts.GoProfileFile, "profile-file", "", "Profile file to dump golang runtime data to")
 	flags.BoolVar(&cliOpts.Verbose, "verbose", false, "Show verbose logs during processing")
@@ -34,7 +34,7 @@ func RunChanges(osArgs []string) {
 	progressChan := cli.SetupBasic(cliOpts)
 	defer close(progressChan)
 
-	_, err := utils.ExecCommitIdsInRange(opts.RepoDir, opts.Branch, "", "")
+	_, err := utils.ExecCommitIdsInDateRange(opts.RepoDir, opts.Branch, "", "")
 	if err != nil {
 		fmt.Printf("Branch %s not found\n", opts.Branch)
 		os.Exit(1)

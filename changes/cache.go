@@ -73,8 +73,8 @@ func getCacheKey(opts ChangesOptions) string {
 	// as part of the key
 	// the effect is that this cache will be valid only for one day
 	add := ""
-	_, errSince := time.Parse(time.DateOnly, opts.Since)
-	_, errUntil := time.Parse(time.DateOnly, opts.Until)
+	_, errSince := time.Parse(time.DateOnly, opts.SinceDate)
+	_, errUntil := time.Parse(time.DateOnly, opts.UntilDate)
 	if errSince != nil || errUntil != nil {
 		add = time.Now().Format(time.DateOnly)
 	}
@@ -86,7 +86,7 @@ func getCacheKey(opts ChangesOptions) string {
 		opts.AuthorsNotRegex,
 		opts.FilesRegex,
 		opts.FilesNotRegex,
-		opts.Since,
-		opts.Until,
+		opts.SinceDate,
+		opts.UntilDate,
 		add)
 }

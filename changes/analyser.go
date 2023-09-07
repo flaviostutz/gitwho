@@ -18,8 +18,10 @@ import (
 type ChangesOptions struct {
 	utils.BaseOptions
 	// AuthorsRegex string
-	Since string
-	Until string
+	SinceDate   string
+	UntilDate   string
+	SinceCommit string
+	UntilCommit string
 }
 
 type ChangesTimeseriesOptions struct {
@@ -125,7 +127,7 @@ func AnalyseTimeseriesChanges(opts ChangesTimeseriesOptions, progressChan chan<-
 	for {
 		// FIND "SINCE" COMMIT
 		// see if the outer "since" is outside inner "since"
-		sinceCommits, err := utils.ExecGetCommitsInRange(opts.RepoDir, opts.Branch, opts.Since, since)
+		sinceCommits, err := utils.ExecGetCommitsInDateRange(opts.RepoDir, opts.Branch, opts.Since, since)
 		if err != nil {
 			return nil, err
 		}
@@ -150,7 +152,7 @@ func AnalyseTimeseriesChanges(opts ChangesTimeseriesOptions, progressChan chan<-
 		// find next commit that wasn't processed yet
 		// this is necessary because git does a "loose" lookup for commits when using relative time periods
 		// and we don't want to repeat the same commit in multiple periods (to avoid double couting)
-		untilCommits, err := utils.ExecGetCommitsInRange(opts.RepoDir, opts.Branch, sinceCommit.Date.Format(time.RFC3339), until)
+		untilCommits, err := utils.ExecGetCommitsInDateRange(opts.RepoDir, opts.Branch, sinceCommit.Date.Format(time.RFC3339), until)
 		if err != nil {
 			return nil, err
 		}
@@ -165,8 +167,9 @@ func AnalyseTimeseriesChanges(opts ChangesTimeseriesOptions, progressChan chan<-
 
 		// probably there is no data in the period, so skip this and try next period
 		// git supports multiple relative date arguments, so append it
-		if untilCommit == nil ||
-			(sinceCommit.CommitId == untilCommit.CommitId) {
+		// if untilCommit == nil ||
+		// 	(sinceCommit.CommitId == untilCommit.CommitId) {
+		if untilCommit == nil {
 			since = fmt.Sprintf("%s - %s", since, opts.Period)
 			until = fmt.Sprintf("%s - %s", until, opts.Period)
 			logrus.Debugf("Skipping period without commits. since=%s; until=%s", since, until)
@@ -174,17 +177,22 @@ func AnalyseTimeseriesChanges(opts ChangesTimeseriesOptions, progressChan chan<-
 		}
 
 		// git only support dates with relative time with date only formats
-		analysisOpts.Since = sinceCommit.Date.Format(time.DateOnly)
-		analysisOpts.Until = untilCommit.Date.Format(time.DateOnly)
+		analysisOpts.SinceCommit = sinceCommit.CommitId
+		analysisOpts.UntilCommit = untilCommit.CommitId
 		onwershipResult, err := AnalyseChanges(analysisOpts, progressChan)
 		if err != nil {
 			return nil, err
 		}
 		result = append(result, onwershipResult)
-		processedCommits = append(processedCommits, sinceCommit.CommitId)
-		processedCommits = append(processedCommits, untilCommit.CommitId)
 
-		until = fmt.Sprintf("%s", analysisOpts.Since)
+		// add all commits in range as processed
+		processedCommits = appendProcessed(processedCommits, sinceCommit.CommitId)
+		rangeCommitIds, err := utils.ExecCommitIdsInCommitRange(opts.RepoDir, opts.Branch, sinceCommit.CommitId, untilCommit.CommitId)
+		for _, rangeid := range rangeCommitIds {
+			processedCommits = appendProcessed(processedCommits, rangeid)
+		}
+
+		until = fmt.Sprintf("%s", analysisOpts.SinceDate)
 		since = fmt.Sprintf("%s - %s", until, opts.Period)
 	}
 
@@ -193,6 +201,13 @@ func AnalyseTimeseriesChanges(opts ChangesTimeseriesOptions, progressChan chan<-
 	})
 
 	return result, nil
+}
+
+func appendProcessed(processedCommits []string, newId string) []string {
+	if !slices.Contains(processedCommits, newId) {
+		processedCommits = append(processedCommits, newId)
+	}
+	return processedCommits
 }
 
 func AnalyseChanges(opts ChangesOptions, progressChan chan<- utils.ProgressInfo) (ChangesResult, error) {
@@ -221,7 +236,7 @@ func AnalyseChanges(opts ChangesOptions, progressChan chan<- utils.ProgressInfo)
 		return ChangesResult{}, fmt.Errorf("opts.Branch is required")
 	}
 
-	logrus.Debugf("Analysing changes in branch %s from %s to %s", opts.Branch, opts.Since, opts.Until)
+	logrus.Debugf("Analysing changes in branch %s from %s to %s", opts.Branch, opts.SinceDate, opts.UntilDate)
 
 	fre, err := regexp.Compile(opts.FilesRegex)
 	if err != nil {
@@ -361,29 +376,60 @@ func AnalyseChanges(opts ChangesOptions, progressChan chan<- utils.ProgressInfo)
 
 	// MAP - submit commits for analysis (STEP 1/4)
 	// for each commit between 'from' and 'to' date, submit to be analysed
-	commits, err := utils.ExecCommitIdsInRange(opts.RepoDir, opts.Branch, opts.Since, opts.Until)
+	if (opts.SinceDate != "" || opts.UntilDate != "") && (opts.SinceCommit != "" || opts.UntilCommit != "") {
+		return result, fmt.Errorf("Cannot mix opts.SinceDate/UntilDate with opts.SinceCommit/UntilCommit")
+	}
+
+	// find commit ids from dates
+	if opts.SinceDate != "" || opts.UntilDate != "" {
+		since := opts.SinceDate
+		if opts.SinceDate == opts.UntilDate {
+			// allow git query to find commit at "until"
+			since = ""
+		}
+		commitIds, err := utils.ExecCommitIdsInDateRange(opts.RepoDir, opts.Branch, since, opts.UntilDate)
+		if err != nil {
+			return result, err
+		}
+		opts.SinceCommit = commitIds[len(commitIds)-1]
+		opts.UntilCommit = commitIds[0]
+	}
+
+	since := opts.SinceCommit
+	if opts.SinceCommit == opts.UntilCommit {
+		// allow git query to find commit at "until"
+		since = ""
+	}
+	commits, err := utils.ExecGetCommitsInCommitRange(opts.RepoDir, opts.Branch, since, opts.UntilCommit)
 	if err != nil {
-		logrus.Errorf("Error getting commits. err=%s", err)
-		panic(5)
+		return result, err
+	}
+	commitIds := utils.CommitInfoToCommitIds(commits)
+
+	if since != "" {
+		// add since commit id at the begining of the list
+		commitIds = append([]string{since}, commitIds...)
+	}
+
+	if len(commitIds) == 0 {
+		return result, fmt.Errorf("No changes found")
 	}
 
 	// commits are in reverse order
-	sinceCommit, err := utils.ExecGitCommitInfo(opts.RepoDir, commits[len(commits)-1])
+	sinceCommit, err := utils.ExecGitCommitInfo(opts.RepoDir, commitIds[len(commitIds)-1])
 	if err != nil {
-		logrus.Errorf("Error getting since commit. err=%s", err)
-		panic(5)
+		return result, fmt.Errorf("Error getting since commit. err=%s", err)
 	}
 	result.SinceCommit = sinceCommit
 
-	untilCommit, err := utils.ExecGitCommitInfo(opts.RepoDir, commits[0])
+	untilCommit, err := utils.ExecGitCommitInfo(opts.RepoDir, commitIds[0])
 	if err != nil {
-		logrus.Errorf("Error getting until commit. err=%s", err)
-		panic(5)
+		return result, fmt.Errorf("Error getting until commit. err=%s", err)
 	}
 	result.UntilCommit = untilCommit
 
 	logrus.Debug("Sending commits to workers")
-	for _, commitId := range commits {
+	for _, commitId := range commitIds {
 		commitWorkersInputChan <- commitWorkerRequest{
 			repoDir:  opts.RepoDir,
 			commitId: commitId,

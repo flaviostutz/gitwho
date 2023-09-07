@@ -20,8 +20,8 @@ var (
 			CacheFile:       "gitwho-cache",
 			CacheTTLSeconds: 10,
 		},
-		Since: "12 months ago",
-		Until: "now",
+		SinceDate: "12 months ago",
+		UntilDate: "now",
 	}
 
 	sampleResult = ChangesResult{
@@ -37,7 +37,7 @@ var (
 
 func TestSaveNewCachedResultsOwnership(t *testing.T) {
 	opts1 := sampleOpts // clone instance
-	opts1.Since = "123123123"
+	opts1.SinceDate = "123123123"
 	os.Remove(opts1.CacheFile)
 
 	result, err := GetFromCache(opts1)
