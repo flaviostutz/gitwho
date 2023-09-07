@@ -10,7 +10,7 @@ import (
 	"github.com/rodaine/table"
 )
 
-func FormatTimeseriesChangesResults(changesResults []changes.ChangesResult, full bool) string {
+func FormatTimeseriesChangesResults(changesResults []changes.ChangesResult, full bool) (string, error) {
 	str := "\n"
 
 	tblWriter := bytes.NewBufferString("")
@@ -48,11 +48,29 @@ func FormatTimeseriesChangesResults(changesResults []changes.ChangesResult, full
 	tbl.Print()
 	str += tblWriter.String()
 
+	// author clusters
+	aclusters, err := changes.ClusterizeAuthors(changesResults, 3)
+	if err != nil {
+		return "", err
+	}
+
+	text := ""
+	if len(aclusters) > 0 {
+		text += "\nAuthor clusters\n"
+		for _, authorCluster := range aclusters {
+			authorNames := make([]string, 0)
+			for _, lines := range authorCluster.Lines {
+				authorNames = append(authorNames, lines.AuthorName)
+			}
+			text += fmt.Sprintf("  %s: %s\n", authorCluster.Name, utils.JoinWithLimit(authorNames, ", ", 4))
+		}
+	}
+
 	if full {
 		str += formatAuthorsTimeseries(changesResults)
 	}
 
-	return str
+	return str, nil
 }
 
 func formatAuthorsTimeseries(changesResults []changes.ChangesResult) string {

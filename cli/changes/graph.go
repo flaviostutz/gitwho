@@ -1,6 +1,7 @@
 package changes
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/flaviostutz/gitwho/changes"
@@ -109,7 +110,13 @@ func ServeChangesTimeseries(changesResults []changes.ChangesResult, ownershipTim
 	info := "<pre style=\"display:flex;justify-content:center\"><code>"
 	info += utils.BaseOptsStr(ownershipTimeseriesOpts.BaseOptions)
 	info += changesTimeseriesOptsStr(ownershipTimeseriesOpts)
-	info += FormatTimeseriesChangesResults(changesResults, true)
+
+	tsresults, err := FormatTimeseriesChangesResults(changesResults, true)
+	if err != nil {
+		fmt.Printf("Couldn't format results. err=%s", err)
+		panic(5)
+	}
+	info += tsresults
 	info += "</code></pre>"
 
 	url, _ := cli.ServeGraphPage(page, info)

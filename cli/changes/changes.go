@@ -58,7 +58,10 @@ func RunChanges(osArgs []string) {
 		fmt.Println(output)
 
 	case "short":
-		output := FormatTopTextResults(changesResults)
+		output, err := FormatTopTextResults(changesResults)
+		if err != nil {
+			fmt.Printf("Couldn't format results. err=%s", err)
+		}
 		fmt.Println(output)
 
 	case "graph":

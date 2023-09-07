@@ -32,73 +32,92 @@ func FormatFullTextResults(cResult changes.ChangesResult) string {
 	return text
 }
 
-func FormatTopTextResults(changes changes.ChangesResult) string {
-	if changes.TotalCommits == 0 {
-		return "No changes found"
+func FormatTopTextResults(cresult changes.ChangesResult) (string, error) {
+	if cresult.TotalCommits == 0 {
+		return "No changes found", nil
+	}
+
+	// author clusters
+	aclusters, err := changes.ClusterizeAuthors([]changes.ChangesResult{cresult}, 3)
+	if err != nil {
+		return "", fmt.Errorf("Couldn't clusterize authors. err=%s", err)
+	}
+
+	text := ""
+	if len(aclusters) > 0 {
+		text += "\nAuthor clusters\n"
+		for _, authorCluster := range aclusters {
+			authorNames := make([]string, 0)
+			for _, lines := range authorCluster.Lines {
+				authorNames = append(authorNames, lines.AuthorName)
+			}
+			text += fmt.Sprintf("  %s: %s\n", authorCluster.Name, utils.JoinWithLimit(authorNames, ", ", 4))
+		}
 	}
 
 	// top coders
-	sort.Slice(changes.AuthorsLines, func(i, j int) bool {
-		ai := changes.AuthorsLines[i].LinesTouched
-		aj := changes.AuthorsLines[j].LinesTouched
+	sort.Slice(cresult.AuthorsLines, func(i, j int) bool {
+		ai := cresult.AuthorsLines[i].LinesTouched
+		aj := cresult.AuthorsLines[j].LinesTouched
 		return calcTopCoderScore(ai) > calcTopCoderScore(aj)
 	})
-	text := "\nTop Coders (new+refactor-churn)\n"
-	for i := 0; i < len(changes.AuthorsLines) && i < 3; i++ {
-		al := changes.AuthorsLines[i]
+
+	text += "\nTop Coders (new+refactor-churn)\n"
+	for i := 0; i < len(cresult.AuthorsLines) && i < 3; i++ {
+		al := cresult.AuthorsLines[i]
 		mailStr := fmt.Sprintf(" %s", al.AuthorMail)
-		text += fmt.Sprintf("  %s%s: %d%s\n", al.AuthorName, mailStr, calcTopCoderScore(al.LinesTouched), utils.CalcPercStr(calcTopCoderScore(al.LinesTouched), calcTopCoderScore(changes.TotalLinesTouched)))
+		text += fmt.Sprintf("  %s%s: %d%s\n", al.AuthorName, mailStr, calcTopCoderScore(al.LinesTouched), utils.CalcPercStr(calcTopCoderScore(al.LinesTouched), calcTopCoderScore(cresult.TotalLinesTouched)))
 	}
 
 	// top new liners
-	sort.Slice(changes.AuthorsLines, func(i, j int) bool {
-		ai := changes.AuthorsLines[i].LinesTouched
-		aj := changes.AuthorsLines[j].LinesTouched
+	sort.Slice(cresult.AuthorsLines, func(i, j int) bool {
+		ai := cresult.AuthorsLines[i].LinesTouched
+		aj := cresult.AuthorsLines[j].LinesTouched
 		return ai.New > aj.New
 	})
 	text += "\nTop New Liners\n"
-	for i := 0; i < len(changes.AuthorsLines) && i < 3; i++ {
-		al := changes.AuthorsLines[i]
-		text += fmt.Sprintf("  %s: %d%s\n", al.AuthorName, al.LinesTouched.New, utils.CalcPercStr(al.LinesTouched.New, changes.TotalLinesTouched.New))
+	for i := 0; i < len(cresult.AuthorsLines) && i < 3; i++ {
+		al := cresult.AuthorsLines[i]
+		text += fmt.Sprintf("  %s: %d%s\n", al.AuthorName, al.LinesTouched.New, utils.CalcPercStr(al.LinesTouched.New, cresult.TotalLinesTouched.New))
 	}
 
 	// top refactorers
-	sort.Slice(changes.AuthorsLines, func(i, j int) bool {
-		ai := changes.AuthorsLines[i].LinesTouched
-		aj := changes.AuthorsLines[j].LinesTouched
+	sort.Slice(cresult.AuthorsLines, func(i, j int) bool {
+		ai := cresult.AuthorsLines[i].LinesTouched
+		aj := cresult.AuthorsLines[j].LinesTouched
 		return ai.RefactorOther+ai.RefactorOwn > aj.RefactorOther+aj.RefactorOwn
 	})
 	text += "\nTop Refactorers\n"
-	for i := 0; i < len(changes.AuthorsLines) && i < 3; i++ {
-		al := changes.AuthorsLines[i]
-		text += fmt.Sprintf("  %s: %d%s\n", al.AuthorName, al.LinesTouched.RefactorOther+al.LinesTouched.RefactorOwn, utils.CalcPercStr(al.LinesTouched.RefactorOther+al.LinesTouched.RefactorOwn, changes.TotalLinesTouched.RefactorOther+changes.TotalLinesTouched.RefactorOwn))
+	for i := 0; i < len(cresult.AuthorsLines) && i < 3; i++ {
+		al := cresult.AuthorsLines[i]
+		text += fmt.Sprintf("  %s: %d%s\n", al.AuthorName, al.LinesTouched.RefactorOther+al.LinesTouched.RefactorOwn, utils.CalcPercStr(al.LinesTouched.RefactorOther+al.LinesTouched.RefactorOwn, cresult.TotalLinesTouched.RefactorOther+cresult.TotalLinesTouched.RefactorOwn))
 	}
 
 	// top helpers
-	sort.Slice(changes.AuthorsLines, func(i, j int) bool {
-		ai := changes.AuthorsLines[i].LinesTouched
-		aj := changes.AuthorsLines[j].LinesTouched
+	sort.Slice(cresult.AuthorsLines, func(i, j int) bool {
+		ai := cresult.AuthorsLines[i].LinesTouched
+		aj := cresult.AuthorsLines[j].LinesTouched
 		return ai.ChurnOther > aj.ChurnOther
 	})
 	text += "\nTop Helpers\n"
-	for i := 0; i < len(changes.AuthorsLines) && i < 3; i++ {
-		al := changes.AuthorsLines[i]
-		text += fmt.Sprintf("  %s: %d%s\n", al.AuthorName, al.LinesTouched.ChurnOther, utils.CalcPercStr(al.LinesTouched.ChurnOther, changes.TotalLinesTouched.ChurnOther))
+	for i := 0; i < len(cresult.AuthorsLines) && i < 3; i++ {
+		al := cresult.AuthorsLines[i]
+		text += fmt.Sprintf("  %s: %d%s\n", al.AuthorName, al.LinesTouched.ChurnOther, utils.CalcPercStr(al.LinesTouched.ChurnOther, cresult.TotalLinesTouched.ChurnOther))
 	}
 
 	// top churners
-	sort.Slice(changes.AuthorsLines, func(i, j int) bool {
-		ai := changes.AuthorsLines[i].LinesTouched
-		aj := changes.AuthorsLines[j].LinesTouched
+	sort.Slice(cresult.AuthorsLines, func(i, j int) bool {
+		ai := cresult.AuthorsLines[i].LinesTouched
+		aj := cresult.AuthorsLines[j].LinesTouched
 		return ai.ChurnReceived+ai.ChurnOwn > aj.ChurnReceived+aj.ChurnOwn
 	})
 	text += "\nTop Churners\n"
-	for i := 0; i < len(changes.AuthorsLines) && i < 3; i++ {
-		al := changes.AuthorsLines[i]
-		text += fmt.Sprintf("  %s: %d%s\n", al.AuthorName, al.LinesTouched.ChurnOwn+al.LinesTouched.ChurnReceived, utils.CalcPercStr(al.LinesTouched.ChurnOwn+al.LinesTouched.ChurnReceived, changes.TotalLinesTouched.ChurnOwn+changes.TotalLinesTouched.ChurnReceived))
+	for i := 0; i < len(cresult.AuthorsLines) && i < 3; i++ {
+		al := cresult.AuthorsLines[i]
+		text += fmt.Sprintf("  %s: %d%s\n", al.AuthorName, al.LinesTouched.ChurnOwn+al.LinesTouched.ChurnReceived, utils.CalcPercStr(al.LinesTouched.ChurnOwn+al.LinesTouched.ChurnReceived, cresult.TotalLinesTouched.ChurnOwn+cresult.TotalLinesTouched.ChurnReceived))
 	}
 
-	return text
+	return text, nil
 }
 
 func formatTopTouchedFiles(filesTouched []changes.FileTouched) string {

@@ -31,7 +31,7 @@ func TestTimeseriesOwnership1(t *testing.T) {
 		return
 	}
 
-	require.Len(t, results, 2)
+	require.Equal(t, 2, len(results))
 	require.NotEmpty(t, results[0].Commit.CommitId)
 	require.NotEmpty(t, results[0].Commit.AuthorName)
 	require.Equal(t, 3, results[0].TotalLines)

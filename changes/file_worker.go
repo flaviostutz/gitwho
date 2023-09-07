@@ -266,7 +266,7 @@ func addAuthorLines(changesFileResult *ChangesFileResult, authorName string, aut
 	}
 
 	// lines touched
-	authorLine.LinesTouched = sumLinesChanges(authorLine.LinesTouched, linesChanges)
+	authorLine.LinesTouched = SumLinesTouched(authorLine.LinesTouched, linesChanges)
 
 	// files touched
 	fileChanges := authorLine.filesTouchedMap[req.filePath]
@@ -277,7 +277,7 @@ func addAuthorLines(changesFileResult *ChangesFileResult, authorName string, aut
 	changesFileResult.authorLinesMap[authorKey] = authorLine
 
 	// add to overall totals
-	changesFileResult.TotalLinesTouched = sumLinesChanges(changesFileResult.TotalLinesTouched, linesChanges)
+	changesFileResult.TotalLinesTouched = SumLinesTouched(changesFileResult.TotalLinesTouched, linesChanges)
 	return true
 }
 

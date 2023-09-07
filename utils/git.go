@@ -259,6 +259,11 @@ func ExecGetCommitsInCommitRange(repoDir string, branch string, sinceCommit stri
 	if sinceCommit != "" || untilCommit != "" {
 		commitRange = fmt.Sprintf("%s...%s", sinceCommit, untilCommit)
 	}
+	// if only untilCommit range is defined, don't use "...[until commit]" because it
+	// doesn't work *only* for the latest commit in the tree (!)
+	if sinceCommit == "" && untilCommit != "" {
+		commitRange = untilCommit
+	}
 	if commitRange == "" && branch == "" {
 		return nil, fmt.Errorf("branch is required when sinceCommit and untilCommit are empty")
 	}

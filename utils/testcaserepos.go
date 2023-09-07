@@ -77,11 +77,11 @@ b`)
 d
 c`)
 	createCommit(repoDir, "commit 3", "author1")
+	time.Sleep(1100 * time.Millisecond)
 
 	// commit 4
 	writeAddFile(repoDir, "file1", `a
 c`)
-	time.Sleep(1100 * time.Millisecond)
 	testRepoLastCommitHash, _ = createCommit(repoDir, "commit 4", "author1")
 
 	// DIR /dir1
@@ -167,8 +167,8 @@ cccccccccccccccccccc`)
 	writeAddFile(repoDir, "file4", `aaaaaaaaaaaaaaaaaaaa
 cccccccccccccccccccc
 bbbbbbbbbbbbbbbbbbbb`)
-	time.Sleep(1100 * time.Millisecond)
 	testRepoLastCommitHash, _ = createCommit(repoDir, "commit 4", "author1")
+	time.Sleep(1100 * time.Millisecond)
 
 	ownershipDuplicatesRepoDir = &repoDir
 	return repoDir, nil

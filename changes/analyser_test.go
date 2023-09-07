@@ -12,11 +12,13 @@ import (
 
 func TestTimeseriesChanges1(t *testing.T) {
 	logrus.SetLevel(logrus.DebugLevel)
-	repoDir, err := utils.ResolveTestOwnershipRepo()
+	repoDir, err := utils.ResolveTestOwnershipDuplicatesRepo()
 	logs, _ := utils.ExecGetCommitsInDateRange(repoDir, "main", "", "")
 	for _, l := range logs {
 		fmt.Printf("%s %s\n", l.CommitId, l.Date.Format(time.RFC3339))
 	}
+
+	time.Sleep(1100 * time.Millisecond)
 
 	require.Nil(t, err)
 	results, err := AnalyseTimeseriesChanges(ChangesTimeseriesOptions{
@@ -24,7 +26,7 @@ func TestTimeseriesChanges1(t *testing.T) {
 			RepoDir: repoDir,
 			Branch:  "main",
 		},
-		Since:  "2 days ago",
+		Since:  "1 day",
 		Until:  "now",
 		Period: "1 second",
 	}, nil)

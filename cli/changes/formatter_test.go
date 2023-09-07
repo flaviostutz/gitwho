@@ -20,7 +20,8 @@ func TestFormatChangesShort(t *testing.T) {
 	}, nil)
 	require.Nil(t, err)
 
-	out := FormatTopTextResults(results)
+	out, err := FormatTopTextResults(results)
+	require.Nil(t, err)
 	require.Contains(t, out, "Top Coders (new+refactor-churn)\n  author3 <author3@mail.com>: 5")
 }
 

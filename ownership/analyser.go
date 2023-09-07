@@ -68,6 +68,9 @@ func AnalyseTimeseriesOwnership(opts OwnershipTimeseriesOptions, progressChan ch
 	if opts.Period == "" {
 		return nil, fmt.Errorf("opts.Period is required")
 	}
+	if opts.Until == "" {
+		return nil, fmt.Errorf("opts.Until is required")
+	}
 
 	result := make([]OwnershipResult, 0)
 	when := opts.Until

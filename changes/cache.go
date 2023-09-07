@@ -27,11 +27,11 @@ func GetFromCache(opts ChangesOptions) (*ChangesResult, error) {
 		return nil, err
 	}
 	if cachedValue == nil {
-		logrus.Debugf("Cache miss for %s", cacheKey)
+		logrus.Debugf("Cache miss for %s %s", cacheTable, cacheKey)
 		return nil, nil
 	}
 
-	logrus.Debugf("Cache hit for %s", cacheKey)
+	logrus.Debugf("Cache hit for %s %s", cacheTable, cacheKey)
 	result := ChangesResult{}
 	err = json.NewDecoder(strings.NewReader(*cachedValue)).Decode(&result)
 	if err != nil {
@@ -62,7 +62,7 @@ func SaveToCache(opts ChangesOptions, result ChangesResult) error {
 	if err != nil {
 		return err
 	}
-	logrus.Debugf("Cache saved for %s", cacheKey)
+	logrus.Debugf("Cache saved for %s %s", cacheTable, cacheKey)
 
 	return nil
 }
@@ -79,7 +79,7 @@ func getCacheKey(opts ChangesOptions) string {
 		add = time.Now().Format(time.DateOnly)
 	}
 
-	return fmt.Sprintf("%s:%s:%s:%s:%s:%s:%s:%s:%s",
+	return fmt.Sprintf("%s:%s:%s:%s:%s:%s:%s:%s:%s:%s:%s",
 		opts.RepoDir,
 		opts.Branch,
 		opts.AuthorsRegex,
@@ -88,5 +88,7 @@ func getCacheKey(opts ChangesOptions) string {
 		opts.FilesNotRegex,
 		opts.SinceDate,
 		opts.UntilDate,
+		opts.SinceCommit,
+		opts.UntilCommit,
 		add)
 }

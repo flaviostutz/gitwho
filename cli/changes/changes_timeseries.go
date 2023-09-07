@@ -55,11 +55,17 @@ func RunChangesTimeseries(osArgs []string) {
 
 	switch cliOpts.Format {
 	case "full":
-		output := FormatTimeseriesChangesResults(changesResults, true)
+		output, err := FormatTimeseriesChangesResults(changesResults, true)
+		if err != nil {
+			fmt.Printf("Couldn't format results. err=%s", err)
+		}
 		fmt.Println(output)
 
 	case "short":
-		output := FormatTimeseriesChangesResults(changesResults, false)
+		output, err := FormatTimeseriesChangesResults(changesResults, false)
+		if err != nil {
+			fmt.Printf("Couldn't format results. err=%s", err)
+		}
 		fmt.Println(output)
 
 	case "graph":

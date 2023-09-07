@@ -1,6 +1,9 @@
 package utils
 
-import "fmt"
+import (
+	"fmt"
+	"strings"
+)
 
 func CalcPercStr(value int, total int) string {
 	if total == 0 {
@@ -49,4 +52,14 @@ func AttrStr(label string, value string) string {
 		return fmt.Sprintf("%s: %s\n", label, value)
 	}
 	return ""
+}
+
+func JoinWithLimit(values []string, separator string, limit int) string {
+	remaining := ""
+	if len(values) > limit {
+		remaining = fmt.Sprintf("... (+%d)", len(values)-limit)
+		values = values[:limit]
+	}
+	valueStr := strings.Join(values, ", ")
+	return fmt.Sprintf("%s%s", valueStr, remaining)
 }

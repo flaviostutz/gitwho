@@ -108,9 +108,6 @@ func AnalyseTimeseriesChanges(opts ChangesTimeseriesOptions, progressChan chan<-
 	if opts.Period == "" {
 		return nil, fmt.Errorf("opts.Period is required")
 	}
-	if opts.Since == "" {
-		return nil, fmt.Errorf("opts.Since is required")
-	}
 	if opts.Until == "" {
 		return nil, fmt.Errorf("opts.Until is required")
 	}
@@ -176,7 +173,6 @@ func AnalyseTimeseriesChanges(opts ChangesTimeseriesOptions, progressChan chan<-
 			continue
 		}
 
-		// git only support dates with relative time with date only formats
 		analysisOpts.SinceCommit = sinceCommit.CommitId
 		analysisOpts.UntilCommit = untilCommit.CommitId
 		onwershipResult, err := AnalyseChanges(analysisOpts, progressChan)
@@ -192,8 +188,10 @@ func AnalyseTimeseriesChanges(opts ChangesTimeseriesOptions, progressChan chan<-
 			processedCommits = appendProcessed(processedCommits, rangeid)
 		}
 
-		until = fmt.Sprintf("%s", analysisOpts.SinceDate)
+		// git doesn't support relative times mixed with date time, only with date
+		until = fmt.Sprintf("%s", sinceCommit.Date.Format(time.DateOnly))
 		since = fmt.Sprintf("%s - %s", until, opts.Period)
+		logrus.Debugf("Analysing since=%s until=%s", since, until)
 	}
 
 	sort.Slice(result, func(i, j int) bool {
@@ -236,7 +234,7 @@ func AnalyseChanges(opts ChangesOptions, progressChan chan<- utils.ProgressInfo)
 		return ChangesResult{}, fmt.Errorf("opts.Branch is required")
 	}
 
-	logrus.Debugf("Analysing changes in branch %s from %s to %s", opts.Branch, opts.SinceDate, opts.UntilDate)
+	logrus.Debugf("Analysing changes in branch %s from %s%s to %s%s", opts.Branch, opts.SinceDate, opts.SinceCommit, opts.UntilDate, opts.UntilCommit)
 
 	fre, err := regexp.Compile(opts.FilesRegex)
 	if err != nil {
@@ -279,11 +277,11 @@ func AnalyseChanges(opts ChangesOptions, progressChan chan<- utils.ProgressInfo)
 					fileCounterMap[fileResult.FilePath] = true
 					result.TotalFiles++
 				}
-				result.TotalLinesTouched = sumLinesChanges(result.TotalLinesTouched, fileResult.TotalLinesTouched)
+				result.TotalLinesTouched = SumLinesTouched(result.TotalLinesTouched, fileResult.TotalLinesTouched)
 				for author := range fileResult.authorLinesMap {
 					fileAuthorLines := fileResult.authorLinesMap[author]
 					authorLines := result.authorLinesMap[author]
-					authorLines.LinesTouched = sumLinesChanges(authorLines.LinesTouched, fileAuthorLines.LinesTouched)
+					authorLines.LinesTouched = SumLinesTouched(authorLines.LinesTouched, fileAuthorLines.LinesTouched)
 					authorLines.filesTouchedMap = sumFilesTouched(authorLines.filesTouchedMap, fileAuthorLines.filesTouchedMap)
 					result.authorLinesMap[author] = authorLines
 				}
@@ -467,19 +465,6 @@ func AnalyseChanges(opts ChangesOptions, progressChan chan<- utils.ProgressInfo)
 	}
 
 	return result, nil
-}
-
-func sumLinesChanges(changes1 LinesTouched, changes2 LinesTouched) LinesTouched {
-	changes1.Changes += changes2.Changes
-	changes1.ChurnOther += changes2.ChurnOther
-	changes1.ChurnOwn += changes2.ChurnOwn
-	changes1.ChurnReceived += changes2.ChurnReceived
-	changes1.New += changes2.New
-	changes1.RefactorOther += changes2.RefactorOther
-	changes1.RefactorOwn += changes2.RefactorOwn
-	changes1.RefactorReceived += changes2.RefactorReceived
-	changes1.AgeDaysSum += changes2.AgeDaysSum
-	return changes1
 }
 
 func sumFilesTouched(map1 map[string]FileTouched, map2 map[string]FileTouched) map[string]FileTouched {
