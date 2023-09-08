@@ -173,6 +173,11 @@ func AnalyseTimeseriesChanges(opts ChangesTimeseriesOptions, progressChan chan<-
 			continue
 		}
 
+		if sinceCommit.Date.After(untilCommit.Date) {
+			return result, fmt.Errorf("Since commit date is after until commit date. since=%s until=%s",
+				sinceCommit.Date.Format(time.RFC3339), untilCommit.Date.Format(time.RFC3339))
+		}
+
 		analysisOpts.SinceCommit = sinceCommit.CommitId
 		analysisOpts.UntilCommit = untilCommit.CommitId
 		onwershipResult, err := AnalyseChanges(analysisOpts, progressChan)
@@ -183,9 +188,9 @@ func AnalyseTimeseriesChanges(opts ChangesTimeseriesOptions, progressChan chan<-
 
 		// add all commits in range as processed
 		processedCommits = appendProcessed(processedCommits, sinceCommit.CommitId)
-		rangeCommitIds, err := utils.ExecCommitIdsInCommitRange(opts.RepoDir, opts.Branch, sinceCommit.CommitId, untilCommit.CommitId)
-		for _, rangeid := range rangeCommitIds {
-			processedCommits = appendProcessed(processedCommits, rangeid)
+		rangeCommits, err := utils.ExecGetCommitsInCommitRange(opts.RepoDir, opts.Branch, sinceCommit.CommitId, untilCommit.CommitId)
+		for _, rangeid := range rangeCommits {
+			processedCommits = appendProcessed(processedCommits, rangeid.CommitId)
 		}
 
 		// git doesn't support relative times mixed with date time, only with date
@@ -209,6 +214,7 @@ func appendProcessed(processedCommits []string, newId string) []string {
 }
 
 func AnalyseChanges(opts ChangesOptions, progressChan chan<- utils.ProgressInfo) (ChangesResult, error) {
+	logrus.Debugf("Analysing changes in branch %s from %s%s to %s%s", opts.Branch, opts.SinceDate, opts.SinceCommit, opts.UntilDate, opts.UntilCommit)
 
 	// check if cached results exists
 	if opts.CacheFile != "" {
@@ -233,8 +239,6 @@ func AnalyseChanges(opts ChangesOptions, progressChan chan<- utils.ProgressInfo)
 	if opts.Branch == "" {
 		return ChangesResult{}, fmt.Errorf("opts.Branch is required")
 	}
-
-	logrus.Debugf("Analysing changes in branch %s from %s%s to %s%s", opts.Branch, opts.SinceDate, opts.SinceCommit, opts.UntilDate, opts.UntilCommit)
 
 	fre, err := regexp.Compile(opts.FilesRegex)
 	if err != nil {
@@ -378,52 +382,11 @@ func AnalyseChanges(opts ChangesOptions, progressChan chan<- utils.ProgressInfo)
 		return result, fmt.Errorf("Cannot mix opts.SinceDate/UntilDate with opts.SinceCommit/UntilCommit")
 	}
 
-	// find commit ids from dates
-	if opts.SinceDate != "" || opts.UntilDate != "" {
-		since := opts.SinceDate
-		if opts.SinceDate == opts.UntilDate {
-			// allow git query to find commit at "until"
-			since = ""
-		}
-		commitIds, err := utils.ExecCommitIdsInDateRange(opts.RepoDir, opts.Branch, since, opts.UntilDate)
-		if err != nil {
-			return result, err
-		}
-		opts.SinceCommit = commitIds[len(commitIds)-1]
-		opts.UntilCommit = commitIds[0]
-	}
-
-	since := opts.SinceCommit
-	if opts.SinceCommit == opts.UntilCommit {
-		// allow git query to find commit at "until"
-		since = ""
-	}
-	commits, err := utils.ExecGetCommitsInCommitRange(opts.RepoDir, opts.Branch, since, opts.UntilCommit)
+	commitIds, sinceCommit, untilCommit, err := commitIdsForRange(opts)
 	if err != nil {
 		return result, err
 	}
-	commitIds := utils.CommitInfoToCommitIds(commits)
-
-	if since != "" {
-		// add since commit id at the begining of the list
-		commitIds = append([]string{since}, commitIds...)
-	}
-
-	if len(commitIds) == 0 {
-		return result, fmt.Errorf("No changes found")
-	}
-
-	// commits are in reverse order
-	sinceCommit, err := utils.ExecGitCommitInfo(opts.RepoDir, commitIds[len(commitIds)-1])
-	if err != nil {
-		return result, fmt.Errorf("Error getting since commit. err=%s", err)
-	}
 	result.SinceCommit = sinceCommit
-
-	untilCommit, err := utils.ExecGitCommitInfo(opts.RepoDir, commitIds[0])
-	if err != nil {
-		return result, fmt.Errorf("Error getting until commit. err=%s", err)
-	}
 	result.UntilCommit = untilCommit
 
 	logrus.Debug("Sending commits to workers")
@@ -458,6 +421,7 @@ func AnalyseChanges(opts ChangesOptions, progressChan chan<- utils.ProgressInfo)
 	}
 
 	summaryWorkerWaitGroup.Wait()
+	logrus.Debugf("Finished analysis of commits since=%s until=%s\n", result.SinceCommit.Date.Format(time.RFC3339), result.UntilCommit.Date.Format(time.RFC3339))
 	logrus.Debug("Summary worker finished")
 
 	if opts.CacheFile != "" {
@@ -465,6 +429,57 @@ func AnalyseChanges(opts ChangesOptions, progressChan chan<- utils.ProgressInfo)
 	}
 
 	return result, nil
+}
+
+func commitIdsForRange(opts ChangesOptions) ([]string, utils.CommitInfo, utils.CommitInfo, error) {
+	// find commit ids from dates
+	if opts.SinceDate != "" || opts.UntilDate != "" {
+		logrus.Debugf("Commit date range from %s to %s", opts.SinceDate, opts.UntilDate)
+		since := opts.SinceDate
+		if opts.SinceDate == opts.UntilDate {
+			// allow git query to find commit at "until"
+			since = ""
+		}
+		commits, err := utils.ExecGetCommitsInDateRange(opts.RepoDir, opts.Branch, since, opts.UntilDate)
+		if err != nil {
+			return nil, utils.CommitInfo{}, utils.CommitInfo{}, err
+		}
+		opts.SinceCommit = commits[len(commits)-1].CommitId
+		opts.UntilCommit = commits[0].CommitId
+	}
+
+	commits, err := utils.ExecGetCommitsInCommitRange(opts.RepoDir, opts.Branch, opts.SinceCommit, opts.UntilCommit)
+	if err != nil {
+		return nil, utils.CommitInfo{}, utils.CommitInfo{}, err
+	}
+	commitIds := utils.CommitInfoToCommitIds(commits)
+	logrus.Debugf("Found %d commits in range %s %s", len(commitIds), opts.SinceCommit, opts.UntilCommit)
+
+	if len(commitIds) == 0 {
+		return nil, utils.CommitInfo{}, utils.CommitInfo{}, fmt.Errorf("No changes found")
+	}
+
+	// commits are in reverse order
+	sinceCommit, err := utils.ExecGitCommitInfo(opts.RepoDir, commitIds[len(commitIds)-1])
+	if err != nil {
+		return nil, utils.CommitInfo{}, utils.CommitInfo{}, fmt.Errorf("Error getting since commit. err=%s", err)
+	}
+
+	untilCommit, err := utils.ExecGitCommitInfo(opts.RepoDir, commitIds[0])
+	if err != nil {
+		return nil, utils.CommitInfo{}, utils.CommitInfo{}, fmt.Errorf("Error getting until commit. err=%s", err)
+	}
+
+	// sanity checks
+	if sinceCommit.Date.After(untilCommit.Date) {
+		return nil, utils.CommitInfo{}, utils.CommitInfo{},
+			fmt.Errorf("Since commit date is after until commit date. since=%s until=%s",
+				sinceCommit.Date.Format(time.RFC3339), untilCommit.Date.Format(time.RFC3339))
+	}
+
+	logrus.Debugf("Commit ids range from %s to %s", sinceCommit.CommitId, untilCommit.CommitId)
+
+	return commitIds, sinceCommit, untilCommit, nil
 }
 
 func sumFilesTouched(map1 map[string]FileTouched, map2 map[string]FileTouched) map[string]FileTouched {

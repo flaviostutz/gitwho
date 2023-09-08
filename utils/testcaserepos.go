@@ -9,10 +9,10 @@ import (
 )
 
 var (
-	ownershipRepoDir           *string
-	ownershipDuplicatesRepoDir *string
-	testRepoFirstCommitHash    string
-	testRepoLastCommitHash     string
+	ownershipRepoDir                 *string
+	ownershipDuplicatesRepoDir       *string
+	ownershipTestRepoFirstCommitHash string
+	ownershipTestRepoLastCommitHash  string
 )
 
 func ResolveTestOwnershipRepo() (string, error) {
@@ -62,7 +62,7 @@ func ResolveTestOwnershipRepo() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	testRepoFirstCommitHash, err = createCommit(repoDir, "commit 1", "author1")
+	ownershipTestRepoFirstCommitHash, err = createCommit(repoDir, "commit 1", "author1")
 	if err != nil {
 		return "", err
 	}
@@ -82,7 +82,7 @@ c`)
 	// commit 4
 	writeAddFile(repoDir, "file1", `a
 c`)
-	testRepoLastCommitHash, _ = createCommit(repoDir, "commit 4", "author1")
+	ownershipTestRepoLastCommitHash, _ = createCommit(repoDir, "commit 4", "author1")
 
 	// DIR /dir1
 	// commit 5
@@ -91,7 +91,7 @@ b
 c
 d
 e`)
-	testRepoLastCommitHash, _ = createCommit(repoDir, "commit 5", "author3")
+	ownershipTestRepoLastCommitHash, _ = createCommit(repoDir, "commit 5", "author3")
 
 	ownershipRepoDir = &repoDir
 	return repoDir, nil
@@ -145,7 +145,7 @@ bbbbbbbbbbbbbbbbbbbb`)
 	if err != nil {
 		return "", err
 	}
-	testRepoFirstCommitHash, err = createCommit(repoDir, "commit 1", "author1")
+	_, err = createCommit(repoDir, "commit 1", "author1")
 	if err != nil {
 		return "", err
 	}
@@ -167,7 +167,7 @@ cccccccccccccccccccc`)
 	writeAddFile(repoDir, "file4", `aaaaaaaaaaaaaaaaaaaa
 cccccccccccccccccccc
 bbbbbbbbbbbbbbbbbbbb`)
-	testRepoLastCommitHash, _ = createCommit(repoDir, "commit 4", "author1")
+	_, _ = createCommit(repoDir, "commit 4", "author1")
 	time.Sleep(1100 * time.Millisecond)
 
 	ownershipDuplicatesRepoDir = &repoDir
@@ -204,10 +204,10 @@ func createCommit(repoDir string, comment string, author string) (string, error)
 	if err != nil {
 		return "", err
 	}
-	re := regexp.MustCompile("\\s(.*)\\]")
+	re := regexp.MustCompile("\\s([0-9a-z]+)\\]")
 	matches := re.FindStringSubmatch(cmdResult)
 	if matches == nil {
 		return "", fmt.Errorf("Couldn't find commit id in the result of commit. result=%s", cmdResult)
 	}
-	return matches[0], nil
+	return matches[1], nil
 }

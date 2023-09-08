@@ -103,7 +103,7 @@ func ExecListTree(repoDir string, commitId string) ([]string, error) {
 }
 
 func ExecPreviousCommitIdForFile(repoDir string, commitId string, filePath string) (string, error) {
-	cmdResult, err := ExecShellTimeout(repoDir, fmt.Sprintf("/usr/bin/git rev-list --parents -n 1 %s %s", commitId, filePath), 0, []int{0, 128})
+	cmdResult, err := ExecShellTimeout(repoDir, fmt.Sprintf("/usr/bin/git rev-list --boundary --parents -n 1 %s %s", commitId, filePath), 0, []int{0, 128})
 	if err != nil {
 		return "", err
 	}
@@ -112,10 +112,15 @@ func ExecPreviousCommitIdForFile(repoDir string, commitId string, filePath strin
 	if err != nil {
 		return "", err
 	}
-	if len(lines) != 2 {
+	if len(lines) < 2 {
 		return "", nil
 	}
-	return lines[1], nil
+	// current commit also touches file
+	if strings.HasPrefix(lines[0], commitId) {
+		return lines[1], nil
+	}
+	// current commit doesn't touch file
+	return lines[0], nil
 }
 
 func ExecDiffIsBinary(repoDir string, commitId string, filePath string) (bool, error) {
@@ -184,47 +189,12 @@ func ExecDiffTree(repoDir string, commitId1 string) ([]string, error) {
 	return lines, nil
 }
 
-func ExecCommitIdsInDateRange(repoDir string, branch string, since string, until string) ([]string, error) {
-	sinceStr := ""
-	if since != "" {
-		sinceStr = fmt.Sprintf("--since=\"%s\"", since)
-	}
-	untilStr := ""
-	if until != "" {
-		untilStr = fmt.Sprintf("--until=\"%s\"", until)
-	}
-
-	cmdResult, err := ExecShellf(repoDir, "/usr/bin/git log --pretty=format:\"%%H\" %s %s %s", sinceStr, untilStr, branch)
+func ExecCommitIdInDateRange(repoDir string, branch string, sinceDate string, untilDate string) ([]string, error) {
+	commits, err := ExecGetCommitsInDateRange(repoDir, branch, sinceDate, untilDate)
 	if err != nil {
 		return nil, err
 	}
-	if strings.ReplaceAll(cmdResult, " ", "") == "" || strings.ReplaceAll(cmdResult, "\n", "") == "" {
-		return []string{}, nil
-	}
-	commitIds, err := linesToArray(cmdResult)
-	if err != nil {
-		return nil, err
-	}
-	return commitIds, nil
-}
-
-func ExecCommitIdsInCommitRange(repoDir string, branch string, sinceCommit string, untilCommit string) ([]string, error) {
-	commitRange := ""
-	if sinceCommit != "" || untilCommit != "" {
-		commitRange = fmt.Sprintf("%s...%s", sinceCommit, untilCommit)
-	}
-	cmdResult, err := ExecShellf(repoDir, "/usr/bin/git log --pretty=format:\"%%H\" %s %s", commitRange, branch)
-	if err != nil {
-		return nil, err
-	}
-	if strings.ReplaceAll(cmdResult, " ", "") == "" || strings.ReplaceAll(cmdResult, "\n", "") == "" {
-		return []string{}, nil
-	}
-	commitIds, err := linesToArray(cmdResult)
-	if err != nil {
-		return nil, err
-	}
-	return commitIds, nil
+	return CommitInfoToCommitIds(commits), nil
 }
 
 func ExecDiffFileRevisions(repoDir string, filePath string, srcCommitId string, dstCommitId string) ([]DiffEntry, error) {
@@ -241,7 +211,7 @@ func ExecGetCommitsInDateRange(repoDir string, branch string, since string, unti
 	if since != "" {
 		sinceStr = fmt.Sprintf("--since=\"%s\"", since)
 	}
-	cmdResult, err := ExecShellf(repoDir, "/usr/bin/git rev-list %s --until=\"%s\" --format=\"%%H---%%cI---%%cN---%%cE\" %s", sinceStr, until, branch)
+	cmdResult, err := ExecShellf(repoDir, "/usr/bin/git rev-list %s --until=\"%s\" --boundary --format=\"%%H---%%cI---%%cN---%%cE\" %s", sinceStr, until, branch)
 	if err != nil {
 		return nil, err
 	}
@@ -249,35 +219,80 @@ func ExecGetCommitsInDateRange(repoDir string, branch string, since string, unti
 	results, err := revListToCommitInfo(cmdResult)
 	if err != nil {
 		return nil, err
+	}
+	return results, nil
+}
+
+func ExecGetCommitsInCommitRange(repoDir string, branch string, sinceCommit string, untilCommit string) ([]CommitInfo, error) {
+	// edge case where rev-list doesn't work well (it doesn't return the single commit when it is the HEAD)
+	if sinceCommit != "" && sinceCommit == untilCommit {
+		commit, err := ExecGitCommitInfo(repoDir, untilCommit)
+		if err != nil {
+			return nil, err
+		}
+		return []CommitInfo{commit}, nil
+	}
+
+	commitRange := ""
+	if sinceCommit != "" || untilCommit != "" {
+		commitRange = fmt.Sprintf("%s...%s", sinceCommit, untilCommit)
+	}
+	if commitRange == "" && branch == "" {
+		return nil, fmt.Errorf("branch is required when sinceCommit and untilCommit are empty")
+	}
+	cmdResult, err := ExecShellf(repoDir, "/usr/bin/git rev-list %s %s --boundary --format=\"%%H---%%cI---%%cN---%%cE\"", branch, commitRange)
+	if err != nil {
+		return nil, err
+	}
+
+	results, err := revListToCommitInfo(cmdResult)
+	if err != nil {
+		return nil, err
+	}
+
+	// sanity checks
+	sinceCommitInfo := results[len(results)-1]
+	if sinceCommit != "" && sinceCommit != sinceCommitInfo.CommitId {
+		return nil, fmt.Errorf("since commit id is not in commit ids tail")
+	}
+	untilCommitInfo := results[0]
+	if untilCommit != "" && untilCommit != untilCommitInfo.CommitId {
+		return nil, fmt.Errorf("until commit id is not in commit ids head")
+	}
+	if sinceCommitInfo.Date.After(untilCommitInfo.Date) {
+		return nil, fmt.Errorf("Since commit date is after until commit date. since=%s until=%s",
+			sinceCommitInfo.Date.Format(time.RFC3339), untilCommitInfo.Date.Format(time.RFC3339))
 	}
 
 	return results, nil
 }
 
-func ExecGetCommitsInCommitRange(repoDir string, branch string, sinceCommit string, untilCommit string) ([]CommitInfo, error) {
-	commitRange := ""
-	if sinceCommit != "" || untilCommit != "" {
-		commitRange = fmt.Sprintf("%s...%s", sinceCommit, untilCommit)
-	}
-	// if only untilCommit range is defined, don't use "...[until commit]" because it
-	// doesn't work *only* for the latest commit in the tree (!)
-	if sinceCommit == "" && untilCommit != "" {
-		commitRange = untilCommit
-	}
-	if commitRange == "" && branch == "" {
-		return nil, fmt.Errorf("branch is required when sinceCommit and untilCommit are empty")
-	}
-	cmdResult, err := ExecShellf(repoDir, "/usr/bin/git rev-list %s %s --format=\"%%H---%%cI---%%cN---%%cE\"", branch, commitRange)
+func ExecGetLastestCommit(repoDir string, branch string, sinceDate string, untilDate string) (*CommitInfo, error) {
+	commits, err := ExecGetCommitsInDateRange(repoDir, branch, sinceDate, untilDate)
 	if err != nil {
 		return nil, err
 	}
-
-	results, err := revListToCommitInfo(cmdResult)
-	if err != nil {
-		return nil, err
+	if len(commits) == 0 {
+		return nil, nil
 	}
+	return &commits[0], nil
+}
 
-	return results, nil
+func ExecCheckPrereqs() error {
+	_, err := ExecShellf("", "/usr/bin/git version")
+	if err != nil {
+		return err
+	}
+	// TODO check git version
+	return nil
+}
+
+func CommitInfoToCommitIds(cinfos []CommitInfo) []string {
+	cids := make([]string, 0)
+	for _, ci := range cinfos {
+		cids = append(cids, ci.CommitId)
+	}
+	return cids
 }
 
 func revListToCommitInfo(cmdResult string) ([]CommitInfo, error) {
@@ -310,51 +325,4 @@ func revListToCommitInfo(cmdResult string) ([]CommitInfo, error) {
 		results = append(results, cinfo)
 	}
 	return results, nil
-}
-
-func ExecGetLastestCommit(repoDir string, branch string, since string, until string) (*CommitInfo, error) {
-	sinceStr := ""
-	if since != "" {
-		sinceStr = fmt.Sprintf("--since=\"%s\"", since)
-	}
-	cmdResult, err := ExecShellf(repoDir, "/usr/bin/git rev-list -n 1 %s --until=\"%s\" --format=\"%%H---%%cI---%%cN---%%cE\" %s", sinceStr, until, branch)
-	if err != nil {
-		return nil, err
-	}
-
-	result := strings.Split(cmdResult, "\n")
-	if len(result) != 3 {
-		return nil, nil
-	}
-
-	parts := strings.Split(result[1], "---")
-
-	date, err := time.Parse(time.RFC3339, parts[1])
-	if err != nil {
-		return nil, err
-	}
-
-	return &CommitInfo{
-		CommitId:   parts[0],
-		Date:       date,
-		AuthorName: parts[2],
-		AuthorMail: parts[3],
-	}, nil
-}
-
-func ExecCheckPrereqs() error {
-	_, err := ExecShellf("", "/usr/bin/git version")
-	if err != nil {
-		return err
-	}
-	// TODO check git version
-	return nil
-}
-
-func CommitInfoToCommitIds(cinfos []CommitInfo) []string {
-	cids := make([]string, 0)
-	for _, ci := range cinfos {
-		cids = append(cids, ci.CommitId)
-	}
-	return cids
 }

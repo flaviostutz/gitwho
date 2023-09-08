@@ -34,7 +34,7 @@ func RunChanges(osArgs []string) {
 	progressChan := cli.SetupBasic(cliOpts)
 	defer close(progressChan)
 
-	_, err := utils.ExecCommitIdsInDateRange(opts.RepoDir, opts.Branch, "", "")
+	_, err := utils.ExecGetCommitsInDateRange(opts.RepoDir, opts.Branch, "", "")
 	if err != nil {
 		fmt.Printf("Branch %s not found\n", opts.Branch)
 		os.Exit(1)

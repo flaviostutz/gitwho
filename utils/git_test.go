@@ -1,9 +1,11 @@
 package utils
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"golang.org/x/exp/slices"
 )
 
 func TestExecGetLastestCommit(t *testing.T) {
@@ -14,16 +16,16 @@ func TestExecGetLastestCommit(t *testing.T) {
 	}
 
 	// should work for default master branch
-	cid, err := ExecGetLastestCommit(repoDir, "main", "", "now")
+	commit, err := ExecGetLastestCommit(repoDir, "main", "", "now")
 	require.Nil(t, err)
-	require.NotEmpty(t, cid.CommitId)
-	require.Equal(t, "Your Name", cid.AuthorName)
-	require.Equal(t, "you@example.com", cid.AuthorMail)
+	require.True(t, strings.HasPrefix(commit.CommitId, ownershipTestRepoLastCommitHash))
+	require.Equal(t, "Your Name", commit.AuthorName)
+	require.Equal(t, "you@example.com", commit.AuthorMail)
 
 	// should fail for invalid branches
-	cid, err = ExecGetLastestCommit(repoDir, "invalid-branch", "", "now")
+	commit, err = ExecGetLastestCommit(repoDir, "invalid-branch", "", "now")
 	require.NotNil(t, err)
-	require.Nil(t, cid)
+	require.Nil(t, commit)
 }
 
 func TestExecListTree(t *testing.T) {
@@ -51,16 +53,16 @@ func TestExecCommitDate(t *testing.T) {
 		return
 	}
 
-	commitIds, err := ExecCommitIdsInDateRange(repoDir, "main", "1 month ago", "now")
+	commitIds, err := ExecGetCommitsInDateRange(repoDir, "main", "1 month ago", "now")
 	if err != nil {
 		return
 	}
 
-	cinfo, err := ExecGitCommitInfo(repoDir, commitIds[0])
+	cinfo, err := ExecGitCommitInfo(repoDir, commitIds[0].CommitId)
 	require.Nil(t, err)
 	require.False(t, cinfo.Date.IsZero())
 
-	cinfo2, err := ExecGitCommitInfo(repoDir, commitIds[len(commitIds)-1])
+	cinfo2, err := ExecGitCommitInfo(repoDir, commitIds[len(commitIds)-1].CommitId)
 	require.Nil(t, err)
 	require.True(t, cinfo.Date.After(cinfo2.Date))
 }
@@ -90,16 +92,16 @@ func TestExecTreeFileSize(t *testing.T) {
 		return
 	}
 
-	commitIds, err := ExecCommitIdsInDateRange(repoDir, "main", "1 month ago", "now")
+	commitIds, err := ExecGetCommitsInDateRange(repoDir, "main", "1 month ago", "now")
 	if err != nil {
 		return
 	}
 
-	size1, err := ExecTreeFileSize(repoDir, commitIds[0], "file1")
+	size1, err := ExecTreeFileSize(repoDir, commitIds[0].CommitId, "file1")
 	require.Nil(t, err)
 	require.Equal(t, 3, size1)
 
-	size2, err := ExecTreeFileSize(repoDir, commitIds[len(commitIds)-1], "file1")
+	size2, err := ExecTreeFileSize(repoDir, commitIds[len(commitIds)-1].CommitId, "file1")
 	require.Nil(t, err)
 	require.Equal(t, 1, size2)
 
@@ -113,12 +115,12 @@ func TestExecDiffFileRevisions(t *testing.T) {
 		return
 	}
 
-	commitIds, err := ExecCommitIdsInDateRange(repoDir, "main", "1 month ago", "now")
+	commitIds, err := ExecGetCommitsInDateRange(repoDir, "main", "1 month ago", "now")
 	if err != nil {
 		return
 	}
 
-	de, err := ExecDiffFileRevisions(repoDir, "file1", commitIds[0], commitIds[len(commitIds)-1])
+	de, err := ExecDiffFileRevisions(repoDir, "file1", commitIds[0].CommitId, commitIds[len(commitIds)-1].CommitId)
 	require.Nil(t, err)
 	require.Equal(t, OperationChange, de[0].Operation)
 	require.Equal(t, 1, de[0].DstLines[0].Number)
@@ -134,7 +136,7 @@ func TestExecCommitIdsInRange(t *testing.T) {
 		return
 	}
 
-	cid, err := ExecCommitIdsInDateRange(repoDir, "main", "1 week ago", "now")
+	cid, err := ExecGetCommitsInDateRange(repoDir, "main", "1 week ago", "now")
 	require.Nil(t, err)
 	require.NotEmpty(t, cid)
 	require.Equal(t, 5, len(cid))
@@ -147,7 +149,7 @@ func TestExecCommitIdsInDateRangeEmpty(t *testing.T) {
 		return
 	}
 
-	cid, err := ExecCommitIdsInDateRange(repoDir, "main", "", "")
+	cid, err := ExecGetCommitsInDateRange(repoDir, "main", "", "")
 	require.Nil(t, err)
 	require.NotEmpty(t, cid)
 	require.Equal(t, 5, len(cid))
@@ -181,20 +183,6 @@ func TestExecCommitsInDateRangeEmpty(t *testing.T) {
 	require.NotEmpty(t, commits[0].CommitId)
 }
 
-func TestExecCommitIdsInCommitRange(t *testing.T) {
-	repoDir, err := ResolveTestOwnershipRepo()
-	require.Nil(t, err)
-	if err != nil {
-		return
-	}
-
-	commits, err := ExecCommitIdsInDateRange(repoDir, "main", "1 week ago", "now")
-	commits2, err := ExecCommitIdsInCommitRange(repoDir, "main", commits[len(commits)-1], commits[0])
-	require.Nil(t, err)
-	require.Equal(t, 5, len(commits))
-	require.Equal(t, 4, len(commits2))
-}
-
 func TestExecCommitsInCommitRange(t *testing.T) {
 	repoDir, err := ResolveTestOwnershipRepo()
 	require.Nil(t, err)
@@ -202,11 +190,11 @@ func TestExecCommitsInCommitRange(t *testing.T) {
 		return
 	}
 
-	commits, err := ExecCommitIdsInDateRange(repoDir, "main", "1 week ago", "now")
-	commits2, err := ExecGetCommitsInCommitRange(repoDir, "main", commits[len(commits)-1], commits[0])
+	commits, err := ExecGetCommitsInDateRange(repoDir, "main", "1 week ago", "now")
+	commits2, err := ExecGetCommitsInCommitRange(repoDir, "main", commits[len(commits)-1].CommitId, commits[0].CommitId)
 	require.Nil(t, err)
 	require.Equal(t, 5, len(commits))
-	require.Equal(t, 4, len(commits2))
+	require.Equal(t, 5, len(commits2))
 }
 
 func TestExecCommitsInCommitRangeEmpty(t *testing.T) {
@@ -244,14 +232,36 @@ func TestExecPreviousCommitIdForFile(t *testing.T) {
 		return
 	}
 
-	cid, err := ExecGetLastestCommit(repoDir, "main", "", "now")
+	commits, err := ExecGetCommitsInDateRange(repoDir, "main", "", "now")
+	slices.Reverse(commits)
 	require.Nil(t, err)
-	require.NotEmpty(t, cid)
+	require.Equal(t, 5, len(commits))
 
-	prevCid, err := ExecPreviousCommitIdForFile(repoDir, cid.CommitId, "file1")
+	// commit 4 is the previous that touches file1
+	prevCid, err := ExecPreviousCommitIdForFile(repoDir, commits[4].CommitId, "file1")
 	require.Nil(t, err)
-	require.NotEmpty(t, prevCid)
-	require.NotEqual(t, prevCid, cid)
+	require.Equal(t, commits[3].CommitId, prevCid)
+
+	// commit 3 is the previous that touches file1
+	prevCid, err = ExecPreviousCommitIdForFile(repoDir, commits[3].CommitId, "file1")
+	require.Nil(t, err)
+	require.Equal(t, commits[2].CommitId, prevCid)
+
+	// commit 2 is the previous that touches file1
+	prevCid, err = ExecPreviousCommitIdForFile(repoDir, commits[2].CommitId, "file1")
+	require.Nil(t, err)
+	require.Equal(t, commits[1].CommitId, prevCid)
+
+	// commit 1 is the previous that touches file1
+	prevCid, err = ExecPreviousCommitIdForFile(repoDir, commits[1].CommitId, "file1")
+	require.Nil(t, err)
+	require.Equal(t, commits[0].CommitId, prevCid)
+
+	// no commit before this one
+	prevCid, err = ExecPreviousCommitIdForFile(repoDir, commits[0].CommitId, "file1")
+	require.Nil(t, err)
+	require.Equal(t, "", prevCid)
+
 }
 
 func TestExecGitBlame(t *testing.T) {

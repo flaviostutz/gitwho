@@ -26,11 +26,9 @@ func TestTimeseriesOwnership1(t *testing.T) {
 		Until:             "now",
 		Period:            "1 second",
 	}, nil)
-	require.Nil(t, err)
-	if err != nil {
-		return
-	}
 
+	require.Nil(t, err)
+	require.NotNil(t, results)
 	require.Equal(t, 2, len(results))
 	require.NotEmpty(t, results[0].Commit.CommitId)
 	require.NotEmpty(t, results[0].Commit.AuthorName)

@@ -242,3 +242,20 @@ func TestAnalyseChangesNotFiles(t *testing.T) {
 	require.Nil(t, err)
 	require.Equal(t, 1, result.TotalFiles)
 }
+
+func TestCommitIdsForRange(t *testing.T) {
+	repoDir, err := utils.ResolveTestOwnershipDuplicatesRepo()
+	require.Nil(t, err)
+	if err != nil {
+		return
+	}
+	commitIds, sinceCommit, untilCommit, err := commitIdsForRange(ChangesOptions{
+		BaseOptions: utils.BaseOptions{
+			RepoDir: repoDir,
+			Branch:  "main",
+		},
+	})
+	require.Nil(t, err)
+	require.Equal(t, 4, len(commitIds))
+	require.True(t, sinceCommit.Date.Before(untilCommit.Date))
+}

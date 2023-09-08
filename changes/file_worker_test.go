@@ -1,6 +1,8 @@
 package changes
 
 import (
+	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/flaviostutz/gitwho/utils"
@@ -20,16 +22,17 @@ func TestAnalyseWorkerFile1(t *testing.T) {
 	analyseFileInputChan := make(chan fileWorkerRequest, 4)
 	analyseFileOutputChan := make(chan ChangesFileResult, 4)
 
-	commitIds, err := utils.ExecCommitIdsInDateRange(repoDir, "main", "1 month ago", "now")
+	commits, err := utils.ExecGetCommitsInDateRange(repoDir, "main", "1 month ago", "now")
 	if err != nil {
 		return
 	}
+	fmt.Printf(">>> %s\n", strings.Join(utils.CommitInfoToCommitIds(commits), "\n"))
 
 	// submit commit1:file1 for analysis
-	analyseFileInputChan <- fileWorkerRequest{repoDir: repoDir, commitId: commitIds[4], filePath: "file1"}
-	analyseFileInputChan <- fileWorkerRequest{repoDir: repoDir, commitId: commitIds[3], filePath: "file1"}
-	analyseFileInputChan <- fileWorkerRequest{repoDir: repoDir, commitId: commitIds[2], filePath: "file1"}
-	analyseFileInputChan <- fileWorkerRequest{repoDir: repoDir, commitId: commitIds[1], filePath: "file1"}
+	analyseFileInputChan <- fileWorkerRequest{repoDir: repoDir, commitId: commits[4].CommitId, filePath: "file1"}
+	analyseFileInputChan <- fileWorkerRequest{repoDir: repoDir, commitId: commits[3].CommitId, filePath: "file1"}
+	analyseFileInputChan <- fileWorkerRequest{repoDir: repoDir, commitId: commits[2].CommitId, filePath: "file1"}
+	analyseFileInputChan <- fileWorkerRequest{repoDir: repoDir, commitId: commits[1].CommitId, filePath: "file1"}
 	close(analyseFileInputChan)
 
 	// execute analysis

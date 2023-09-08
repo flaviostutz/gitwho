@@ -54,15 +54,14 @@ func FormatTimeseriesChangesResults(changesResults []changes.ChangesResult, full
 		return "", err
 	}
 
-	text := ""
 	if len(aclusters) > 0 {
-		text += "\nAuthor clusters\n"
+		str += "\nAuthor clusters\n"
 		for _, authorCluster := range aclusters {
 			authorNames := make([]string, 0)
 			for _, lines := range authorCluster.Lines {
 				authorNames = append(authorNames, lines.AuthorName)
 			}
-			text += fmt.Sprintf("  %s: %s\n", authorCluster.Name, utils.JoinWithLimit(authorNames, ", ", 4))
+			str += fmt.Sprintf("  %s: %s\n", authorCluster.Name, utils.JoinWithLimit(authorNames, ", ", 4))
 		}
 	}
 

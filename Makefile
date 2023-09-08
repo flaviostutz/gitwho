@@ -3,8 +3,8 @@ SHELL := /bin/bash
 build: build-npm-all
 
 unit-tests:
-	go test -cover -coverprofile=./ownership/coverage.out ./ownership
 	go test -cover -coverprofile=./changes/coverage.out ./changes
+	go test -cover -coverprofile=./ownership/coverage.out ./ownership
 	go test -cover -coverprofile=./utils/coverage.out ./utils
 	go test -cover -coverprofile=./cli/coverage.out ./cli
 	go test -cover -coverprofile=./cli/changes/coverage.out ./cli/changes
@@ -27,14 +27,14 @@ benchmark:
 deploy: publish-npm-all
 
 run-changes:
-	go run ./ changes --repo /Users/flaviostutz/Documents/development/flaviostutz/conductor --branch main --cache-file gitwho-cache --files .md --since "5 years ago" --until "3 years ago" --format short
+	go run ./ changes --repo /Users/flaviostutz/Documents/development/flaviostutz/conductor --branch main --cache-file gitwho-cache --files .md --since "5 months ago" --until "now" --verbose --format short
 	# go run ./ changes --repo /Users/flaviostutz/Documents/development/flaviostutz/moby --branch master --cache-file "gitwho-cache" --verbose --files ".*" --files-not "vendor" --since "30 days ago" --until "now" --format graph
 	# go run ./ changes --repo /Users/flaviostutz/Documents/development/flaviostutz/moby --branch master --cache-file "gitwho-cache" --verbose --files ".*" --files-not "vendor" --since "2023-07-01" --until "2023-08-01" --format short
 	# go run ./ changes --repo /Users/flaviostutz/Documents/development/nn/mortgage-loan --branch master --cache-file gitwho-cache --files ".ts$$" --since "15 days ago" --until "now" --format graph --authors "" --verbose
 
 run-changes-timeseries:
-	# go run ./ changes-timeseries --repo /Users/flaviostutz/Documents/development/nn/mortgage-loan --branch master --cache-file gitwho-cache --files "" --since "6 months ago" --until "now" --period "2 months" --authors "" --verbose --format short
-	go run ./ changes-timeseries --repo /Users/flaviostutz/Documents/development/flaviostutz/conductor --branch main --cache-file gitwho-cache --files .md --since "2019-12-01" --until "2020-12-01" --period "1 month" --format short --verbose
+	go run ./ changes-timeseries --repo /Users/flaviostutz/Documents/development/nn/mortgage-loan --branch master --cache-file gitwho-cache --files "test" --since "7 months ago" --until "now" --period "1 months" --authors "" --verbose --format short
+	# go run ./ changes-timeseries --repo /Users/flaviostutz/Documents/development/flaviostutz/conductor --branch main --cache-file gitwho-cache --files .md --since "2019-12-01" --until "2020-12-01" --period "1 month" --format graph --verbose
 	# go run ./ changes-timeseries --repo /Users/flaviostutz/Documents/development/flaviostutz/moby --branch master --cache-file "gitwho-cache" --verbose --files ".*" --files-not "vendor" --since "30 days ago" --until "now" --format graph
 	# go run ./ changes-timeseries --repo /Users/flaviostutz/Documents/development/flaviostutz/moby --branch master --cache-file "gitwho-cache" --verbose --files ".md" --files-not "vendor" --since "6 months ago" --authors A.* --until "now" --period "1 month" --format graph
 
