@@ -55,30 +55,64 @@ func ServeChangesTimeseries(changesResults []changes.ChangesResult, ownershipTim
 
 	tr.AddSeries("changes", data)
 
-	// TOTAL CHANGES PIE
-	pie := charts.NewPie()
+	// // TOTAL CHANGES PIE
+	// pie := charts.NewPie()
 
-	authorTotals := make(map[string]int, 0)
-	items := make([]opts.PieData, 0)
-	for _, resultsTs := range changesResults {
-		for _, authorLines := range resultsTs.AuthorsLines {
-			if authorLines.LinesTouched.New+authorLines.LinesTouched.Changes == 0 {
-				continue
-			}
-			authorTotal := authorTotals[authorLines.AuthorName]
-			authorTotal += authorLines.LinesTouched.New + authorLines.LinesTouched.Changes
-			authorTotals[authorLines.AuthorName] = authorTotal
-		}
+	// authorTotals := make(map[string]int, 0)
+	// items := make([]opts.PieData, 0)
+	// for _, resultsTs := range changesResults {
+	// 	for _, authorLines := range resultsTs.AuthorsLines {
+	// 		if authorLines.LinesTouched.New+authorLines.LinesTouched.Changes == 0 {
+	// 			continue
+	// 		}
+	// 		authorTotal := authorTotals[authorLines.AuthorName]
+	// 		authorTotal += authorLines.LinesTouched.New + authorLines.LinesTouched.Changes
+	// 		authorTotals[authorLines.AuthorName] = authorTotal
+	// 	}
+	// }
+
+	// for authorName, authorTotal := range authorTotals {
+	// 	items = append(items, opts.PieData{Name: authorName, Value: authorTotal})
+	// }
+
+	// pie.SetGlobalOptions(
+	// 	charts.WithInitializationOpts(opts.Initialization{Theme: types.ThemeShine}),
+	// 	charts.WithTitleOpts(opts.Title{
+	// 		Title: "Total Lines Touched",
+	// 	}),
+	// 	charts.WithTooltipOpts(opts.Tooltip{
+	// 		Trigger: "axis",
+	// 		Show:    true,
+	// 	}),
+	// 	charts.WithLegendOpts(opts.Legend{
+	// 		Show: true,
+	// 		Type: "scroll",
+	// 		Top:  "23px",
+	// 	}),
+	// )
+
+	// pie.AddSeries("pie", items).
+	// 	SetSeriesOptions(charts.WithLabelOpts(
+	// 		opts.Label{
+	// 			Show:      true,
+	// 			Formatter: "{b}: {c}",
+	// 		}),
+	// 	)
+
+	datesX := make([]string, 0)
+	for _, oresults := range changesResults {
+		datesX = append(datesX, oresults.UntilCommit.Date.Format(time.DateOnly))
 	}
 
-	for authorName, authorTotal := range authorTotals {
-		items = append(items, opts.PieData{Name: authorName, Value: authorTotal})
-	}
-
-	pie.SetGlobalOptions(
-		charts.WithInitializationOpts(opts.Initialization{Theme: types.ThemeShine}),
+	// TOTAL LINES TOUCHED
+	linesTouched := charts.NewLine()
+	linesTouched.SetGlobalOptions(
+		charts.WithInitializationOpts(opts.Initialization{Theme: types.ThemeShine, Height: "350px"}),
 		charts.WithTitleOpts(opts.Title{
-			Title: "Total Lines Touched",
+			Title: "Lines Touched",
+		}),
+		charts.WithXAxisOpts(opts.XAxis{
+			Type: "category",
 		}),
 		charts.WithTooltipOpts(opts.Tooltip{
 			Trigger: "axis",
@@ -89,23 +123,77 @@ func ServeChangesTimeseries(changesResults []changes.ChangesResult, ownershipTim
 			Type: "scroll",
 			Top:  "23px",
 		}),
+		charts.WithAnimation(),
 	)
 
-	pie.AddSeries("pie", items).
-		SetSeriesOptions(charts.WithLabelOpts(
-			opts.Label{
-				Show:      true,
-				Formatter: "{b}: {c}",
-			}),
+	linesTouched.SetXAxis(datesX)
+
+	totalValues := make([]opts.LineData, 0)
+	for _, date := range datesX {
+		totalValue := 0
+		// look for value on this date
+		for _, changesResult := range changesResults {
+			if changesResult.UntilCommit.Date.Format(time.DateOnly) == date {
+				totalValue = changesResult.TotalLinesTouched.New + changesResult.TotalLinesTouched.Changes
+				break
+			}
+		}
+		totalValues = append(totalValues, opts.LineData{Value: totalValue})
+	}
+	linesTouched.AddSeries("Lines Touched", totalValues,
+		charts.WithLineChartOpts(
+			opts.LineChart{Smooth: false},
+		),
+	)
+
+	// LINES TOUCHED PER AUTHOR TIMESERIES
+	lineAuthor := charts.NewLine()
+	lineAuthor.SetGlobalOptions(
+		charts.WithInitializationOpts(opts.Initialization{Theme: types.ThemeShine}),
+		charts.WithTitleOpts(opts.Title{
+			Title: "Lines Touched per Author",
+		}),
+		charts.WithXAxisOpts(opts.XAxis{
+			Type: "category",
+		}),
+		charts.WithTooltipOpts(opts.Tooltip{
+			Trigger: "axis",
+			Show:    true,
+		}),
+		charts.WithLegendOpts(opts.Legend{
+			Show: true,
+			Type: "scroll",
+			Top:  "23px",
+		}),
+		charts.WithAnimation(),
+	)
+
+	lineAuthor.SetXAxis(datesX)
+	byAuthorResults := changes.SortByAuthorDate(changesResults)
+	for _, authorResult := range byAuthorResults {
+		authorValues := make([]opts.LineData, 0)
+		for _, date := range datesX {
+			authorValue := 0
+			// look for value on this date
+			for _, authorResult := range authorResult.AuthorLinesDates {
+				if authorResult.Since == date {
+					authorValue = authorResult.AuthorLines.LinesTouched.New + authorResult.AuthorLines.LinesTouched.Changes
+					break
+				}
+			}
+			authorValues = append(authorValues, opts.LineData{Value: authorValue})
+		}
+		lineAuthor.AddSeries(authorResult.AuthorName, authorValues,
+			charts.WithLineChartOpts(
+				opts.LineChart{Smooth: false},
+			),
 		)
+	}
 
 	// ADD GRAPHS TO PAGE
 	page := components.NewPage()
 	page.SetLayout(components.PageFlexLayout)
-	page.AddCharts(
-		tr,
-		pie,
-	)
+	page.AddCharts(tr, linesTouched, lineAuthor)
 
 	info := "<pre style=\"display:flex;justify-content:center\"><code>"
 	info += utils.BaseOptsStr(ownershipTimeseriesOpts.BaseOptions)

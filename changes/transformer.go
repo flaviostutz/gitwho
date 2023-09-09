@@ -23,7 +23,7 @@ func SortByAuthorDate(changesResults []ChangesResult) []AuthorNameLinesDate {
 	// map data
 	authorNameDateLines := make(map[string]map[string]AuthorLines, 0)
 	for _, result := range changesResults {
-		date := result.SinceCommit.Date.Format(time.DateOnly)
+		date := result.UntilCommit.Date.Format(time.DateOnly)
 
 		for _, authorLines := range result.AuthorsLines {
 			authorDateLines, ok := authorNameDateLines[authorLines.AuthorName]
