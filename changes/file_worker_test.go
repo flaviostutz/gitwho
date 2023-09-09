@@ -1,8 +1,6 @@
 package changes
 
 import (
-	"fmt"
-	"strings"
 	"testing"
 
 	"github.com/flaviostutz/gitwho/utils"
@@ -26,7 +24,7 @@ func TestAnalyseWorkerFile1(t *testing.T) {
 	if err != nil {
 		return
 	}
-	fmt.Printf(">>> %s\n", strings.Join(utils.CommitInfoToCommitIds(commits), "\n"))
+	// fmt.Printf(">>> %s\n", strings.Join(utils.CommitInfoToCommitIds(commits), "\n"))
 
 	// submit commit1:file1 for analysis
 	analyseFileInputChan <- fileWorkerRequest{repoDir: repoDir, commitId: commits[4].CommitId, filePath: "file1"}

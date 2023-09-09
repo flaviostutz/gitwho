@@ -233,14 +233,20 @@ func ExecGetCommitsInCommitRange(repoDir string, branch string, sinceCommit stri
 		return []CommitInfo{commit}, nil
 	}
 
+	branchStr := fmt.Sprintf("--branches=\"%s\"", branch)
+
 	commitRange := ""
 	if sinceCommit != "" || untilCommit != "" {
 		commitRange = fmt.Sprintf("%s...%s", sinceCommit, untilCommit)
 	}
-	if commitRange == "" && branch == "" {
-		return nil, fmt.Errorf("branch is required when sinceCommit and untilCommit are empty")
+	if commitRange == "" {
+		if branch == "" {
+			return nil, fmt.Errorf("branch is required when sinceCommit and untilCommit are empty")
+		}
+		branchStr = branch
 	}
-	cmdResult, err := ExecShellf(repoDir, "/usr/bin/git rev-list --branches=\"%s\" %s --boundary --format=\"%%H---%%cI---%%cN---%%cE\"", branch, commitRange)
+
+	cmdResult, err := ExecShellf(repoDir, "/usr/bin/git rev-list %s %s --boundary --format=\"%%H---%%cI---%%cN---%%cE\"", branchStr, commitRange)
 	if err != nil {
 		return nil, err
 	}
@@ -248,6 +254,13 @@ func ExecGetCommitsInCommitRange(repoDir string, branch string, sinceCommit stri
 	results, err := revListToCommitInfo(cmdResult)
 	if err != nil {
 		return nil, err
+	}
+
+	if len(results) == 0 {
+		if sinceCommit != "" && untilCommit != "" {
+			return nil, fmt.Errorf("since/until commit not found")
+		}
+		return []CommitInfo{}, nil
 	}
 
 	// sanity checks
