@@ -240,7 +240,7 @@ func ExecGetCommitsInCommitRange(repoDir string, branch string, sinceCommit stri
 	if commitRange == "" && branch == "" {
 		return nil, fmt.Errorf("branch is required when sinceCommit and untilCommit are empty")
 	}
-	cmdResult, err := ExecShellf(repoDir, "/usr/bin/git rev-list %s %s --boundary --format=\"%%H---%%cI---%%cN---%%cE\"", branch, commitRange)
+	cmdResult, err := ExecShellf(repoDir, "/usr/bin/git rev-list --branches=\"%s\" %s --boundary --format=\"%%H---%%cI---%%cN---%%cE\"", branch, commitRange)
 	if err != nil {
 		return nil, err
 	}
