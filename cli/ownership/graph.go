@@ -93,13 +93,6 @@ func ServeOwnershipTimeseries(ownershipResults []ownership.OwnershipResult, owne
 			}
 			authorValues = append(authorValues, opts.LineData{Value: authorValue})
 		}
-		// for i, authorResultsDate := range authorResult.AuthorLinesDate {
-		// 	if authorResultsDate.Date == datesX[i] {
-		// 		authorValues = append(authorValues, opts.LineData{Value: authorResultsDate.AuthorLines.OwnedLinesTotal})
-		// 	} else {
-		// 		authorValues = append(authorValues, opts.LineData{Value: 100})
-		// 	}
-		// }
 		lineAuthor.AddSeries(authorResult.AuthorName, authorValues,
 			charts.WithLineChartOpts(
 				opts.LineChart{Smooth: false},
@@ -107,11 +100,13 @@ func ServeOwnershipTimeseries(ownershipResults []ownership.OwnershipResult, owne
 		)
 	}
 
-	// TOTAL LINES
 	// OWNERSHIP TOTAL PER AUTHOR TIMESERIES
 	lineTotal := charts.NewLine()
 	lineTotal.SetGlobalOptions(
-		charts.WithInitializationOpts(opts.Initialization{Theme: types.ThemeShine, Height: "350px"}),
+		charts.WithInitializationOpts(opts.Initialization{
+			Theme:  types.ThemeShine,
+			Height: "250px"},
+		),
 		charts.WithTitleOpts(opts.Title{
 			Title: "Lines",
 		}),

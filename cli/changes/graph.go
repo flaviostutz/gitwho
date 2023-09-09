@@ -20,7 +20,9 @@ func ServeChangesTimeseries(changesResults []changes.ChangesResult, ownershipTim
 	// CHANGES TIMESERIES
 	tr := charts.NewThemeRiver()
 	tr.SetGlobalOptions(
-		charts.WithInitializationOpts(opts.Initialization{Theme: types.ThemeShine}),
+		charts.WithInitializationOpts(opts.Initialization{
+			Theme: types.ThemeShine,
+		}),
 		charts.WithTitleOpts(opts.Title{
 			Title: "Lines Touched Timeseries",
 		}),
@@ -107,7 +109,10 @@ func ServeChangesTimeseries(changesResults []changes.ChangesResult, ownershipTim
 	// TOTAL LINES TOUCHED
 	linesTouched := charts.NewLine()
 	linesTouched.SetGlobalOptions(
-		charts.WithInitializationOpts(opts.Initialization{Theme: types.ThemeShine, Height: "350px"}),
+		charts.WithInitializationOpts(opts.Initialization{
+			Theme:  types.ThemeShine,
+			Height: "250px"},
+		),
 		charts.WithTitleOpts(opts.Title{
 			Title: "Lines Touched",
 		}),
@@ -149,7 +154,10 @@ func ServeChangesTimeseries(changesResults []changes.ChangesResult, ownershipTim
 	// LINES TOUCHED PER AUTHOR TIMESERIES
 	lineAuthor := charts.NewLine()
 	lineAuthor.SetGlobalOptions(
-		charts.WithInitializationOpts(opts.Initialization{Theme: types.ThemeShine}),
+		charts.WithInitializationOpts(opts.Initialization{
+			Theme:  types.ThemeShine,
+			Height: "250px"},
+		),
 		charts.WithTitleOpts(opts.Title{
 			Title: "Lines Touched per Author",
 		}),
