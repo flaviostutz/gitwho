@@ -10,16 +10,24 @@ import (
 	"github.com/rodaine/table"
 )
 
-func FormatTimeseriesOwnershipResults(ownershipResults []ownership.OwnershipResult, full bool) string {
+func FormatTimeseriesOwnershipResults(oresults []ownership.OwnershipResult, full bool) (string, error) {
 	str := "\n"
 
 	tblWriter := bytes.NewBufferString("")
 	tbl := table.New("Date", "Lines", "Duplicates", "Files")
 	tbl.WithWriter(tblWriter)
 
+	// author clusters
+	cstr, err := formatAuthorClusters(oresults)
+	if err != nil {
+		return "", err
+	}
+	str += cstr
+	str += "\n"
+
 	firstResult := ownership.OwnershipResult{}
 	prevResult := ownership.OwnershipResult{}
-	for i, result := range ownershipResults {
+	for i, result := range oresults {
 		if i == 0 {
 			firstResult = result
 		}
@@ -38,10 +46,10 @@ func FormatTimeseriesOwnershipResults(ownershipResults []ownership.OwnershipResu
 	str += tblWriter.String()
 
 	if full {
-		str += formatAuthorsTimeseries(ownershipResults)
+		str += formatAuthorsTimeseries(oresults)
 	}
 
-	return str
+	return str, nil
 }
 
 func formatAuthorsTimeseries(ownershipResults []ownership.OwnershipResult) string {

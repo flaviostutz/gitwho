@@ -25,7 +25,8 @@ func TestFormatCodeOwnershipShort(t *testing.T) {
 	}, nil)
 	require.Nil(t, err)
 
-	out := FormatCodeOwnershipResults(results, false)
+	out, err := FormatCodeOwnershipResults(results, false)
+	require.Nil(t, err)
 	require.Contains(t, out, "Total authors: 3\nTotal files: 2\nTotal lines: 7")
 }
 
@@ -46,7 +47,8 @@ func TestFormatCodeOwnershipFull(t *testing.T) {
 	}, nil)
 	require.Nil(t, err)
 
-	out := FormatCodeOwnershipResults(results, true)
+	out, err := FormatCodeOwnershipResults(results, true)
+	require.Nil(t, err)
 	require.Contains(t, out, "Total authors: 3\nTotal files: 2\nAvg line age: 0 days\nDuplicated lines: 0")
 }
 

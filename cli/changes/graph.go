@@ -221,7 +221,7 @@ func ServeChangesTimeseries(changesResults []changes.ChangesResult, ownershipTim
 
 // ServeChanges Start server with a web page with graphs and
 // returns the random URL generated for the page
-func ServeChanges(result changes.ChangesResult, changesOpts changes.ChangesOptions) string {
+func ServeChanges(cresult changes.ChangesResult, changesOpts changes.ChangesOptions) (string, error) {
 
 	sankey := charts.NewSankey()
 	sankey.SetGlobalOptions(
@@ -251,14 +251,14 @@ func ServeChanges(result changes.ChangesResult, changesOpts changes.ChangesOptio
 	}
 
 	links := make([]opts.SankeyLink, 0)
-	links = append(links, opts.SankeyLink{Source: "Lines touched", Target: "Changed lines", Value: float32(result.TotalLinesTouched.Changes)})
-	links = append(links, opts.SankeyLink{Source: "Changed lines", Target: "Refactor", Value: float32(result.TotalLinesTouched.RefactorOwn + result.TotalLinesTouched.RefactorOther)})
-	links = append(links, opts.SankeyLink{Source: "Refactor", Target: "Refactor own", Value: float32(result.TotalLinesTouched.RefactorOwn)})
-	links = append(links, opts.SankeyLink{Source: "Refactor", Target: "Refactor others", Value: float32(result.TotalLinesTouched.RefactorOther)})
-	links = append(links, opts.SankeyLink{Source: "Changed lines", Target: "Churn", Value: float32(result.TotalLinesTouched.ChurnOwn + result.TotalLinesTouched.ChurnOther)})
-	links = append(links, opts.SankeyLink{Source: "Churn", Target: "Churn own", Value: float32(result.TotalLinesTouched.ChurnOwn)})
-	links = append(links, opts.SankeyLink{Source: "Churn", Target: "Churn others", Value: float32(result.TotalLinesTouched.ChurnOther)})
-	links = append(links, opts.SankeyLink{Source: "Lines touched", Target: "New lines", Value: float32(result.TotalLinesTouched.New)})
+	links = append(links, opts.SankeyLink{Source: "Lines touched", Target: "Changed lines", Value: float32(cresult.TotalLinesTouched.Changes)})
+	links = append(links, opts.SankeyLink{Source: "Changed lines", Target: "Refactor", Value: float32(cresult.TotalLinesTouched.RefactorOwn + cresult.TotalLinesTouched.RefactorOther)})
+	links = append(links, opts.SankeyLink{Source: "Refactor", Target: "Refactor own", Value: float32(cresult.TotalLinesTouched.RefactorOwn)})
+	links = append(links, opts.SankeyLink{Source: "Refactor", Target: "Refactor others", Value: float32(cresult.TotalLinesTouched.RefactorOther)})
+	links = append(links, opts.SankeyLink{Source: "Changed lines", Target: "Churn", Value: float32(cresult.TotalLinesTouched.ChurnOwn + cresult.TotalLinesTouched.ChurnOther)})
+	links = append(links, opts.SankeyLink{Source: "Churn", Target: "Churn own", Value: float32(cresult.TotalLinesTouched.ChurnOwn)})
+	links = append(links, opts.SankeyLink{Source: "Churn", Target: "Churn others", Value: float32(cresult.TotalLinesTouched.ChurnOther)})
+	links = append(links, opts.SankeyLink{Source: "Lines touched", Target: "New lines", Value: float32(cresult.TotalLinesTouched.New)})
 
 	sankey.AddSeries("lines", nodes, links,
 		charts.WithLabelOpts(opts.Label{
@@ -272,10 +272,16 @@ func ServeChanges(result changes.ChangesResult, changesOpts changes.ChangesOptio
 	info := "<pre style=\"display:flex;justify-content:center\"><code>"
 	info += utils.BaseOptsStr(changesOpts.BaseOptions)
 	info += changesOptsStr(changesOpts)
+
+	co, err := FormatFullTextResults(cresult)
+	if err != nil {
+		return "", err
+	}
+	info += co
 	info += "</code></pre>"
 
 	url, _ := cli.ServeGraphPage(page, info)
-	return url
+	return url, nil
 }
 
 func changesOptsStr(changesOpts changes.ChangesOptions) string {

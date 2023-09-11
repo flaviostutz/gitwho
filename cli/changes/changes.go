@@ -54,7 +54,10 @@ func RunChanges(osArgs []string) {
 
 	switch cliOpts.Format {
 	case "full":
-		output := FormatFullTextResults(changesResults)
+		output, err := FormatFullTextResults(changesResults)
+		if err != nil {
+			fmt.Printf("Couldn't format results. err=%s", err)
+		}
 		fmt.Println(output)
 
 	case "short":
@@ -65,8 +68,12 @@ func RunChanges(osArgs []string) {
 		fmt.Println(output)
 
 	case "graph":
-		url := ServeChanges(changesResults, opts)
-		_, err := utils.ExecShellf("", "open %s", url)
+		url, err := ServeChanges(changesResults, opts)
+		if err != nil {
+			fmt.Printf("Couldn't format results. err=%s\n", err)
+			os.Exit(4)
+		}
+		_, err = utils.ExecShellf("", "open %s", url)
 		if err != nil {
 			fmt.Printf("Couldn't open browser automatically. See results at %s\n", url)
 		}

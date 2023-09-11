@@ -52,14 +52,26 @@ func RunOwnershipTimeseries(osArgs []string) {
 
 	switch cliOpts.Format {
 	case "full":
-		str := FormatTimeseriesOwnershipResults(ownershipResults, true)
+		str, err := FormatTimeseriesOwnershipResults(ownershipResults, true)
+		if err != nil {
+			fmt.Printf("Couldn't format results. err=%s\n", err)
+			os.Exit(4)
+		}
 		fmt.Println(str)
 	case "short":
-		str := FormatTimeseriesOwnershipResults(ownershipResults, false)
+		str, err := FormatTimeseriesOwnershipResults(ownershipResults, false)
+		if err != nil {
+			fmt.Printf("Couldn't format results. err=%s\n", err)
+			os.Exit(4)
+		}
 		fmt.Println(str)
 	case "graph":
-		url := ServeOwnershipTimeseries(ownershipResults, opts)
-		_, err := utils.ExecShellf("", "open %s", url)
+		url, err := ServeOwnershipTimeseries(ownershipResults, opts)
+		if err != nil {
+			fmt.Printf("Couldn't format results. err=%s\n", url)
+			os.Exit(4)
+		}
+		_, err = utils.ExecShellf("", "open %s", url)
 		if err != nil {
 			fmt.Printf("Couldn't open browser automatically. See results at %s\n", url)
 		}

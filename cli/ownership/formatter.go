@@ -5,6 +5,7 @@ import (
 	"strconv"
 
 	"github.com/flaviostutz/gitwho/ownership"
+	"github.com/flaviostutz/gitwho/utils"
 )
 
 type authorLinesDate struct {
@@ -12,15 +13,25 @@ type authorLinesDate struct {
 	authorLines ownership.AuthorLines
 }
 
-func FormatCodeOwnershipResults(ownershipResult ownership.OwnershipResult, full bool) string {
-	text := fmt.Sprintf("\nTotal authors: %d\n", len(ownershipResult.AuthorsLines))
-	text += fmt.Sprintf("Total files: %d\n", ownershipResult.TotalFiles)
+func FormatCodeOwnershipResults(oresult ownership.OwnershipResult, full bool) (string, error) {
+	// author clusters
+	text := fmt.Sprintf("\nTotal authors: %d\n", len(oresult.AuthorsLines))
+	text += fmt.Sprintf("Total files: %d\n", oresult.TotalFiles)
+
 	if full {
-		text += fmt.Sprintf("Avg line age: %s\n", avgLineAgeStr(ownershipResult.LinesAgeDaysSum, ownershipResult.TotalLines))
-		text += fmt.Sprintf("Duplicated lines: %d (%d%%)\n", ownershipResult.TotalLinesDuplicated, int(100*float64(ownershipResult.TotalLinesDuplicated)/float64(ownershipResult.TotalLines)))
+		text += fmt.Sprintf("Avg line age: %s\n", avgLineAgeStr(oresult.LinesAgeDaysSum, oresult.TotalLines))
+		text += fmt.Sprintf("Duplicated lines: %d (%d%%)\n", oresult.TotalLinesDuplicated, int(100*float64(oresult.TotalLinesDuplicated)/float64(oresult.TotalLines)))
 	}
-	text += fmt.Sprintf("Total lines: %d\n", ownershipResult.TotalLines)
-	for _, authorLines := range ownershipResult.AuthorsLines {
+
+	// author clusters
+	cstr, err := formatAuthorClusters([]ownership.OwnershipResult{oresult})
+	if err != nil {
+		return "", err
+	}
+	text += cstr
+
+	text += fmt.Sprintf("Total lines: %d\n", oresult.TotalLines)
+	for _, authorLines := range oresult.AuthorsLines {
 		mailStr := ""
 		additional := ""
 		if full {
@@ -35,11 +46,11 @@ func FormatCodeOwnershipResults(ownershipResult ownership.OwnershipResult, full 
 			authorLines.AuthorName,
 			mailStr,
 			authorLines.OwnedLinesTotal,
-			strconv.FormatFloat(float64(100)*(float64(authorLines.OwnedLinesTotal)/float64(ownershipResult.TotalLines)), 'f', 1, 32),
+			strconv.FormatFloat(float64(100)*(float64(authorLines.OwnedLinesTotal)/float64(oresult.TotalLines)), 'f', 1, 32),
 			additional)
 	}
 
-	return text
+	return text, nil
 }
 
 func FormatDuplicatesResults(ownershipResult ownership.OwnershipResult, full bool) string {
@@ -64,4 +75,25 @@ func FormatDuplicatesResults(ownershipResult ownership.OwnershipResult, full boo
 
 func avgLineAgeStr(linesAgeDaysSum float64, totalLines int) string {
 	return fmt.Sprintf("%1.f days", (linesAgeDaysSum / float64(totalLines)))
+}
+
+func formatAuthorClusters(cresult []ownership.OwnershipResult) (string, error) {
+	aclusters, err := ownership.ClusterizeAuthors(cresult, 3)
+	if err != nil {
+		return "", fmt.Errorf("Couldn't clusterize authors. err=%s", err)
+	}
+
+	text := ""
+	if len(aclusters) > 0 {
+		text += "Author clusters:\n"
+		for _, authorCluster := range aclusters {
+			authorNames := make([]string, 0)
+			for _, lines := range authorCluster.AuthorLines {
+				authorNames = append(authorNames, lines.AuthorName)
+			}
+			text += fmt.Sprintf("  %s: %s\n", authorCluster.Name, utils.JoinWithLimit(authorNames, ", ", 4))
+		}
+	}
+
+	return text, nil
 }

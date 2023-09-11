@@ -37,7 +37,8 @@ func TestFormatChangesFull(t *testing.T) {
 	}, nil)
 	require.Nil(t, err)
 
-	out := FormatFullTextResults(results)
+	out, err := FormatFullTextResults(results)
+	require.Nil(t, err)
 	require.Contains(t, out, "Total authors active: 3\nTotal files touched: 2\nAverage line age when changed: 0 days\n- Total lines touched: 11\n  - New lines: 8 (72%)\n  - Changed lines: 3 (27%)\n    - Refactor: 0 (0%)")
 
 }

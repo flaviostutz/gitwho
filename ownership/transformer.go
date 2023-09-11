@@ -148,7 +148,7 @@ func ClusterizeAuthors(changesResults []OwnershipResult, numberOfClusters int) (
 		}
 		value := int(c.Center.Coordinates()[0])
 		authorClusters = append(authorClusters, AuthorCluster{
-			Name:    fmt.Sprintf("Authors that touched ~%d lines", value),
+			Name:    fmt.Sprintf("Authors that owns ~%d lines", value),
 			Value:   value,
 			Authors: clusterAuthors,
 		})

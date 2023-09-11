@@ -15,7 +15,7 @@ import (
 
 // ServeOwnershipTimeseries Start server with a web page with graphs and
 // returns the random URL generated for the page
-func ServeOwnershipTimeseries(ownershipResults []ownership.OwnershipResult, ownershipTimeseriesOpts ownership.OwnershipTimeseriesOptions) string {
+func ServeOwnershipTimeseries(ownershipResults []ownership.OwnershipResult, ownershipTimeseriesOpts ownership.OwnershipTimeseriesOptions) (string, error) {
 
 	// OWNERSHIP SHARE TIMESERIES
 	tr := charts.NewThemeRiver()
@@ -59,7 +59,10 @@ func ServeOwnershipTimeseries(ownershipResults []ownership.OwnershipResult, owne
 	}
 	lineAuthor := charts.NewLine()
 	lineAuthor.SetGlobalOptions(
-		charts.WithInitializationOpts(opts.Initialization{Theme: types.ThemeShine}),
+		charts.WithInitializationOpts(opts.Initialization{
+			Theme:  types.ThemeShine,
+			Height: "250px",
+		}),
 		charts.WithTitleOpts(opts.Title{
 			Title: "Line Ownership per Author",
 		}),
@@ -162,14 +165,20 @@ func ServeOwnershipTimeseries(ownershipResults []ownership.OwnershipResult, owne
 	info := "<pre style=\"display:flex;justify-content:center\"><code>"
 	info += utils.BaseOptsStr(ownershipTimeseriesOpts.BaseOptions)
 	info += ownershipTimeseriesOptsStr(ownershipTimeseriesOpts)
-	info += FormatTimeseriesOwnershipResults(ownershipResults, true)
+
+	co, err := FormatTimeseriesOwnershipResults(ownershipResults, true)
+	if err != nil {
+		return "", err
+	}
+	info += co
+
 	info += "</code></pre>"
 
 	url, _ := cli.ServeGraphPage(page, info)
-	return url
+	return url, nil
 }
 
-func ServeOwnership(ownershipResult ownership.OwnershipResult, ownershipOpts ownership.OwnershipOptions) string {
+func ServeOwnership(ownershipResult ownership.OwnershipResult, ownershipOpts ownership.OwnershipOptions) (string, error) {
 	pie := charts.NewPie()
 
 	items := make([]opts.PieData, 0)
@@ -208,11 +217,17 @@ func ServeOwnership(ownershipResult ownership.OwnershipResult, ownershipOpts own
 	info := "<pre style=\"display:flex;justify-content:center\"><code>"
 	info += utils.BaseOptsStr(ownershipOpts.BaseOptions)
 	info += ownershipOptsStr(ownershipOpts)
-	info += FormatCodeOwnershipResults(ownershipResult, true)
+
+	co, err := FormatCodeOwnershipResults(ownershipResult, true)
+	if err != nil {
+		return "", err
+	}
+
+	info += co
 	info += "</code></pre>"
 
 	url, _ := cli.ServeGraphPage(page, info)
-	return url
+	return url, nil
 }
 
 func ownershipTimeseriesOptsStr(opts ownership.OwnershipTimeseriesOptions) string {

@@ -51,16 +51,26 @@ func RunOwnership(osArgs []string) {
 
 	switch cliOpts.Format {
 	case "full":
-		output := FormatCodeOwnershipResults(ownershipResult, true)
+		output, err := FormatCodeOwnershipResults(ownershipResult, true)
+		if err != nil {
+			fmt.Printf("Couldn't format results. err=%s", err)
+		}
 		fmt.Println(output)
 
 	case "short":
-		output := FormatCodeOwnershipResults(ownershipResult, false)
+		output, err := FormatCodeOwnershipResults(ownershipResult, false)
+		if err != nil {
+			fmt.Printf("Couldn't format results. err=%s", err)
+		}
 		fmt.Println(output)
 
 	case "graph":
-		url := ServeOwnership(ownershipResult, opts)
-		_, err := utils.ExecShellf("", "open %s", url)
+		url, err := ServeOwnership(ownershipResult, opts)
+		if err != nil {
+			fmt.Printf("Couldn't format results. err=%s\n", err)
+			os.Exit(4)
+		}
+		_, err = utils.ExecShellf("", "open %s", url)
 		if err != nil {
 			fmt.Printf("Couldn't open browser automatically. See results at %s\n", url)
 		}

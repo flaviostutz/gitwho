@@ -8,28 +8,36 @@ import (
 	"github.com/flaviostutz/gitwho/utils"
 )
 
-func FormatFullTextResults(cResult changes.ChangesResult) string {
-	if cResult.TotalCommits == 0 {
-		return "No changes found"
+func FormatFullTextResults(cresult changes.ChangesResult) (string, error) {
+	if cresult.TotalCommits == 0 {
+		return "No changes found", nil
 	}
 
-	text := fmt.Sprintf("Total authors active: %d\n", len(cResult.AuthorsLines))
-	text += fmt.Sprintf("Total files touched: %d\n", cResult.TotalFiles)
-	if cResult.TotalLinesTouched.Changes > 0 {
-		text += fmt.Sprintf("Average line age when changed: %d days\n", (int(cResult.TotalLinesTouched.AgeDaysSum / float64(cResult.TotalLinesTouched.Changes))))
+	text := fmt.Sprintf("Total authors active: %d\n", len(cresult.AuthorsLines))
+	text += fmt.Sprintf("Total files touched: %d\n", cresult.TotalFiles)
+	if cresult.TotalLinesTouched.Changes > 0 {
+		text += fmt.Sprintf("Average line age when changed: %d days\n", (int(cresult.TotalLinesTouched.AgeDaysSum / float64(cresult.TotalLinesTouched.Changes))))
 	}
-	text += formatLinesTouched(cResult.TotalLinesTouched, changes.LinesTouched{})
+	text += formatLinesTouched(cresult.TotalLinesTouched, changes.LinesTouched{})
 
-	for _, authorLines := range cResult.AuthorsLines {
+	// author clusters
+	cstr, err := formatAuthorClusters(cresult)
+	if err != nil {
+		return "", err
+	}
+
+	text += "\n" + cstr
+
+	for _, authorLines := range cresult.AuthorsLines {
 		if authorLines.LinesTouched.New+authorLines.LinesTouched.Changes == 0 {
 			continue
 		}
 		mailStr := fmt.Sprintf(" %s", authorLines.AuthorMail)
 		text += fmt.Sprintf("\nAuthor: %s%s\n", authorLines.AuthorName, mailStr)
-		text += formatLinesTouched(authorLines.LinesTouched, cResult.TotalLinesTouched)
+		text += formatLinesTouched(authorLines.LinesTouched, cresult.TotalLinesTouched)
 		text += formatTopTouchedFiles(authorLines.FilesTouched)
 	}
-	return text
+	return text, nil
 }
 
 func FormatTopTextResults(cresult changes.ChangesResult) (string, error) {
@@ -38,21 +46,9 @@ func FormatTopTextResults(cresult changes.ChangesResult) (string, error) {
 	}
 
 	// author clusters
-	aclusters, err := changes.ClusterizeAuthors([]changes.ChangesResult{cresult}, 3)
+	text, err := formatAuthorClusters(cresult)
 	if err != nil {
-		return "", fmt.Errorf("Couldn't clusterize authors. err=%s", err)
-	}
-
-	text := ""
-	if len(aclusters) > 0 {
-		text += "\nAuthor clusters\n"
-		for _, authorCluster := range aclusters {
-			authorNames := make([]string, 0)
-			for _, lines := range authorCluster.AuthorLines {
-				authorNames = append(authorNames, lines.AuthorName)
-			}
-			text += fmt.Sprintf("  %s: %s\n", authorCluster.Name, utils.JoinWithLimit(authorNames, ", ", 4))
-		}
+		return "", err
 	}
 
 	// top coders
@@ -115,6 +111,27 @@ func FormatTopTextResults(cresult changes.ChangesResult) (string, error) {
 	for i := 0; i < len(cresult.AuthorsLines) && i < 3; i++ {
 		al := cresult.AuthorsLines[i]
 		text += fmt.Sprintf("  %s: %d%s\n", al.AuthorName, al.LinesTouched.ChurnOwn+al.LinesTouched.ChurnReceived, utils.CalcPercStr(al.LinesTouched.ChurnOwn+al.LinesTouched.ChurnReceived, cresult.TotalLinesTouched.ChurnOwn+cresult.TotalLinesTouched.ChurnReceived))
+	}
+
+	return text, nil
+}
+
+func formatAuthorClusters(cresult changes.ChangesResult) (string, error) {
+	aclusters, err := changes.ClusterizeAuthors([]changes.ChangesResult{cresult}, 3)
+	if err != nil {
+		return "", fmt.Errorf("Couldn't clusterize authors. err=%s", err)
+	}
+
+	text := ""
+	if len(aclusters) > 0 {
+		text += "\nAuthor clusters\n"
+		for _, authorCluster := range aclusters {
+			authorNames := make([]string, 0)
+			for _, lines := range authorCluster.AuthorLines {
+				authorNames = append(authorNames, lines.AuthorName)
+			}
+			text += fmt.Sprintf("  %s: %s\n", authorCluster.Name, utils.JoinWithLimit(authorNames, ", ", 4))
+		}
 	}
 
 	return text, nil
