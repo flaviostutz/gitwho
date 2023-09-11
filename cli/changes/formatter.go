@@ -48,7 +48,7 @@ func FormatTopTextResults(cresult changes.ChangesResult) (string, error) {
 		text += "\nAuthor clusters\n"
 		for _, authorCluster := range aclusters {
 			authorNames := make([]string, 0)
-			for _, lines := range authorCluster.Lines {
+			for _, lines := range authorCluster.AuthorLines {
 				authorNames = append(authorNames, lines.AuthorName)
 			}
 			text += fmt.Sprintf("  %s: %s\n", authorCluster.Name, utils.JoinWithLimit(authorNames, ", ", 4))

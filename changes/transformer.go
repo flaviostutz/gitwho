@@ -7,6 +7,7 @@ import (
 
 	"github.com/muesli/clusters"
 	"github.com/muesli/kmeans"
+	"golang.org/x/exp/slices"
 )
 
 type AuthorNameLinesDate struct {
@@ -74,9 +75,9 @@ type AuthorCluster struct {
 }
 
 type AuthorLinesCluster struct {
-	Name  string
-	Value int
-	Lines []AuthorLines
+	Name        string
+	Value       int
+	AuthorLines []AuthorLines
 }
 
 // ClusterizeAuthors processes changesResults and clusterizes authors using k-mean over the number of touched lines
@@ -135,10 +136,15 @@ func ClusterizeAuthors(changesResults []ChangesResult, numberOfClusters int) ([]
 		clusterAuthors := make([]string, 0)
 		// fmt.Printf("Centered at x: %.2f\n", c.Center[0])
 		// fmt.Printf("Matching data points: %+v\n\n", c.Observations)
+		processedObs := make([]int, 0)
 		for _, obs := range c.Observations {
 			totalTouched := int(obs.Coordinates()[0])
+			if slices.Contains(processedObs, totalTouched) {
+				continue
+			}
 			authorNames := linesAuthor[totalTouched]
 			clusterAuthors = append(clusterAuthors, authorNames...)
+			processedObs = append(processedObs, totalTouched)
 		}
 		value := int(c.Center.Coordinates()[0])
 		authorClusters = append(authorClusters, AuthorCluster{
@@ -171,16 +177,16 @@ func ClusterizeAuthors(changesResults []ChangesResult, numberOfClusters int) ([]
 		}
 
 		authorLinesCluster = append(authorLinesCluster, AuthorLinesCluster{
-			Name:  clusterWithName.Name,
-			Value: clusterWithName.Value,
-			Lines: allAuthorLines,
+			Name:        clusterWithName.Name,
+			Value:       clusterWithName.Value,
+			AuthorLines: allAuthorLines,
 		})
 	}
 
 	// order authors by lines touched count
 	for _, authorLines := range authorLinesCluster {
-		sort.Slice(authorLines.Lines, func(i, j int) bool {
-			return (authorLines.Lines[i].LinesTouched.New + authorLines.Lines[i].LinesTouched.Changes) > (authorLines.Lines[j].LinesTouched.New + authorLines.Lines[j].LinesTouched.Changes)
+		sort.Slice(authorLines.AuthorLines, func(i, j int) bool {
+			return (authorLines.AuthorLines[i].LinesTouched.New + authorLines.AuthorLines[i].LinesTouched.Changes) > (authorLines.AuthorLines[j].LinesTouched.New + authorLines.AuthorLines[j].LinesTouched.Changes)
 		})
 	}
 
