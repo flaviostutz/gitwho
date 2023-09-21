@@ -155,22 +155,32 @@ ownership/analyser_test.go:104 - 108
 ```sh
 gitwho ownership --help
 Usage of ownership:
+  -authors string
+        Regex for selecting which authors to include in analysis (default ".*")
+  -authors-not string
+        Regex for filtering out authors from analysis
   -branch string
         Branch name to analyse (default "main")
+  -cache-file string
+        If defined, stores results in a cache file that can be used in subsequent calls that uses the same parameters.
+  -cache-ttl int
+        Time in seconds for old items in cache file to be deleted. Defaults to 2 months (default 5184000)
   -files string
         Regex for selecting which file paths to include in analysis (default ".*")
   -files-not string
         Regex for filtering out files from analysis
   -format string
-        Output format. 'full' (duplicated lines and line age details) or 'short' (lines per author) (default "full")
+        Output format. 'full' (more details), 'short' (lines per author), 'graph' (open browser), or 'csv' (CSV format) (default "full")
+  -min-dup-lines int
+        Min number of similar lines in a row to be considered a duplicate (default 4)
   -profile-file string
         Profile file to dump golang runtime data to
   -repo string
         Repository path to analyse (default ".")
   -verbose
-        Show verbose logs during processing (default true)
+        Show verbose logs during processing
   -when string
-        Date time to analyse (default "now")
+        Date to do analysis in repo (default "now")
 ```
 
 ### gitwho changes

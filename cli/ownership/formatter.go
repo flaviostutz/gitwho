@@ -1,6 +1,8 @@
 package ownership
 
 import (
+	"bytes"
+	"encoding/csv"
 	"fmt"
 	"strconv"
 
@@ -96,4 +98,48 @@ func formatAuthorClusters(cresult []ownership.OwnershipResult) (string, error) {
 	}
 
 	return text, nil
+}
+
+// FormatCodeOwnershipResultsCSV formats ownership results as CSV
+func FormatCodeOwnershipResultsCSV(oresult ownership.OwnershipResult) (string, error) {
+	var buf bytes.Buffer
+	writer := csv.NewWriter(&buf)
+	writer.Comma = ';'
+
+	// Write the CSV header
+	header := []string{
+		"AuthorName",
+		"AuthorMail",
+		"OwnedLinesTotal",
+		"OwnedLinesAgeDaysSum",
+		"OwnedLinesDuplicate",
+		"OwnedLinesDuplicateOriginal",
+		"OwnedLinesDuplicateOriginalOthers",
+	}
+	if err := writer.Write(header); err != nil {
+		return "", fmt.Errorf("failed to write CSV header: %v", err)
+	}
+
+	// Write each ownership result as a CSV row
+	for _, result := range oresult.AuthorsLines {
+		row := []string{
+			result.AuthorName,
+			result.AuthorMail,
+			strconv.Itoa(result.OwnedLinesTotal),
+			fmt.Sprintf("%.2f", result.OwnedLinesAgeDaysSum),
+			strconv.Itoa(result.OwnedLinesDuplicate),
+			strconv.Itoa(result.OwnedLinesDuplicateOriginal),
+			strconv.Itoa(result.OwnedLinesDuplicateOriginalOthers),
+		}
+		if err := writer.Write(row); err != nil {
+			return "", fmt.Errorf("failed to write CSV row: %v", err)
+		}
+	}
+
+	writer.Flush()
+	if err := writer.Error(); err != nil {
+		return "", fmt.Errorf("error flushing CSV writer: %v", err)
+	}
+
+	return buf.String(), nil
 }

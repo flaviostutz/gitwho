@@ -26,7 +26,7 @@ func RunOwnership(osArgs []string) {
 	flags.IntVar(&opts.CacheTTLSeconds, "cache-ttl", 5184000, "Time in seconds for old items in cache file to be deleted. Defaults to 2 months")
 	flags.IntVar(&opts.MinDuplicateLines, "min-dup-lines", 4, "Min number of similar lines in a row to be considered a duplicate")
 	flags.StringVar(&when, "when", "now", "Date to do analysis in repo")
-	flags.StringVar(&cliOpts.Format, "format", "full", "Output format. 'full' (more details), 'short' (lines per author) or 'graph' (open browser)")
+	flags.StringVar(&cliOpts.Format, "format", "full", "Output format. 'full' (more details), 'short' (lines per author), 'graph' (open browser), or 'csv' (CSV format)")
 	flags.StringVar(&cliOpts.GoProfileFile, "profile-file", "", "Profile file to dump golang runtime data to")
 	flags.BoolVar(&cliOpts.Verbose, "verbose", false, "Show verbose logs during processing")
 
@@ -76,5 +76,12 @@ func RunOwnership(osArgs []string) {
 		}
 		fmt.Printf("\nServing graph at %s\n", url)
 		select {}
+
+	case "csv":
+		output, err := FormatCodeOwnershipResultsCSV(ownershipResult)
+		if err != nil {
+			fmt.Printf("Couldn't format results as CSV. err=%s", err)
+		}
+		fmt.Println(output)
 	}
 }
