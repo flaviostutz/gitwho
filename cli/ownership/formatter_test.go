@@ -27,7 +27,7 @@ func TestFormatCodeOwnershipShort(t *testing.T) {
 
 	out, err := FormatCodeOwnershipResults(results, false)
 	require.Nil(t, err)
-	require.Contains(t, out, "Total authors: 3\nTotal files: 2\nTotal lines: 7")
+	require.Contains(t, out, "\nTotal authors: 3\nTotal files: 2\nAuthor clusters:\n")
 }
 
 func TestFormatCodeOwnershipFull(t *testing.T) {
