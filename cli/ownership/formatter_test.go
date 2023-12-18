@@ -27,7 +27,7 @@ func TestFormatCodeOwnershipShort(t *testing.T) {
 
 	out, err := FormatCodeOwnershipResults(results, false)
 	require.Nil(t, err)
-	require.Contains(t, out, "Total authors: 3\nTotal files: 2\nTotal lines: 7")
+	require.Contains(t, out, "\nTotal authors: 3\nTotal files: 2\nAuthor clusters:\n")
 }
 
 func TestFormatCodeOwnershipFull(t *testing.T) {
@@ -71,4 +71,30 @@ func TestFormatDuplicatesFull(t *testing.T) {
 
 	out := FormatDuplicatesResults(results, true)
 	require.Contains(t, out, "Duplicated lines: 0 (0%)\n")
+}
+
+func TestFormatCodeOwnershipResultsCSV(t *testing.T) {
+	repoDir, err := utils.ResolveTestOwnershipRepo()
+	require.Nil(t, err)
+
+	commit, err := utils.ExecGetLastestCommit(repoDir, "main", "", "now")
+	require.Nil(t, err)
+
+	results, err := ownership.AnalyseOwnership(ownership.OwnershipOptions{
+		BaseOptions: utils.BaseOptions{
+			RepoDir: repoDir,
+			Branch:  "main",
+		},
+		MinDuplicateLines: 2,
+		CommitId:          commit.CommitId,
+	}, nil)
+	require.Nil(t, err)
+
+	csvData, err := FormatCodeOwnershipResultsCSV(results)
+	require.Nil(t, err)
+
+	require.Contains(t, csvData, "AuthorName;AuthorMail;OwnedLinesTotal;OwnedLinesAgeDaysSum;OwnedLinesDuplicate;OwnedLinesDuplicateOriginal;OwnedLinesDuplicateOriginalOthers")
+	require.Contains(t, csvData, "author3;<author3@mail.com>;5;0.00;0;0;0")
+	require.Contains(t, csvData, "author2;<author2@mail.com>;1;0.00;0;0;0")
+	require.Contains(t, csvData, "author1;<author1@mail.com>;1;0.00;0;0;0")
 }
